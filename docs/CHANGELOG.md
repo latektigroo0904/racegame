@@ -1,5 +1,79 @@
 # Changelog
 
+## 2026-09-23 — Four-wheel compliant contact, content compilation and collision coupling session
+
+Added:
+- `docs/23-FRONT-AXLE-STEERING-V01.md`;
+- `docs/24-REAR-MULTILINK-GEOMETRY-V01.md`;
+- `docs/25-TIRE-VERTICAL-COMPLIANCE-V01.md`;
+- `docs/26-UNSPRUNG-VERTICAL-DYNAMICS-V01.md`;
+- `docs/27-VEHICLE-CONTENT-COMPILATION-V01.md`;
+- `docs/28-COLLISION-STRUCTURE-COUPLING-V01.md`;
+- shared physical front steering rack runtime;
+- mirrored front-left double-wishbone geometry;
+- Ackermann and bump-steer outputs;
+- true five-link rear rigid-upright geometry solver;
+- rear road-contact resolver and rear axle runtime;
+- complete FL/FR/RL/RR four-wheel runtime;
+- canonical four-wheel self-derived contact path;
+- tire radial spring/damper/progressive stiffness model;
+- pressure-dependent tire radial stiffness;
+- tire bottoming state;
+- compliant tire/suspension equilibrium solver;
+- coupled anti-roll/tire equilibrium for front and rear axles;
+- isolated unsprung vertical-mass integrator;
+- authored vehicle physics compiled into immutable runtime-ready configs;
+- COM-local hardpoint transformation during vehicle compilation;
+- handling-critical physics config hashing;
+- end-to-end vehicle asset → compiled config → four-wheel physics test;
+- four-wheel suspension/tire telemetry and CSV export;
+- physics config hash + tire radial deflection telemetry;
+- structural impact distributor with spatial weighting;
+- rigid translation/rotation mode removal from structural impact excitation;
+- instantaneous chassis impulse-at-point response;
+- chassis/structure collision coupling that avoids rigid momentum double counting.
+
+New/expanded Automation source covers:
+- front geometry mirroring and shared rack axis;
+- rack input clamping and steering sign;
+- Ackermann behavior;
+- front/rear asymmetric-road anti-roll;
+- rear five-link reference/bump/droop/damage behavior;
+- four-wheel self-support;
+- four-wheel static stability;
+- four-wheel acceleration;
+- four-wheel braking;
+- steering-generated yaw;
+- tire radial compliance, pressure effect, damping and bottoming;
+- anti-roll load represented by matching compliant tire deflection;
+- unsprung force direction/reference-frame/travel limits;
+- vehicle compiled-config hash sensitivity;
+- degenerate authored suspension rejection;
+- COM-local hardpoint compilation;
+- compiled asset executing the canonical four-wheel runtime;
+- telemetry CSV/config-hash/radial-deflection mapping;
+- structural impact spatial weighting;
+- zero duplicate structural linear/angular rigid momentum;
+- structural impact velocity limiting;
+- chassis center/off-center impulse response;
+- full chassis impulse plus internal deformation coupling.
+
+Corrections / consistency:
+- `TA_Telemetry` now declares its public `TA_Vehicle` dependency;
+- tire aligning moment contributes to chassis torque;
+- front/rear compliant anti-roll is solved inside force equilibrium rather than post-applied;
+- internal contact-solver probes do not commit tire/suspension history;
+- a telemetry CSV guard regression found by source review was repaired before checkpoint;
+- prototype static spring preload was rebalanced around the current symmetric COM/axle seed rather than hiding front/rear weight distribution in spring bias.
+
+Still unverified:
+- Unreal Engine 5.8 UHT/UBT/C++ compilation;
+- Automation execution;
+- actual numerical convergence of all coupled source tests in UE;
+- runtime/profile budgets;
+- cross-machine determinism;
+- calibrated real-world tire/suspension/impact parameters.
+
 ## 2026-09-23 — Suspension geometry, contact-load and tire-state session
 
 Added:
