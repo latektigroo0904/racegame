@@ -179,6 +179,8 @@ struct TA_VEHICLE_API FTARearSuspensionDefinition
 {
     GENERATED_BODY()
 
+    FTARearSuspensionDefinition();
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|Links")
     FTARearLinkDefinition Link0;
 
