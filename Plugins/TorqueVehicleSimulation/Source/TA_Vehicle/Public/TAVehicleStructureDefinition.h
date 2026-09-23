@@ -10,7 +10,9 @@ enum class ETAVehicleDamageConsumerAuthoringType : uint8
     SteeringRack,
     WheelHub,
     SuspensionCorner,
-    AntiRollLink
+    AntiRollLink,
+    ElectricalBus,
+    FuelDelivery
 };
 
 USTRUCT(BlueprintType)
@@ -154,6 +156,12 @@ struct TA_VEHICLE_API FTAVehicleDamageRouteAuthoringDefinition
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route")
     bool bAcceptStructuralFracture = false;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route")
+    bool bAcceptFluidPressureLoss = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route")
+    bool bAcceptElectricalDisconnection = false;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route", meta=(ClampMin="0.0"))
     double ImpactEnergyScale = 1.0;
 
@@ -192,6 +200,15 @@ struct TA_VEHICLE_API FTAVehicleDamageRouteAuthoringDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|AntiRoll", meta=(ClampMin="0.0", ClampMax="1.0"))
     double MinimumAntiRollLinkEfficiency01 = 0.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Electrical", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumStarterEfficiency01 = 0.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Electrical", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumEngineControlEfficiency01 = 0.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Fuel", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumFuelDeliveryEfficiency01 = 0.0;
 };
 
 USTRUCT(BlueprintType)
