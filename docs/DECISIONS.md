@@ -279,3 +279,24 @@
 **Status:** accepted 2026-09-23  
 **Decision:** new assets default to 2/2/2. Legacy positive versions remain loadable with warning; future unknown versions and non-positive versions are rejected.  
 **Reason:** major schema, force-ownership and damage changes require explicit compatibility identity.
+
+
+## ADR-058 — Suspension functional damage changes force capacity, not alignment geometry
+**Status:** accepted 2026-09-23  
+**Decision:** `SuspensionCorner` damage scales spring, damping and stop force capacity. Structural hardpoint displacement remains the only current source of crash-induced camber/toe geometry changes.  
+**Reason:** avoids duplicating geometric damage and keeps every consequence traceable to a physical path.
+
+## ADR-059 — Broken suspension links wait for topology-changing kinematics
+**Status:** accepted 2026-09-23  
+**Decision:** control-arm, tie-rod and multi-link fractures are not approximated by generic alignment offsets. They remain deferred until the suspension solver can disable constraints and solve a partially free upright.  
+**Reason:** a broken link is a topology change, not merely a different static alignment.
+
+## ADR-060 — Current quasi-static suspension damage retains non-zero spring support
+**Status:** accepted for current solver 2026-09-23  
+**Decision:** `SuspensionCorner` routes require `MinimumSpringEfficiency01 > 0`. Damping may fall to zero; anti-roll links may fully disconnect.  
+**Reason:** the canonical compliant-contact equilibrium currently assumes a force-bearing suspension mechanism and cannot yet model a fully detached corner robustly.
+
+## ADR-061 — Anti-roll axle capacity is limited by the weaker drop-link
+**Status:** accepted 2026-09-23  
+**Decision:** effective anti-roll coupling at an axle is multiplied by the minimum of its left/right link efficiencies.  
+**Reason:** both drop-links are required to transmit anti-roll force through the bar.
