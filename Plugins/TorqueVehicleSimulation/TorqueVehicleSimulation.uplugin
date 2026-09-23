@@ -30,6 +30,11 @@
       "LoadingPhase": "Default"
     },
     {
+      "Name": "TA_Structure",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
       "Name": "TA_Vehicle",
       "Type": "Runtime",
       "LoadingPhase": "Default"
