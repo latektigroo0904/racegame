@@ -89,10 +89,15 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 "hubdamage_%s,hubbrake_%s,hubdrive_%s,hubdrag_%s_nm,"
                 "susdamage_%s,susspring_%s,susdamping_%s,susstop_%s,"
                 "arblinkdamage_%s,arblink_%s,"
+                "braketemp_%s_c,brakefade_%s,brakewear_%s,brakewearfactor_%s,"
                 "slipratio_%s,slipangle_%s_rad,"
                 "tirefx_%s_n,tirefy_%s_n,"
                 "tiretemp_%s_c,tirepressure_%s_kpa,"
                 "tirewear_%s,tiredeflection_%s_m"),
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
@@ -174,6 +179,7 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                     "%.9g,%.9g,%.9g,%.9g,"
                     "%.9g,%.9g,"
                     "%.9g,%.9g,%.9g,%.9g,"
+                    "%.9g,%.9g,%.9g,%.9g,"
                     "%.9g,%.9g,%.9g,%.9g"),
                 Sample->WheelVerticalLoadN[Wheel],
                 Sample->SuspensionTravelM[Wheel],
@@ -189,6 +195,10 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 Sample->SuspensionStopEfficiency01[Wheel],
                 Sample->AntiRollLinkDamage01[Wheel],
                 Sample->AntiRollLinkEfficiency01[Wheel],
+                Sample->BrakeTemperatureC[Wheel],
+                Sample->BrakeThermalTorqueFactor01[Wheel],
+                Sample->BrakeWear01[Wheel],
+                Sample->BrakeWearTorqueFactor01[Wheel],
                 Sample->WheelSlipRatio[Wheel],
                 Sample->WheelSlipAngleRad[Wheel],
                 Sample->TireLongitudinalForceN[Wheel],
@@ -277,6 +287,18 @@ FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
 
         Sample.TireRadialDeflectionM[Index] =
             TireState.RadialDeflectionM;
+
+        Sample.BrakeTemperatureC[Index] =
+            State.Wheels[Index].BrakeThermal.TemperatureC;
+
+        Sample.BrakeThermalTorqueFactor01[Index] =
+            State.Wheels[Index].BrakeThermal.ThermalTorqueFactor01;
+
+        Sample.BrakeWear01[Index] =
+            State.Wheels[Index].BrakeThermal.Wear01;
+
+        Sample.BrakeWearTorqueFactor01[Index] =
+            State.Wheels[Index].BrakeThermal.WearTorqueFactor01;
 
         if (State.WheelHubDamage.IsValidIndex(Index))
         {
