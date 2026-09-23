@@ -443,17 +443,40 @@ bool FTAFrontAxleFunctionalSteeringDamageTest::RunTest(
             FreePlayOutput.RackDisplacementM,
             1.0e-9));
 
-    TestTrue(
-        TEXT("Absorbed rack command leaves left wheel near neutral steer"),
-        FMath::Abs(
-            FreePlayOutput.LeftSteeringAngleRad)
-            < FMath::DegreesToRadians(0.1));
+    FTAFrontAxleSolveInput NeutralInput =
+        HealthyInput;
+
+    NeutralInput.Steering01 =
+        0.0;
+
+    FTAFrontAxleRuntimeState NeutralState;
+    FTAFrontAxleSolveOutput NeutralOutput;
 
     TestTrue(
-        TEXT("Absorbed rack command leaves right wheel near neutral steer"),
-        FMath::Abs(
-            FreePlayOutput.RightSteeringAngleRad)
-            < FMath::DegreesToRadians(0.1));
+        TEXT("Neutral steering solve succeeds"),
+        TAFrontAxleRuntime::Resolve(
+            MakeChassis(),
+            Config,
+            NeutralInput,
+            0.327,
+            0.327,
+            1.0 / 240.0,
+            NeutralState,
+            NeutralOutput));
+
+    TestTrue(
+        TEXT("Absorbed rack command reproduces neutral left wheel geometry"),
+        FMath::IsNearlyEqual(
+            FreePlayOutput.LeftSteeringAngleRad,
+            NeutralOutput.LeftSteeringAngleRad,
+            1.0e-7));
+
+    TestTrue(
+        TEXT("Absorbed rack command reproduces neutral right wheel geometry"),
+        FMath::IsNearlyEqual(
+            FreePlayOutput.RightSteeringAngleRad,
+            NeutralOutput.RightSteeringAngleRad,
+            1.0e-7));
 
     return true;
 }
