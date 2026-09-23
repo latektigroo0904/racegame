@@ -54,6 +54,12 @@ namespace TAChassisDynamics
         const FVector3d& PointWorldM,
         FTAChassisForceAccumulator& InOutAccumulator);
 
+    TA_VEHICLE_API bool ApplyImpulseAtWorldPoint(
+        const FTAChassisConfig& Config,
+        const FVector3d& ImpulseWorldNs,
+        const FVector3d& PointWorldM,
+        FTAChassisState& InOutState);
+
     TA_VEHICLE_API bool Integrate(
         const FTAChassisConfig& Config,
         const FTAChassisForceAccumulator& Accumulator,
