@@ -291,3 +291,75 @@ v0.1 is acceptable when:
 - split-traction open-diff behaviour is plausible;
 - fixed-step tests repeat within numerical tolerance;
 - car-specific calibration remains data-driven.
+
+## 21. Implemented runtime additions — 2026-09-23
+
+The native prototype now also contains:
+
+### Data-driven torque curve
+`FTAEngineRuntimeConfig::TorqueCurve` stores RPM/torque points.
+The solver linearly interpolates them and applies:
+- throttle;
+- redline-to-limiter fade;
+- thermal torque factor;
+- damage torque factor;
+- bounded idle controller.
+
+These remain provisional TA-P01 calibration seeds.
+
+### Starter and stall state
+Engine runtime states are now executable:
+```
+Stopped
+Cranking
+Running
+Stalled
+Seized
+```
+
+Rules:
+- a running engine below `StallRPM` becomes stalled;
+- a stalled/stopped engine requires starter engagement;
+- starter torque is finite and stops above `StarterMaxRPM`;
+- cranking transitions to running only after `CombustionStartRPM`;
+- a stalled engine receives no combustion torque.
+
+This removes the earlier physically incorrect possibility of a zero-rpm "running" engine restarting itself from the torque curve.
+
+### Engine thermal model
+First lumped coolant/engine thermal state:
+```
+CoolantTemperatureC
+ThermalDamage01
+ThermalTorqueFactor
+DamageTorqueFactor
+```
+
+Inputs:
+- running/load proxy;
+- RPM;
+- radiator/cooling efficiency;
+- timestep.
+
+Consequences:
+- temperature rise;
+- torque derate above threshold;
+- permanent thermal damage under severe overheating.
+
+The heat-generation model is intentionally simple and must later be driven by combustion/load energy rather than throttle alone.
+
+### Integrated vehicle coupling
+The first `TA_Vehicle` fixed-step runtime now couples:
+```
+engine
+→ clutch
+→ gearbox
+→ final drive
+→ open differential
+→ wheel inertia
+→ tire solver
+→ tire reaction torque
+```
+
+A full coupled differential/shaft inertia solve remains future work.
+
