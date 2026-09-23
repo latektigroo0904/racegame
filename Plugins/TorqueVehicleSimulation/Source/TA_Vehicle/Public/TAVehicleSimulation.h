@@ -38,6 +38,8 @@ struct TA_VEHICLE_API FTADriverControls
     double Brake01 = 0.0;
     double ClutchEngagement01 = 1.0;
 
+    bool bStarterEngaged = false;
+
     int32 SelectedGear = 0;
 };
 
