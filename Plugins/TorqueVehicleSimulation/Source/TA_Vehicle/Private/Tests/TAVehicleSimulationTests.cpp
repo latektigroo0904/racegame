@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "TAVehicleSimulation.h"
+#include "TAWheelContactResolver.h"
 
 namespace
 {
@@ -25,6 +26,46 @@ namespace
         Config.Wheels[2].bDriven = true;
         Config.Wheels[3].bDriven = true;
 
+        return Config;
+    }
+
+    FTADoubleWishboneSolverConfig MakeIntegratedFrontRightGeometry()
+    {
+        FTADoubleWishboneSolverConfig Config;
+        FTADoubleWishboneHardpoints& H = Config.Hardpoints;
+
+        H.UpperInnerA = FVector3d(1.48, 0.38, -0.22);
+        H.UpperInnerB = FVector3d(1.14, 0.38, -0.22);
+        H.LowerInnerA = FVector3d(1.50, 0.35, -0.48);
+        H.LowerInnerB = FVector3d(1.12, 0.35, -0.48);
+        H.TieRodInner = FVector3d(1.12, 0.35, -0.38);
+
+        H.DamperChassis = FVector3d(1.31, 0.40, -0.05);
+        H.DamperLowerArmReference = FVector3d(1.31, 0.52, -0.43);
+
+        H.UpperBallJointReference = FVector3d(1.31, 0.70, -0.25);
+        H.LowerBallJointReference = FVector3d(1.31, 0.73, -0.50);
+        H.TieRodOuterReference = FVector3d(1.12, 0.71, -0.39);
+        H.WheelCenterReference = FVector3d(1.31, 0.775, -0.45);
+
+        H.WheelForwardReference = FVector3d(1.0, 0.0, 0.0);
+        H.WheelUpReference = FVector3d(0.0, 0.0, 1.0);
+        H.SteeringRackAxisLocal = FVector3d(0.0, 1.0, 0.0);
+        H.SideSign = 1.0;
+
+        Config.MaxIterations = 80;
+        Config.PositionToleranceM = 0.0005;
+
+        return Config;
+    }
+
+    FTASuspensionRuntimeConfig MakeIntegratedFrontSuspension()
+    {
+        FTASuspensionRuntimeConfig Config;
+        Config.SpringRateNPerM = 95000.0;
+        Config.StaticSpringCompressionM = 0.08;
+        Config.BumpDampingNsPerM = 4500.0;
+        Config.ReboundDampingNsPerM = 6500.0;
         return Config;
     }
 
@@ -380,6 +421,100 @@ bool FTAVehicleRuntimeAsymmetricGripYawTest::RunTest(const FString& Parameters)
     TestTrue(
         TEXT("Asymmetric longitudinal tire force creates yaw response"),
         FMath::Abs(State.Chassis.AngularVelocityWorldRadPerSec.Z) > 0.0);
+
+    return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleResolvedSuspensionContactTest,
+    "TorqueAtlas.Vehicle.Runtime.ResolvedSuspensionContactFeedsTireAndChassis",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleResolvedSuspensionContactTest::RunTest(const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState State;
+    TestTrue(
+        TEXT("Runtime initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            State));
+
+    State.Chassis.PositionWorldM =
+        FVector3d(0.0, 0.0, 0.777);
+
+    State.Chassis.LinearVelocityWorldMps =
+        FVector3d(10.0, 0.0, 0.0);
+
+    FTARoadPlane Road;
+    Road.PointWorldM = FVector3d::ZeroVector;
+    Road.NormalWorld = FVector3d(0.0, 0.0, 1.0);
+    Road.Surface.Material =
+        ETASurfaceMaterial::FreshAsphalt;
+
+    FTADoubleWishboneState GeometryState;
+    FTASuspensionRuntimeState SuspensionState;
+    FTAResolvedWheelContact Resolved;
+
+    TestTrue(
+        TEXT("Front-right suspension/road contact resolves"),
+        TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
+            State.Chassis,
+            MakeIntegratedFrontRightGeometry(),
+            MakeIntegratedFrontSuspension(),
+            Config.Wheels[1].RadiusM,
+            0.0,
+            FTADoubleWishboneDamageOffsets{},
+            Road,
+            1.0 / 240.0,
+            GeometryState,
+            SuspensionState,
+            Resolved));
+
+    TestTrue(
+        TEXT("Resolved contact provides its own positive vertical load"),
+        Resolved.VerticalLoadN > 2500.0);
+
+    TestTrue(
+        TEXT("Resolved contact derives forward speed from chassis"),
+        FMath::IsNearlyEqual(
+            Resolved.LongitudinalVelocityMps,
+            10.0,
+            0.05));
+
+    FTAVehicleStepInput Input;
+    Input.WheelContacts.SetNum(4);
+    Input.Controls.SelectedGear = 0;
+    Input.Controls.ClutchEngagement01 = 0.0;
+
+    Input.WheelContacts[1] =
+        TAWheelContactResolver::BuildVehicleWheelContactInput(
+            Resolved);
+
+    State.Wheels[1].AngularSpeedRadPerSec =
+        14.0 / Config.Wheels[1].RadiusM;
+
+    const double BeforeVelocityX =
+        State.Chassis.LinearVelocityWorldMps.X;
+
+    FTAVehicleStepOutput Output;
+
+    TestTrue(
+        TEXT("Vehicle step accepts resolved contact"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Resolved tire slip accelerates chassis"),
+        State.Chassis.LinearVelocityWorldMps.X
+            > BeforeVelocityX);
 
     return true;
 }
