@@ -94,6 +94,9 @@ struct TA_VEHICLE_API FTADoubleWishboneSolveOutput
 
 namespace TADoubleWishboneSolver
 {
+    TA_VEHICLE_API FTADoubleWishboneSolverConfig MirrorAcrossCenterline(
+        const FTADoubleWishboneSolverConfig& RightSideConfig);
+
     TA_VEHICLE_API bool ValidateConfig(
         const FTADoubleWishboneSolverConfig& Config);
 
