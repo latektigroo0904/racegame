@@ -45,6 +45,16 @@ namespace
             && FMath::IsFinite(Value.Z);
     }
 
+    bool IsFiniteQuat(
+        const FQuat& Value)
+    {
+        return
+            FMath::IsFinite(Value.X)
+            && FMath::IsFinite(Value.Y)
+            && FMath::IsFinite(Value.Z)
+            && FMath::IsFinite(Value.W);
+    }
+
     bool IsFiniteDamage(
         const FTADoubleWishboneDamageOffsets& Damage)
     {
@@ -103,6 +113,7 @@ namespace
     {
         return
             IsFiniteVector(Input.Chassis.PositionWorldM)
+            && IsFiniteQuat(Input.Chassis.OrientationWorld)
             && IsFiniteVector(Input.Chassis.LinearVelocityWorldMps)
             && IsFiniteVector(Input.Chassis.AngularVelocityWorldRadPerSec)
             && IsFiniteVector(Input.Road.PointWorldM)
@@ -113,6 +124,37 @@ namespace
             && IsFiniteDamage(Input.Damage)
             && IsFiniteVector(
                 Input.ChassisLinearAccelerationWorldMps2);
+    }
+
+    bool ValidateState(
+        const FTAExperimentalUnsprungCornerConfig& Config,
+        const FTAExperimentalUnsprungCornerState& State)
+    {
+        constexpr double TravelToleranceM =
+            1.0e-6;
+
+        return
+            FMath::IsFinite(State.Unsprung.TravelM)
+            && FMath::IsFinite(
+                State.Unsprung.TravelVelocityMps)
+            && State.Unsprung.TravelM
+                >= Config.Unsprung.MinTravelM
+                    - TravelToleranceM
+            && State.Unsprung.TravelM
+                <= Config.Unsprung.MaxTravelM
+                    + TravelToleranceM
+            && FMath::IsFinite(
+                State.Tire.PressureKPa)
+            && State.Tire.PressureKPa
+                > UE_DOUBLE_SMALL_NUMBER
+            && FMath::IsFinite(
+                State.Tire.RadialDeflectionM)
+            && State.Tire.RadialDeflectionM
+                >= 0.0
+            && FMath::IsFinite(
+                State.Suspension.TravelM)
+            && FMath::IsFinite(
+                State.Suspension.TravelVelocityMps);
     }
 
     double EstimateMotionRatio(
@@ -294,6 +336,12 @@ namespace
                 0.0,
                 Out.SuspensionForce.TotalForceN
                     + Input.AdditionalSuspensionReactionN);
+
+        // Match the canonical compliant-contact convention: component fields
+        // describe spring/damper/stop, while TotalForceN includes the external
+        // axle reaction such as anti-roll contribution.
+        Out.SuspensionForce.TotalForceN =
+            Out.SuspensionReactionN;
 
         Out.WheelCenterWorldM =
             Input.Chassis.PositionWorldM
@@ -647,6 +695,9 @@ bool TAExperimentalUnsprungCorner::Step(
     if (!ValidateConfig(Config)
         || !ValidateInput(Input)
         || !InOutState.bInitialized
+        || !ValidateState(
+            Config,
+            InOutState)
         || DeltaTimeSeconds <= 0.0)
     {
         return false;
