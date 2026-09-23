@@ -1,0 +1,63 @@
+diff --git a/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Public/TAVehicleDefinition.h b/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Public/TAVehicleDefinition.h
+--- a/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Public/TAVehicleDefinition.h
++++ b/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Public/TAVehicleDefinition.h
+@@
+ #include "Engine/DataAsset.h"
+ #include "TACoreTypes.h"
++#include "TAAerodynamicsDefinition.h"
+ #include "TAVehicleRuntime.h"
+ #include "TAVehicleStructureDefinition.h"
+@@
+     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Structure")
+     FTAVehicleStructureAuthoringDefinition Structure;
++
++    /**
++     * Vehicle aerodynamic calibration. The authored application point is
++     * vehicle-origin-local; BuildCompiledConfig converts it to COM-local
++     * exactly once through TAVehicleAerodynamicsAssetCompiler.
++     */
++    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Aerodynamics")
++    FTAAerodynamicsDefinition Aerodynamics;
+ 
+     bool BuildCompiledConfig(FTAVehicleCompiledConfig& OutConfig, FTAValidationResult& OutValidation) const;
+ };
+diff --git a/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAVehicleDefinition.cpp b/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAVehicleDefinition.cpp
+--- a/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAVehicleDefinition.cpp
++++ b/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAVehicleDefinition.cpp
+@@
+ #include "TAVehicleDefinition.h"
++#include "TAVehicleAerodynamicsAssetCompiler.h"
+@@
+     ValidateCoolingAuthoring(
+         Cooling,
+         OutValidation);
++
++    if (!TAAerodynamicsDefinition::Validate(Aerodynamics))
++    {
++        AddValidation(
++            OutValidation,
++            ETAValidationSeverity::Error,
++            TEXT("Vehicle.InvalidAerodynamics"),
++            TEXT("Aerodynamic reference area, coefficients or application point are invalid."));
++    }
+@@
+     Hash = HashStructureRuntime(
+         Hash,
+         OutConfig.StructureRuntime);
++
++    if (!TAVehicleAerodynamicsAssetCompiler::CompileValidatedAndHash(
++            Aerodynamics,
++            OutConfig.CenterOfMassMeters,
++            Hash,
++            VehicleRuntime.Aerodynamics))
++    {
++        AddValidation(
++            OutValidation,
++            ETAValidationSeverity::Error,
++            TEXT("Vehicle.InvalidAerodynamics"),
++            TEXT("Aerodynamic calibration failed canonical COM-local compilation."));
++        return false;
++    }
+ 
+     OutConfig.PhysicsConfigHash =
+         Hash;
