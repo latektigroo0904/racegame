@@ -14,6 +14,22 @@ namespace
     }
 }
 
+void TAStructureSolver::InitializeReferencePositionsFromCurrent(
+    TArray<FTAStructureNode>& Nodes)
+{
+    for (FTAStructureNode& Node : Nodes)
+    {
+        Node.ReferencePositionM = Node.PositionM;
+        Node.PreviousPositionM = Node.PositionM;
+    }
+}
+
+FVector3d TAStructureSolver::CalculateNodeDisplacement(
+    const FTAStructureNode& Node)
+{
+    return Node.PositionM - Node.ReferencePositionM;
+}
+
 void TAStructureSolver::PredictPositions(
     const FTAStructureSolverConfig& Config,
     const double DeltaTimeSeconds,
