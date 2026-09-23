@@ -57,6 +57,8 @@ namespace
         const double StaticSpringCompressionM,
         const double BumpDampingNsPerM,
         const double ReboundDampingNsPerM,
+        const double BumpStopRateNPerM,
+        const double DroopStopRateNPerM,
         const double MinTravelM,
         const double MaxTravelM)
     {
@@ -73,6 +75,12 @@ namespace
 
         Config.ReboundDampingNsPerM =
             ReboundDampingNsPerM;
+
+        Config.BumpStopRateNPerM =
+            BumpStopRateNPerM;
+
+        Config.DroopStopRateNPerM =
+            DroopStopRateNPerM;
 
         Config.DroopStopTravelM =
             MinTravelM;
@@ -614,6 +622,42 @@ namespace
         }
 
         return bValid;
+    }
+
+    bool ValidateCoolingAuthoring(
+        const FTACoolingSystemAuthoringDefinition& Cooling,
+        FTAValidationResult& OutValidation)
+    {
+        const bool bValid =
+            FMath::IsFinite(Cooling.InitialCoolantMassKg)
+            && FMath::IsFinite(Cooling.PunctureThresholdEnergyJ)
+            && FMath::IsFinite(Cooling.FullLeakEnergyJ)
+            && FMath::IsFinite(Cooling.MaxLeakAreaMm2)
+            && FMath::IsFinite(Cooling.LeakMassFlowKgPerSecPerMm2)
+            && FMath::IsFinite(Cooling.MinimumAirflowEfficiency01)
+            && Cooling.InitialCoolantMassKg > 0.0
+            && Cooling.PunctureThresholdEnergyJ >= 0.0
+            && Cooling.FullLeakEnergyJ
+                > Cooling.PunctureThresholdEnergyJ
+            && Cooling.MaxLeakAreaMm2 >= 0.0
+            && Cooling.LeakMassFlowKgPerSecPerMm2 >= 0.0
+            && Cooling.MinimumAirflowEfficiency01 >= 0.0
+            && Cooling.MinimumAirflowEfficiency01 <= 1.0;
+
+        if (!bValid)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.InvalidCoolingCalibration"),
+                TEXT(
+                    "Cooling/radiator calibration contains invalid coolant, "
+                    "damage threshold, leak or airflow values."));
+
+            return false;
+        }
+
+        return true;
     }
 
     void CompileDisplacementBinding(
@@ -1855,6 +1899,45 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
         EngineThermal,
         OutValidation);
 
+    ValidateCoolingAuthoring(
+        Cooling,
+        OutValidation);
+
+    const bool bSuspensionForceCalibrationValid =
+        FMath::IsFinite(FrontSuspension.SpringRateNPerM)
+        && FrontSuspension.SpringRateNPerM >= 0.0
+        && FMath::IsFinite(FrontSuspension.StaticSpringCompressionM)
+        && FrontSuspension.StaticSpringCompressionM >= 0.0
+        && FMath::IsFinite(FrontSuspension.BumpDampingNsPerM)
+        && FrontSuspension.BumpDampingNsPerM >= 0.0
+        && FMath::IsFinite(FrontSuspension.ReboundDampingNsPerM)
+        && FrontSuspension.ReboundDampingNsPerM >= 0.0
+        && FMath::IsFinite(FrontSuspension.BumpStopRateNPerM)
+        && FrontSuspension.BumpStopRateNPerM >= 0.0
+        && FMath::IsFinite(FrontSuspension.DroopStopRateNPerM)
+        && FrontSuspension.DroopStopRateNPerM >= 0.0
+        && FMath::IsFinite(RearSuspension.SpringRateNPerM)
+        && RearSuspension.SpringRateNPerM >= 0.0
+        && FMath::IsFinite(RearSuspension.StaticSpringCompressionM)
+        && RearSuspension.StaticSpringCompressionM >= 0.0
+        && FMath::IsFinite(RearSuspension.BumpDampingNsPerM)
+        && RearSuspension.BumpDampingNsPerM >= 0.0
+        && FMath::IsFinite(RearSuspension.ReboundDampingNsPerM)
+        && RearSuspension.ReboundDampingNsPerM >= 0.0
+        && FMath::IsFinite(RearSuspension.BumpStopRateNPerM)
+        && RearSuspension.BumpStopRateNPerM >= 0.0
+        && FMath::IsFinite(RearSuspension.DroopStopRateNPerM)
+        && RearSuspension.DroopStopRateNPerM >= 0.0;
+
+    if (!bSuspensionForceCalibrationValid)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.InvalidSuspensionForceCalibration"),
+            TEXT("Suspension spring, damper or stop calibration is invalid."));
+    }
+
     if (OutValidation.HasErrors())
     {
         return false;
@@ -2044,6 +2127,24 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     VehicleRuntime.EngineThermal.DamageRatePerSecondAt150C =
         EngineThermal.DamageRatePerSecondAt150C;
 
+    VehicleRuntime.Radiator.InitialCoolantMassKg =
+        Cooling.InitialCoolantMassKg;
+
+    VehicleRuntime.Radiator.PunctureThresholdEnergyJ =
+        Cooling.PunctureThresholdEnergyJ;
+
+    VehicleRuntime.Radiator.FullLeakEnergyJ =
+        Cooling.FullLeakEnergyJ;
+
+    VehicleRuntime.Radiator.MaxLeakAreaMm2 =
+        Cooling.MaxLeakAreaMm2;
+
+    VehicleRuntime.Radiator.LeakMassFlowKgPerSecPerMm2 =
+        Cooling.LeakMassFlowKgPerSecPerMm2;
+
+    VehicleRuntime.Radiator.MinimumAirflowEfficiency01 =
+        Cooling.MinimumAirflowEfficiency01;
+
     VehicleRuntime.Clutch.MaxTorqueCapacityNm =
         Drivetrain.ClutchMaxTorqueNm;
 
@@ -2182,6 +2283,8 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             FrontSuspension.StaticSpringCompressionM,
             FrontSuspension.BumpDampingNsPerM,
             FrontSuspension.ReboundDampingNsPerM,
+            FrontSuspension.BumpStopRateNPerM,
+            FrontSuspension.DroopStopRateNPerM,
             FrontSuspension.MinTravelM,
             FrontSuspension.MaxTravelM);
 
@@ -2271,6 +2374,8 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             RearSuspension.StaticSpringCompressionM,
             RearSuspension.BumpDampingNsPerM,
             RearSuspension.ReboundDampingNsPerM,
+            RearSuspension.BumpStopRateNPerM,
+            RearSuspension.DroopStopRateNPerM,
             RearSuspension.MinTravelM,
             RearSuspension.MaxTravelM);
 
@@ -2567,6 +2672,30 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     Hash = HashDouble(
         Hash,
         VehicleRuntime.EngineThermal.DamageRatePerSecondAt150C);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Radiator.InitialCoolantMassKg);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Radiator.PunctureThresholdEnergyJ);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Radiator.FullLeakEnergyJ);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Radiator.MaxLeakAreaMm2);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Radiator.LeakMassFlowKgPerSecPerMm2);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Radiator.MinimumAirflowEfficiency01);
 
     Hash = HashDouble(
         Hash,
