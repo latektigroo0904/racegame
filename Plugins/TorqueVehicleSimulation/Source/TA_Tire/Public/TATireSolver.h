@@ -86,6 +86,11 @@ namespace TATireSolver
         const FTATireRuntimeState& State,
         const FTATireSolveInput& Input);
 
+    TA_TIRE_API double EstimateLongitudinalForceCapacityN(
+        const FTATireRuntimeConfig& Config,
+        const FTATireRuntimeState& State,
+        const FTATireSolveInput& Input);
+
     TA_TIRE_API FTATireSolveOutput Solve(
         const FTATireRuntimeConfig& Config,
         const FTATireRuntimeState& State,
