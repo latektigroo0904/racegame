@@ -981,10 +981,107 @@ namespace
         }
     }
 
+    uint32 HashDisplacementBinding(
+        uint32 Hash,
+        const FTAStructureDisplacementBinding& Binding)
+    {
+        Hash = HashCombineFast(
+            Hash,
+            GetTypeHash(
+                Binding.NodeIndices.Num()));
+
+        for (int32 Index = 0;
+             Index < Binding.NodeIndices.Num();
+             ++Index)
+        {
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(
+                    Binding.NodeIndices[Index]));
+
+            if (Binding.Weights.IsValidIndex(Index))
+            {
+                Hash = HashDouble(
+                    Hash,
+                    Binding.Weights[Index]);
+            }
+        }
+
+        return Hash;
+    }
+
+    uint32 HashFrontStructuralBindings(
+        uint32 Hash,
+        const FTADoubleWishboneStructuralBindings& Bindings)
+    {
+        Hash = HashDisplacementBinding(
+            Hash,
+            Bindings.UpperInnerA);
+
+        Hash = HashDisplacementBinding(
+            Hash,
+            Bindings.UpperInnerB);
+
+        Hash = HashDisplacementBinding(
+            Hash,
+            Bindings.LowerInnerA);
+
+        Hash = HashDisplacementBinding(
+            Hash,
+            Bindings.LowerInnerB);
+
+        Hash = HashDisplacementBinding(
+            Hash,
+            Bindings.TieRodInner);
+
+        Hash = HashDisplacementBinding(
+            Hash,
+            Bindings.DamperChassis);
+
+        return Hash;
+    }
+
+    uint32 HashRearStructuralBindings(
+        uint32 Hash,
+        const FTAMultiLinkStructuralBindings& Bindings)
+    {
+        for (int32 Index = 0;
+             Index < TARearMultiLinkCount;
+             ++Index)
+        {
+            Hash = HashDisplacementBinding(
+                Hash,
+                Bindings.ChassisPickups[Index]);
+        }
+
+        Hash = HashDisplacementBinding(
+            Hash,
+            Bindings.DamperChassis);
+
+        return Hash;
+    }
+
     uint32 HashStructureRuntime(
         uint32 Hash,
         const FTAVehicleStructureCompiledConfig& Structure)
     {
+        Hash = HashVector(
+            Hash,
+            Structure.Solver.GravityMps2);
+
+        Hash = HashCombineFast(
+            Hash,
+            GetTypeHash(
+                Structure.Solver.ConstraintIterations));
+
+        Hash = HashDouble(
+            Hash,
+            Structure.Solver.MaxPositionCorrectionM);
+
+        Hash = HashDouble(
+            Hash,
+            Structure.Solver.MaxPlasticRestChangeFractionPerStep);
+
         Hash = HashCombineFast(
             Hash,
             GetTypeHash(Structure.InitialNodes.Num()));
@@ -1061,6 +1158,74 @@ namespace
                 Constraint.PlasticFlowRate01);
         }
 
+        Hash = HashCombineFast(
+            Hash,
+            GetTypeHash(
+                Structure.DamageBridge.ImpactTargetComponentIndex));
+
+        Hash = HashCombineFast(
+            Hash,
+            GetTypeHash(
+                Structure.DamageBridge.ConstraintTargetComponentIndices.Num()));
+
+        for (const int32 TargetComponentIndex :
+             Structure.DamageBridge.ConstraintTargetComponentIndices)
+        {
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(
+                    TargetComponentIndex));
+        }
+
+        Hash = HashCombineFast(
+            Hash,
+            GetTypeHash(
+                Structure.DamageBridge.MountBindings.Num()));
+
+        for (const FTAStructureMountDamageBinding& Binding :
+             Structure.DamageBridge.MountBindings)
+        {
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(
+                    Binding.TargetComponentIndex));
+
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(
+                    Binding.NodeIndices.Num()));
+
+            for (int32 Index = 0;
+                 Index < Binding.NodeIndices.Num();
+                 ++Index)
+            {
+                Hash = HashCombineFast(
+                    Hash,
+                    GetTypeHash(
+                        Binding.NodeIndices[Index]));
+
+                if (Binding.Weights.IsValidIndex(Index))
+                {
+                    Hash = HashDouble(
+                        Hash,
+                        Binding.Weights[Index]);
+                }
+            }
+
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(
+                    Binding.DisplacementThresholdsM.Num()));
+
+            for (const double ThresholdM :
+                 Binding.DisplacementThresholdsM)
+            {
+                Hash = HashDouble(
+                    Hash,
+                    ThresholdM);
+            }
+        }
+
         for (const FTAVehicleDamageRoute& Route :
              Structure.DamageRouting.Routes)
         {
@@ -1072,6 +1237,18 @@ namespace
                 Hash,
                 GetTypeHash(
                     static_cast<uint8>(Route.Consumer)));
+
+            Hash = HashBool(
+                Hash,
+                Route.bAcceptImpactEnergy);
+
+            Hash = HashBool(
+                Hash,
+                Route.bAcceptStructuralDisplacement);
+
+            Hash = HashBool(
+                Hash,
+                Route.bAcceptStructuralFracture);
 
             Hash = HashDouble(
                 Hash,
@@ -1109,6 +1286,22 @@ namespace
                 Hash,
                 Route.MaximumBearingDragTorqueNm);
         }
+
+        Hash = HashFrontStructuralBindings(
+            Hash,
+            Structure.FrontLeftSuspensionBindings);
+
+        Hash = HashFrontStructuralBindings(
+            Hash,
+            Structure.FrontRightSuspensionBindings);
+
+        Hash = HashRearStructuralBindings(
+            Hash,
+            Structure.RearLeftSuspensionBindings);
+
+        Hash = HashRearStructuralBindings(
+            Hash,
+            Structure.RearRightSuspensionBindings);
 
         return Hash;
     }
