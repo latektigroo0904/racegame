@@ -424,8 +424,19 @@ bool TAVehicleSimulation::Step(
 
         TAChassisDynamics::AddForceAtWorldPoint(
             InOutState.Chassis,
-            TireForceWorldN + Contact.SuspensionForceWorldN,
+            TireForceWorldN,
             Contact.ContactPointWorldM,
+            ChassisForces);
+
+        const FVector3d SuspensionApplicationPointWorldM =
+            Contact.bHasSuspensionForceApplicationPoint
+            ? Contact.SuspensionForceApplicationPointWorldM
+            : Contact.ContactPointWorldM;
+
+        TAChassisDynamics::AddForceAtWorldPoint(
+            InOutState.Chassis,
+            Contact.SuspensionForceWorldN,
+            SuspensionApplicationPointWorldM,
             ChassisForces);
 
         const FVector3d ContactNormalWorld =
