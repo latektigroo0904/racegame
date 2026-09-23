@@ -15,6 +15,7 @@ The repository now has a substantially closed source-level physics foundation:
 - collision → internal structure coupling;
 - structure → suspension pickup deformation;
 - radiator, steering-rack, wheel-hub, suspension-corner and anti-roll-link functional damage;
+- electrical-bus and fuel-delivery functional damage;
 - persistent brake thermal/fade/wear dynamics;
 - telemetry and scenario regression reporting;
 - complete vehicle calibration authoring v2;
@@ -201,7 +202,9 @@ Telemetry includes:
 - per-wheel hub damage/brake/drive/bearing drag;
 - per-wheel suspension spring/damper/stop health;
 - per-wheel anti-roll-link health;
-- per-wheel brake temperature/fade/wear state.
+- per-wheel brake temperature/fade/wear state;
+- global electrical damage/starter/engine-control health;
+- global fuel-delivery damage/efficiency.
 
 Regression infrastructure includes:
 - scalar envelopes;
@@ -280,7 +283,7 @@ This is still not equivalent to an Unreal build.
 4. Coupled contact and five-link convergence has not been profiled.
 5. Real collision manifold/contact persistence is not yet connected.
 6. Topology-changing control-arm/tie-rod/multi-link fracture remains incomplete.
-7. Fluid/electrical damage consumers remain incomplete.
+7. Full fluid/electrical network simulation remains incomplete beyond current functional consumers.
 8. Hydraulic brake/ABS/fluid-boil behavior remains incomplete.
 9. Aero remains incomplete.
 10. Real-world calibration remains provisional.
@@ -320,16 +323,19 @@ Without weakening the build gate:
 - then topology-changing suspension failures only after an appropriate free-upright constraint model exists.
 
 ## Exact continuation point
-Resume with **fluid/electrical functional damage**, while the first UE 5.8 executable verification remains the highest-priority external gate.
+Resume with **aerodynamic force/moment integration**, while the first UE 5.8 executable verification remains the highest-priority external gate.
 
-Source-level next step:
-1. audit current engine/radiator/electrical assumptions;
-2. define only consequences the current runtime can physically represent;
-3. add typed consumers without creating global vehicle HP;
-4. author/hash/validate route calibration;
-5. add crash → signal → persistent state → runtime consequence regressions;
-6. expose the state in telemetry;
-7. require GitHub source-sanity green again.
+Source-level aero plan:
+1. audit chassis coordinate conventions and current environment inputs;
+2. define a deterministic aero config/state with air density and wind-relative velocity;
+3. calculate drag and lift/downforce from dynamic pressure;
+4. apply aerodynamic forces at authored physical points to create pitch/yaw/roll moments naturally;
+5. author, validate and hash the aero coefficients/application points;
+6. add zero-speed, speed-squared, headwind/tailwind, downforce and off-center moment regressions;
+7. expose key aero channels in telemetry;
+8. require GitHub source-sanity green again.
+
+Do not add an arcade speed-dependent grip multiplier. Tire grip may increase only because physically applied aerodynamic load changes chassis/contact loads.
 
 Do not claim UE build success until the local verification harness actually runs against Unreal Engine 5.8.
 
