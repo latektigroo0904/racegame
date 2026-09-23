@@ -38,6 +38,63 @@ void TAChassisDynamics::AddForceAtWorldPoint(
         FVector3d::CrossProduct(LeverArmM, ForceWorldN);
 }
 
+bool TAChassisDynamics::ApplyImpulseAtWorldPoint(
+    const FTAChassisConfig& Config,
+    const FVector3d& ImpulseWorldNs,
+    const FVector3d& PointWorldM,
+    FTAChassisState& InOutState)
+{
+    if (!IsConfigValid(Config) ||
+        !FMath::IsFinite(ImpulseWorldNs.X) ||
+        !FMath::IsFinite(ImpulseWorldNs.Y) ||
+        !FMath::IsFinite(ImpulseWorldNs.Z) ||
+        !FMath::IsFinite(PointWorldM.X) ||
+        !FMath::IsFinite(PointWorldM.Y) ||
+        !FMath::IsFinite(PointWorldM.Z))
+    {
+        return false;
+    }
+
+    InOutState.OrientationWorld.Normalize();
+
+    InOutState.LinearVelocityWorldMps +=
+        ImpulseWorldNs / Config.MassKg;
+
+    const FVector3d LeverArmWorldM =
+        PointWorldM - InOutState.PositionWorldM;
+
+    const FVector3d AngularImpulseWorldNms =
+        FVector3d::CrossProduct(
+            LeverArmWorldM,
+            ImpulseWorldNs);
+
+    const FVector3d AngularImpulseBodyNms =
+        InOutState.OrientationWorld.UnrotateVector(
+            AngularImpulseWorldNms);
+
+    FVector3d OmegaBody =
+        InOutState.OrientationWorld.UnrotateVector(
+            InOutState.AngularVelocityWorldRadPerSec);
+
+    OmegaBody.X +=
+        AngularImpulseBodyNms.X
+        / Config.PrincipalInertiaBodyKgm2.X;
+
+    OmegaBody.Y +=
+        AngularImpulseBodyNms.Y
+        / Config.PrincipalInertiaBodyKgm2.Y;
+
+    OmegaBody.Z +=
+        AngularImpulseBodyNms.Z
+        / Config.PrincipalInertiaBodyKgm2.Z;
+
+    InOutState.AngularVelocityWorldRadPerSec =
+        InOutState.OrientationWorld.RotateVector(
+            OmegaBody);
+
+    return true;
+}
+
 bool TAChassisDynamics::Integrate(
     const FTAChassisConfig& Config,
     const FTAChassisForceAccumulator& Accumulator,
