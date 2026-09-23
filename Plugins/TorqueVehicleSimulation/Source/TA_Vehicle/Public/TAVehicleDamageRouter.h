@@ -7,7 +7,9 @@
 enum class ETAVehicleDamageConsumerType : uint8
 {
     None,
-    Radiator
+    Radiator,
+    SteeringRack,
+    WheelHub
 };
 
 struct TA_VEHICLE_API FTAVehicleDamageRoute
@@ -23,8 +25,21 @@ struct TA_VEHICLE_API FTAVehicleDamageRoute
 
     double ImpactEnergyScale = 1.0;
 
-    // Used by geometry/displacement-driven consumers such as radiator crush.
+    // Generic severity scales for impact/displacement-driven functional damage.
+    double FullDamageEnergyJ = 12000.0;
     double FullCrushDisplacementM = 0.15;
+
+    // Required by WheelHub routes; ignored by other consumers.
+    int32 WheelIndex = INDEX_NONE;
+
+    // Steering-rack functional degradation.
+    double MinimumSteeringAuthority01 = 0.20;
+    double MaximumSteeringFreePlayM = 0.010;
+
+    // Wheel-hub functional degradation.
+    double MinimumBrakeEfficiency01 = 0.20;
+    double MinimumDriveEfficiency01 = 0.0;
+    double MaximumBearingDragTorqueNm = 80.0;
 };
 
 struct TA_VEHICLE_API FTAVehicleDamageRoutingConfig
@@ -39,6 +54,8 @@ struct TA_VEHICLE_API FTAVehicleDamageRoutingOutput
     int32 SignalsIgnored = 0;
 
     int32 RadiatorSignalsApplied = 0;
+    int32 SteeringRackSignalsApplied = 0;
+    int32 WheelHubSignalsApplied = 0;
 };
 
 namespace TAVehicleDamageRouter
