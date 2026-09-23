@@ -5,12 +5,14 @@
 
 struct FTAFrontAxleSolveOutput;
 struct FTAFourWheelStepOutput;
+struct FTAVehicleCompiledConfig;
 
 constexpr int32 TAPrototypeTelemetryWheelCount = 4;
 
 struct TA_TELEMETRY_API FTAVehicleTelemetrySample
 {
     uint64 SimulationTick = 0;
+    uint32 PhysicsConfigHash = 0;
 
     double EngineRPM = 0.0;
     int32 SelectedGear = 0;
@@ -45,6 +47,7 @@ struct TA_TELEMETRY_API FTAVehicleTelemetrySample
     double TireSurfaceTemperatureC[TAPrototypeTelemetryWheelCount] = {};
     double TirePressureKPa[TAPrototypeTelemetryWheelCount] = {};
     double TireWear01[TAPrototypeTelemetryWheelCount] = {};
+    double TireRadialDeflectionM[TAPrototypeTelemetryWheelCount] = {};
 
     // Profiling fields are populated by higher-level instrumentation later.
     double VehicleSolverMs = 0.0;
@@ -96,5 +99,9 @@ namespace TATelemetry
 
     TA_TELEMETRY_API void ApplyFourWheelSample(
         const FTAFourWheelStepOutput& FourWheel,
+        FTAVehicleTelemetrySample& InOutSample);
+
+    TA_TELEMETRY_API void ApplyCompiledConfigMetadata(
+        const FTAVehicleCompiledConfig& Config,
         FTAVehicleTelemetrySample& InOutSample);
 }
