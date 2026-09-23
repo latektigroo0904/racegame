@@ -106,3 +106,23 @@
 **Decision:** first executable structure module implements compliant distance constraints, plastic rest-state change and fracture before adding bending/joint families.  
 **Reason:** establishes numerical stability and regression tests before increasing structural complexity.
 
+## ADR-024 — Integrated vehicle solver remains engine-agnostic
+**Status:** accepted 2026-09-23  
+**Decision:** the high-frequency vehicle step is a pure native solver that consumes compiled runtime configuration and explicit wheel-contact inputs, and returns forces/state without applying them directly to an Unreal rigid body.  
+**Reason:** deterministic testing, threading, future alternative chassis backends and clean separation from engine-side scene queries.
+
+## ADR-025 — Wheel braking clamps toward zero
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** brake torque is integrated as an angular impulse that reduces wheel speed toward zero and is bounded so numerical overshoot cannot reverse wheel rotation.  
+**Reason:** avoids unphysical sign-flip chatter near standstill.
+
+## ADR-026 — Engine restart requires state transition and starter torque
+**Status:** accepted 2026-09-23  
+**Decision:** combustion torque is available only in the Running state. Stalled/stopped engines require finite starter torque and sufficient cranking speed before returning to Running.  
+**Reason:** prevents zero-rpm engines from self-starting through the torque curve.
+
+## ADR-027 — Suspension reference state includes static spring compression
+**Status:** accepted 2026-09-23  
+**Decision:** reference ride height is not zero spring force; spring force includes authored static compression/preload plus dynamic travel through motion ratio.  
+**Reason:** a stationary vehicle must be statically supported at its reference ride height.
+
