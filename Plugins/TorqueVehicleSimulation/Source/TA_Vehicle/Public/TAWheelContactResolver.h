@@ -30,6 +30,10 @@ struct TA_VEHICLE_API FTAResolvedWheelContact
     FVector3d RoadNormalWorld = FVector3d(0.0, 0.0, 1.0);
 
     double VerticalLoadN = 0.0;
+
+    double TireRadialDeflectionM = 0.0;
+    bool bTireBottomed = false;
+
     double LongitudinalVelocityMps = 0.0;
     double LateralVelocityMps = 0.0;
 
@@ -58,6 +62,20 @@ namespace TAWheelContactResolver
         double DeltaTimeSeconds,
         FTADoubleWishboneState& InOutGeometryState,
         FTASuspensionRuntimeState& InOutSuspensionState,
+        FTAResolvedWheelContact& OutContact);
+
+    TA_VEHICLE_API bool ResolveDoubleWishboneCompliantRoadContact(
+        const FTAChassisState& Chassis,
+        const FTADoubleWishboneSolverConfig& GeometryConfig,
+        const FTASuspensionRuntimeConfig& SuspensionConfig,
+        const FTATireRuntimeConfig& TireConfig,
+        double RackDisplacementM,
+        const FTADoubleWishboneDamageOffsets& DamageOffsets,
+        const FTARoadPlane& Road,
+        double DeltaTimeSeconds,
+        FTADoubleWishboneState& InOutGeometryState,
+        FTASuspensionRuntimeState& InOutSuspensionState,
+        FTATireRuntimeState& InOutTireState,
         FTAResolvedWheelContact& OutContact);
 
     TA_VEHICLE_API void ApplyAntiRollBarToPair(
