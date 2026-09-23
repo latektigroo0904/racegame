@@ -12,10 +12,17 @@ enum class ETATelemetryMetric : uint8
     ChassisYawRateRadPerSec,
     TotalLongitudinalForceN,
     TotalLateralForceN,
+    CoolingEfficiency01,
+    CoolantTemperatureC,
+    SteeringRackDisplacementM,
     WheelVerticalLoadN,
     SuspensionTravelM,
+    WheelCamberRad,
+    WheelToeRad,
     TireRadialDeflectionM,
     WheelSlipRatio,
+    TireLongitudinalForceN,
+    TireLateralForceN,
     TireSurfaceTemperatureC
 };
 
