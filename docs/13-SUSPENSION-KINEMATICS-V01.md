@@ -1,5 +1,7 @@
 # Suspension Kinematics v0.1
 
+> Implementation status update — 2026-09-23: the front double-wishbone damaged-geometry path, damper motion-ratio derivation, road-contact travel solve, structural pickup bindings and self-derived contact load/velocity are now implemented as the v0.2 prototype baseline. See `20-DOUBLE-WISHBONE-GEOMETRY-V02.md` and `21-CONTACT-LOAD-PIPELINE-V01.md`. This document remains the original architectural specification.
+
 Status: prototype specification
 Updated: 2026-09-23
 
