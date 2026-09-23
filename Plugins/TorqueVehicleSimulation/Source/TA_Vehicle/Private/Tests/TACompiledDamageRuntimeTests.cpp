@@ -67,6 +67,20 @@ namespace
             ETASurfaceMaterial::FreshAsphalt;
         return Road;
     }
+
+    FTATireSolveInput MakeTireInputFromContact(
+        const FTAWheelContactInput& Contact,
+        const double WheelAngularSpeedRadPerSec)
+    {
+        FTATireSolveInput Input;
+        Input.VerticalLoadN = Contact.VerticalLoadN;
+        Input.LongitudinalVelocityMps = Contact.LongitudinalVelocityMps;
+        Input.LateralVelocityMps = Contact.LateralVelocityMps;
+        Input.WheelAngularSpeedRadPerSec = WheelAngularSpeedRadPerSec;
+        Input.CamberRad = Contact.CamberRad;
+        Input.Surface = Contact.Surface;
+        return Input;
+    }
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -159,6 +173,8 @@ bool FTACompiledDamageRuntimeInjectionTest::RunTest(
             > 0.0005);
 
     // Compare undamaged and damaged alignment at the same clean chassis pose.
+    // A non-zero forward/lateral velocity is intentional: it closes the
+    // regression chain through the tire model instead of stopping at geometry.
     FTAFrontAxleRuntimeState UndamagedAxleState;
     FTATireRuntimeState UndamagedLeftTire;
     FTATireRuntimeState UndamagedRightTire;
@@ -171,6 +187,8 @@ bool FTACompiledDamageRuntimeInjectionTest::RunTest(
     FTAChassisState ReferenceChassis;
     ReferenceChassis.PositionWorldM =
         FVector3d(0.0, 0.0, 0.777);
+    ReferenceChassis.LinearVelocityWorldMps =
+        FVector3d(15.0, 0.75, 0.0);
 
     TestTrue(
         TEXT("Undamaged reference front axle solves"),
@@ -225,6 +243,46 @@ bool FTACompiledDamageRuntimeInjectionTest::RunTest(
         TEXT("Persistent crash deformation changes next-step wheel alignment"),
         RightAlignmentDeltaRad
             > FMath::DegreesToRadians(0.05));
+
+    const double ReferenceWheelSpeedRadPerSec =
+        15.0
+        / FMath::Max(
+            0.01,
+            Config.VehicleRuntime.Wheels[1].RadiusM);
+
+    const FTATireSolveInput UndamagedTireInput =
+        MakeTireInputFromContact(
+            UndamagedOutput.RightVehicleContact,
+            ReferenceWheelSpeedRadPerSec);
+
+    const FTATireSolveInput DamagedTireInput =
+        MakeTireInputFromContact(
+            DamagedOutput.RightVehicleContact,
+            ReferenceWheelSpeedRadPerSec);
+
+    const FTATireSolveOutput UndamagedTireOutput =
+        TATireSolver::Solve(
+            Config.VehicleRuntime.Tires[1],
+            UndamagedRightTire,
+            UndamagedTireInput);
+
+    const FTATireSolveOutput DamagedTireOutput =
+        TATireSolver::Solve(
+            Config.VehicleRuntime.Tires[1],
+            DamagedRightTire,
+            DamagedTireInput);
+
+    const double TireForceDeltaN =
+        FMath::Abs(
+            DamagedTireOutput.LongitudinalForceN
+            - UndamagedTireOutput.LongitudinalForceN)
+        + FMath::Abs(
+            DamagedTireOutput.LateralForceN
+            - UndamagedTireOutput.LateralForceN);
+
+    TestTrue(
+        TEXT("Crash-induced alignment/load change alters tire force"),
+        TireForceDeltaN > 1.0);
 
     return true;
 }
