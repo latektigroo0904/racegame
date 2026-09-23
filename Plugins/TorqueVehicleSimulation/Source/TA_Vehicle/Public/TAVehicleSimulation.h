@@ -71,6 +71,29 @@ struct TA_VEHICLE_API FTAVehicleRuntimeConfig
     FTARadiatorDamageConfig Radiator;
 };
 
+struct TA_VEHICLE_API FTASteeringRackFunctionalDamageState
+{
+    double Damage01 = 0.0;
+
+    // Functional command authority only. Geometric rack/pickup displacement
+    // remains owned by the structural binding path.
+    double CommandAuthority01 = 1.0;
+
+    // Mechanical lash/deadband applied to commanded rack travel.
+    double FreePlayM = 0.0;
+};
+
+struct TA_VEHICLE_API FTAWheelHubFunctionalDamageState
+{
+    double Damage01 = 0.0;
+
+    double BrakeEfficiency01 = 1.0;
+    double DriveEfficiency01 = 1.0;
+
+    // Opposes wheel rotation; does not replace tire rolling resistance.
+    double BearingDragTorqueNm = 0.0;
+};
+
 struct TA_VEHICLE_API FTAVehicleRuntimeState
 {
     uint64 SimulationTick = 0;
@@ -85,9 +108,12 @@ struct TA_VEHICLE_API FTAVehicleRuntimeState
 
     FTARadiatorDamageState Radiator;
 
+    FTASteeringRackFunctionalDamageState SteeringRackDamage;
+
     int32 SelectedGear = 0;
 
     TArray<FTAWheelRuntimeState> Wheels;
+    TArray<FTAWheelHubFunctionalDamageState> WheelHubDamage;
 };
 
 struct TA_VEHICLE_API FTAVehicleStepInput
