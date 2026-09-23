@@ -42,7 +42,6 @@ namespace TACrashDamagePipeline
         const FTACrashDamagePipelineConfig& PipelineConfig,
         const FTAVehicleRuntimeConfig& VehicleConfig,
         const FTACrashDamagePipelineInput& Input,
-        FTAChassisState& InOutChassisState,
         FTAVehicleRuntimeState& InOutVehicleState,
         TArray<FTAStructureNode>& InOutStructureNodes,
         TArray<FTADistanceConstraint>& InOutConstraints,
