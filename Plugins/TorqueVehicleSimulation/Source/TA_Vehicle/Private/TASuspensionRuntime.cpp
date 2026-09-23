@@ -122,3 +122,33 @@ FTASuspensionForceOutput TASuspensionRuntime::CalculateForce(
 
     return Output;
 }
+
+
+FTAAntiRollBarOutput TASuspensionRuntime::CalculateAntiRollBar(
+    const FTAAntiRollBarConfig& Config,
+    const double LeftTravelM,
+    const double RightTravelM)
+{
+    FTAAntiRollBarOutput Output;
+
+    const double TravelDifferenceM =
+        LeftTravelM - RightTravelM;
+
+    const double TransferForceN =
+        FMath::Clamp(
+            FMath::Max(0.0, Config.CouplingRateNPerM)
+                * TravelDifferenceM,
+            -FMath::Max(0.0, Config.MaxTransferForceN),
+            FMath::Max(0.0, Config.MaxTransferForceN));
+
+    // Positive travel = bump/compression.
+    // The more-compressed side gains normal-load contribution;
+    // the opposite side loses the same amount.
+    Output.LeftLoadAdjustmentN =
+        TransferForceN;
+
+    Output.RightLoadAdjustmentN =
+        -TransferForceN;
+
+    return Output;
+}
