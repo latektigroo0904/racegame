@@ -3,30 +3,16 @@
 Updated: 2026-09-23
 
 ## Current phase
-**Early integrated Unreal/C++ vehicle physics prototype.**
+**Integrated native vehicle-motion prototype foundation.**
 
-The repository now contains the first closed native subsystem chain from engine torque to driven-wheel torque and tire reaction, plus the first functional cooling-damage-to-engine-derate chain.
+The repository now contains a connected native physics path from engine torque through tires into a 6-DOF chassis, plus a first functional cooling-damage chain and fixed-capacity telemetry.
 
-The code remains **build-unverified** until compiled and executed against Unreal Engine 5.8.
+The source remains **build-unverified** until Unreal Engine 5.8 UHT/UBT/C++ compilation and Automation execution are actually run.
 
 ## Canonical repository
 `latektigroo0904/racegame`
 
-## Completed specifications
-- master GDD;
-- technical architecture;
-- tire/surface/steering numerical design;
-- structural solver v0.2;
-- GeoForge normalized schema;
-- vehicle data/runtime schema;
-- powertrain v0.1;
-- suspension kinematics v0.1;
-- Proof-of-Physics test matrix;
-- Unreal/C++ skeleton;
-- functional damage graph;
-- integrated vehicle runtime v0.1.
-
-## Enabled runtime modules
+## Runtime modules
 ```
 TA_Core
 TA_Surface
@@ -35,112 +21,50 @@ TA_Powertrain
 TA_Structure
 TA_Damage
 TA_Vehicle
+TA_Telemetry
 ```
 
-## Implemented code
+## Implemented physical chains
 
-### TA_Core
-- simulation version types;
-- validation messages/results;
-- SI/Unreal conversion helpers.
-
-### TA_Surface
-- surface material/sample state;
-- dry/wet friction blending;
-- ice blending.
-
-### TA_Tire
-- slip ratio/angle;
-- load sensitivity;
-- smooth saturation;
-- combined slip;
-- camber contribution;
-- aligning moment;
-- rolling resistance;
-- continuous per-wheel aquaplaning;
-- longitudinal reaction-capacity estimate for drivetrain coupling;
-- tests.
-
-### TA_Powertrain
-- data-driven torque curve;
-- throttle/idle torque;
-- redline/limiter fade;
-- engine friction/inertia;
-- finite starter torque;
-- Running/Stalled/Cranking transitions;
-- clutch torque;
-- clutch heat/wear/fade;
-- gearbox transforms;
-- separate final drive;
-- torsional compliance helpers;
-- quasi-static open differential;
-- engine thermal state;
-- temperature torque derate;
-- thermal engine damage;
-- tests.
-
-### TA_Structure
-- structural nodes;
-- compliant distance constraints;
-- iterative XPBD-style correction;
-- plastic rest-length change;
-- fracture;
-- velocity reconstruction;
-- tests.
-
-### TA_Damage
-- deterministic typed damage events;
-- fixed-capacity event queue;
-- radiator crush/puncture;
-- leak area;
-- coolant loss;
-- cooling efficiency degradation;
-- tests.
-
-### TA_Vehicle
-- fixed-step integrated runtime;
-- two-driven-wheel TA-P01 prototype path;
-- engine → clutch → gearbox → final drive → open diff;
-- wheel inertia;
-- brake-to-zero angular integration;
-- tire reaction torque;
-- total tire-force aggregation;
-- radiator/cooling → engine thermal update;
-- integrated tests;
-- suspension kinematic cache runtime;
-- spring/damper/stop forces;
-- static spring compression/preload;
-- suspension tests.
-
-## Canonical physical chains now represented in code
-
-### Drive chain
+### Propulsion and tire reaction
 ```
-throttle
-→ engine torque
+driver throttle
+→ engine torque curve
 → clutch
 → gearbox
 → final drive
 → open differential
-→ wheel angular acceleration
-→ tire slip/force
-→ tire reaction torque
+→ wheel inertia
+→ tire slip
+→ tire force
+→ wheel reaction torque
 ```
 
-### Cooling damage chain
+### Chassis motion
+```
+per-wheel tire force
++ per-wheel suspension reaction input
+→ force at physical contact point
+→ chassis total force + moment
+→ linear/angular acceleration
+→ 6-DOF chassis state
+→ quaternion orientation
+```
+
+### Cooling damage
 ```
 radiator impact/crush
 → puncture/leak
-→ coolant mass loss
+→ coolant loss
 → cooling efficiency loss
-→ coolant temperature increase
+→ coolant temperature rise
 → thermal torque derate
-→ cumulative engine thermal damage
+→ cumulative thermal engine damage
 ```
 
-### Engine restart chain
+### Engine restart
 ```
-running RPM below stall threshold
+Running below stall RPM
 → Stalled
 → starter engagement
 → finite starter torque
@@ -149,105 +73,186 @@ running RPM below stall threshold
 → Running
 ```
 
-## Important corrections made
-1. Conventional gearbox reduction:
-   `omega_out = omega_in / G`.
-2. Reference suspension ride height includes static spring compression.
-3. A zero-rpm engine can no longer self-start from the torque map.
-4. Brake integration cannot reverse a wheel merely through timestep overshoot.
+## Implemented systems
 
-## Verification status
+### TA_Surface
+- surface samples;
+- dry/wet/ice baseline friction.
 
-### Source-level verified
-- files/module boundaries are consistent;
-- specs, ADRs and implementation have been synchronized;
-- official UE 5.8 docs confirm the `TVector::GetClampedToMaxSize` API used by the structural solver;
-- tests exist for major implemented primitives.
+### TA_Tire
+- slip ratio/angle;
+- load sensitivity;
+- combined slip;
+- camber contribution;
+- aligning moment;
+- rolling resistance;
+- per-wheel continuous aquaplaning;
+- reaction-capacity estimate for driveline coupling.
 
-### Still not executed
+### TA_Powertrain
+- RPM/torque curve;
+- throttle/idle;
+- limiter fade;
+- engine friction/inertia;
+- stall/cranking/running state;
+- starter torque;
+- clutch torque/heat/wear/fade;
+- gearbox/final-drive transforms;
+- torsional compliance helpers;
+- quasi-static open differential;
+- engine thermal state;
+- overheat torque derate and damage.
+
+### TA_Structure
+- nodes;
+- compliant distance constraints;
+- XPBD-style iteration;
+- plastic rest-state change;
+- fracture;
+- velocity reconstruction.
+
+### TA_Damage
+- typed deterministic damage signals;
+- fixed-capacity damage queue;
+- radiator crush/puncture/leak;
+- coolant-loss/cooling degradation.
+
+### TA_Vehicle
+- fixed-step integrated solver;
+- wheel rotational dynamics;
+- brake-to-zero clamp;
+- powertrain/tire coupling;
+- physical wheel contact points/basis;
+- tire/suspension force application to chassis;
+- first suspension kinematic cache;
+- spring/damper/bump/droop force model;
+- static spring compression;
+- native 6-DOF chassis integration.
+
+### TA_Telemetry
+- fixed-capacity ring buffer;
+- no allocation required during push after initialization;
+- chronological wraparound read;
+- engine/clutch/coolant/chassis sample data;
+- four-wheel prototype slip/force channels;
+- reserved solver profiling fields.
+
+## Test source currently present
+Automation source now covers:
+- vehicle definition compilation;
+- powertrain torque balance;
+- gearbox/final drive;
+- clutch heating/wear;
+- open differential;
+- starter/stall transitions;
+- tire force/aquaplaning;
+- worn vs new tire standing water;
+- structural constraint correction;
+- plastic deformation/fracture;
+- deterministic damage queue;
+- radiator leak/cooling degradation;
+- suspension cache interpolation;
+- spring/damper force sign/preload;
+- integrated powertrain → wheel torque;
+- neutral decoupling;
+- brake non-reversal;
+- split-mu open differential;
+- radiator → thermal derate;
+- tire force → chassis motion;
+- asymmetric tire force → yaw;
+- chassis centered/off-center/pure torque;
+- telemetry ring-buffer wraparound.
+
+These tests are **written but not yet executed**.
+
+## Verified by current source/API review
+- official Unreal 5.8 documentation confirms the vector clamp and quaternion APIs used by current chassis/structure code;
+- architecture dependencies remain one-directional around telemetry;
+- no global car HP drives physical behaviour;
+- no mutable Unreal asset read is required inside the current native solver step.
+
+## Still unverified
 - UnrealHeaderTool;
 - UnrealBuildTool;
-- C++ compiler;
-- Editor startup/module loading;
-- Automation tests;
-- CPU profiling;
-- cross-machine deterministic comparison.
+- MSVC/Clang compilation;
+- module load order in Editor;
+- Automation test execution;
+- performance targets;
+- numerical determinism across machines;
+- actual drive feel/calibration.
 
-No build/test-pass claim is permitted until actually executed.
+## Known limitations / technical debt
+1. Tire contact vertical load remains an external input; suspension/contact solver must own it next.
+2. Suspension damaged-hardpoint mode currently invalidates the cache but does not yet solve the deformed geometry.
+3. Chassis collision/contact manifolds are not implemented.
+4. Structural solver does not yet receive distributed impulses from real collision geometry.
+5. Open differential is quasi-static, not a full carrier/side-gear inertia solve.
+6. Tire low-speed model is regularized but not yet a dedicated static-friction contact formulation.
+7. Engine thermal heat generation is still a simplified load proxy.
+8. Four-wheel telemetry layout is TA-P01-specific.
+9. Unreal compile may expose UHT/API/build-rule corrections.
 
-## Remaining highest risks
-1. First UE 5.8 compile/API cleanup.
-2. Full chassis 6-DOF integration and stable force application.
-3. Runtime damaged-hardpoint suspension geometry.
-4. Structural collision impulse distribution from actual contacts.
-5. Tire calibration against trustworthy measurement/reference data.
-6. Whole-vehicle energy stability under drivetrain/tire iteration.
-7. Multiplayer correction of deformed high-speed vehicles.
-8. GeoForge cleanup of complex road infrastructure.
+## Highest next risks
+1. Suspension/contact-derived vertical load stability.
+2. Damaged suspension geometry solve.
+3. Energy stability once chassis, suspension, tires and drivetrain iterate together.
+4. Structure/contact energy transfer without double-counting.
+5. First actual UE 5.8 build.
+6. Tire calibration/validation.
 
 ## Immediate next work — no user input required
 
-### 1. Chassis dynamics v0.1
-Implement native 6-DOF chassis state:
-- position;
-- orientation quaternion;
-- linear velocity;
-- angular velocity;
-- mass/inertia;
-- force/torque accumulation;
-- gravity;
-- tire-force application at contact points.
+### 1. Suspension geometry v0.2
+Implement authored hardpoints and validation for TA-P01 front double wishbone:
+- upper-arm inner axis;
+- lower-arm inner axis;
+- outer ball joints;
+- tie rod;
+- damper mounts;
+- wheel center;
+- damaged structural pickup offsets.
 
-### 2. Suspension geometry runtime v0.2
-Implement:
-- hardpoint structs;
-- validation;
-- first front double-wishbone geometric solution;
-- damaged pickup offsets;
-- cache invalidation/switching.
+### 2. Contact/load solve
+Implement first wheel/road vertical contact path:
+- road plane/contact point;
+- suspension travel solve;
+- spring/damper force;
+- vertical tire/contact reaction;
+- chassis equal/opposite force.
 
-### 3. Vehicle/suspension/chassis coupling
-Replace externally supplied vertical load with suspension/contact-derived load in the first proving-ground fixture.
+This removes the externally supplied `VerticalLoadN` from the canonical proving-ground path.
 
-### 4. Telemetry module
-Implement fixed-capacity/ring telemetry:
-- simulation tick;
-- RPM/gear;
-- wheel slips/loads;
-- tire forces;
-- temperatures;
-- damage state;
-- solver timing fields.
+### 3. Damaged pickup solve
+When a bound structural mount moves:
+- invalidate undamaged cache;
+- solve current geometry;
+- recompute camber/toe/wheel center;
+- feed tire solver.
 
-### 5. Engine/powertrain refinement
-Add:
-- turbo spool state;
-- explicit combustion/load energy input to thermal model;
-- over-rev damage accumulator;
-- starter battery/electrical hook later.
+### 4. Chassis coupling refinement
+- wheel-point velocity derived from chassis linear + angular velocity;
+- local wheel basis derived from chassis/steering/suspension;
+- remove externally supplied longitudinal/lateral contact velocity from canonical path.
 
-### 6. Structural-damage integration
-Connect:
-- collision impulse input;
-- node-load distribution;
-- damage binding;
-- radiator target events;
-- suspension pickup displacement.
+### 5. Telemetry/test reporting
+- capture config hash/build metadata;
+- CSV export;
+- deterministic regression-envelope comparison.
 
-### 7. Build gate
-As soon as an Unreal Engine 5.8 build environment is accessible:
+### 6. First Unreal build gate
+As soon as UE 5.8 build access exists:
 1. generate project files;
 2. compile Development Editor;
 3. fix UHT/UBT/compiler errors;
-4. launch editor;
-5. run Automation tests;
-6. save exact engine/toolchain/commit metadata;
-7. profile first fixed-step fixture.
+4. launch Editor;
+5. run all `TorqueAtlas.*` Automation tests;
+6. record exact engine/toolchain/commit;
+7. profile first integrated fixture.
 
 ## Exact continuation point
-Resume with **native chassis dynamics v0.1**, then connect tire forces at wheel/contact positions. After that, implement the first damaged-hardpoint double-wishbone runtime solve.
+Resume with **TA-P01 double-wishbone hardpoint schema + front suspension geometric solver**, then derive wheel/contact velocity and vertical load from chassis/suspension state.
 
-Do not expand world size, brands, career, economy or visual content until a chassis can physically move under the integrated solver.
+Do not expand the world, brand roster, career, economy or art production until the proving-ground vehicle can support its own weight, accelerate, brake and corner through the integrated solver.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
