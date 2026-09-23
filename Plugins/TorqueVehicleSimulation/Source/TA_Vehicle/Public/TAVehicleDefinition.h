@@ -182,6 +182,33 @@ struct TA_VEHICLE_API FTAPrototypeWheelDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes", meta=(ClampMin="0.0", Units="N*m"))
     double MaxBrakeTorqueNm = 2200.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Thermal", meta=(ClampMin="1.0", Units="J/C"))
+    double BrakeThermalMassJPerC = 35000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Thermal", meta=(ClampMin="0.0", Units="W/C"))
+    double BrakeCoolingWPerC = 70.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Thermal", meta=(Units="C"))
+    double BrakeAmbientTemperatureC = 20.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Thermal", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double BrakeHeatFraction01 = 0.95;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Fade", meta=(Units="C"))
+    double BrakeFadeStartTemperatureC = 450.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Fade", meta=(Units="C"))
+    double BrakeFadeEndTemperatureC = 750.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Fade", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumBrakeFadeTorqueFactor01 = 0.35;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Wear", meta=(ClampMin="1.0", Units="J"))
+    double BrakeWearEnergyCapacityJ = 4.0e8;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Brakes|Wear", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double BrakeWearTorqueLossAtEnd01 = 0.25;
 };
 
 USTRUCT(BlueprintType)
