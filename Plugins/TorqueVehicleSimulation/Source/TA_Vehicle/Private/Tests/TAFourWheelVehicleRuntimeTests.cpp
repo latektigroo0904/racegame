@@ -389,4 +389,147 @@ bool FTAFourWheelSteeringYawTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAFourWheelStaticStabilityTest,
+    "TorqueAtlas.Vehicle.FourWheel.StaticStability",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAFourWheelStaticStabilityTest::RunTest(const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig VehicleConfig =
+        MakeVehicleConfig();
+
+    const FTAFourWheelRuntimeConfig RuntimeConfig =
+        MakeFourWheelRuntimeConfig();
+
+    FTAFourWheelRuntimeState State;
+
+    TestTrue(
+        TEXT("Runtime initializes"),
+        TAFourWheelVehicleRuntime::Initialize(
+            VehicleConfig,
+            State));
+
+    State.Vehicle.Chassis.PositionWorldM =
+        FVector3d(0.0, 0.0, 0.777);
+
+    const FTAFourWheelStepInput Input =
+        MakeFourWheelInput();
+
+    FTAFourWheelStepOutput Output;
+
+    for (int32 StepIndex = 0;
+         StepIndex < 480;
+         ++StepIndex)
+    {
+        TestTrue(
+            TEXT("Static stability step succeeds"),
+            TAFourWheelVehicleRuntime::Step(
+                VehicleConfig,
+                RuntimeConfig,
+                Input,
+                1.0 / 240.0,
+                State,
+                Output));
+    }
+
+    TestTrue(
+        TEXT("Static chassis height remains bounded"),
+        State.Vehicle.Chassis.PositionWorldM.Z > 0.65
+        && State.Vehicle.Chassis.PositionWorldM.Z < 0.90);
+
+    TestTrue(
+        TEXT("Static vertical velocity remains bounded"),
+        FMath::Abs(
+            State.Vehicle.Chassis.LinearVelocityWorldMps.Z)
+            < 1.0);
+
+    TestTrue(
+        TEXT("Static pitch rate remains bounded"),
+        FMath::Abs(
+            State.Vehicle.Chassis.AngularVelocityWorldRadPerSec.Y)
+            < 1.0);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAFourWheelBrakingTest,
+    "TorqueAtlas.Vehicle.FourWheel.BrakesFromResolvedContacts",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAFourWheelBrakingTest::RunTest(const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig VehicleConfig =
+        MakeVehicleConfig();
+
+    const FTAFourWheelRuntimeConfig RuntimeConfig =
+        MakeFourWheelRuntimeConfig();
+
+    FTAFourWheelRuntimeState State;
+
+    TestTrue(
+        TEXT("Runtime initializes"),
+        TAFourWheelVehicleRuntime::Initialize(
+            VehicleConfig,
+            State));
+
+    State.Vehicle.Chassis.PositionWorldM =
+        FVector3d(0.0, 0.0, 0.777);
+
+    State.Vehicle.Chassis.LinearVelocityWorldMps =
+        FVector3d(15.0, 0.0, 0.0);
+
+    for (int32 Index = 0;
+         Index < State.Vehicle.Wheels.Num();
+         ++Index)
+    {
+        State.Vehicle.Wheels[Index].AngularSpeedRadPerSec =
+            15.0
+            / VehicleConfig.Wheels[Index].RadiusM;
+    }
+
+    FTAFourWheelStepInput Input =
+        MakeFourWheelInput();
+
+    Input.Controls.Brake01 = 1.0;
+    Input.Controls.SelectedGear = 0;
+    Input.Controls.ClutchEngagement01 = 0.0;
+
+    FTAFourWheelStepOutput Output;
+
+    for (int32 StepIndex = 0;
+         StepIndex < 120;
+         ++StepIndex)
+    {
+        TestTrue(
+            TEXT("Braking step succeeds"),
+            TAFourWheelVehicleRuntime::Step(
+                VehicleConfig,
+                RuntimeConfig,
+                Input,
+                1.0 / 240.0,
+                State,
+                Output));
+    }
+
+    TestTrue(
+        TEXT("Vehicle speed decreases under braking"),
+        State.Vehicle.Chassis.LinearVelocityWorldMps.X
+            < 15.0);
+
+    for (int32 Index = 0;
+         Index < State.Vehicle.Wheels.Num();
+         ++Index)
+    {
+        TestTrue(
+            TEXT("Brake integration does not reverse wheel"),
+            State.Vehicle.Wheels[Index].AngularSpeedRadPerSec
+                >= -1.0e-9);
+    }
+
+    return true;
+}
+
 #endif
