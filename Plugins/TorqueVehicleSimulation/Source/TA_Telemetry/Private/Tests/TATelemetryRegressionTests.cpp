@@ -426,6 +426,12 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
         Sample.WheelHubBrakeEfficiency01[1] =
             1.0 - 0.15 * static_cast<double>(Index);
 
+        Sample.SuspensionSpringEfficiency01[0] =
+            1.0 - 0.20 * static_cast<double>(Index);
+
+        Sample.AntiRollLinkEfficiency01[0] =
+            1.0 - 0.25 * static_cast<double>(Index);
+
         Buffer.Push(Sample);
     }
 
@@ -493,6 +499,36 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
     Config.Envelopes.Add(
         HubBrake);
 
+    FTATelemetryMetricEnvelope SpringEfficiency;
+    SpringEfficiency.Metric =
+        ETATelemetryMetric::SuspensionSpringEfficiency01;
+    SpringEfficiency.Statistic =
+        ETATelemetryStatistic::Minimum;
+    SpringEfficiency.WheelIndex =
+        0;
+    SpringEfficiency.MinimumAllowed =
+        0.39;
+    SpringEfficiency.MaximumAllowed =
+        0.41;
+
+    Config.Envelopes.Add(
+        SpringEfficiency);
+
+    FTATelemetryMetricEnvelope AntiRollEfficiency;
+    AntiRollEfficiency.Metric =
+        ETATelemetryMetric::AntiRollLinkEfficiency01;
+    AntiRollEfficiency.Statistic =
+        ETATelemetryStatistic::Minimum;
+    AntiRollEfficiency.WheelIndex =
+        0;
+    AntiRollEfficiency.MinimumAllowed =
+        0.24;
+    AntiRollEfficiency.MaximumAllowed =
+        0.26;
+
+    Config.Envelopes.Add(
+        AntiRollEfficiency);
+
     FTATelemetryRegressionResult Result;
 
     TestTrue(
@@ -507,9 +543,9 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
         Result.bPassed);
 
     TestEqual(
-        TEXT("All four functional damage envelopes pass"),
+        TEXT("All six functional damage envelopes pass"),
         Result.PassedEnvelopeCount,
-        4);
+        6);
 
     return true;
 }
