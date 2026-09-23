@@ -67,6 +67,13 @@ struct TA_TELEMETRY_API FTAVehicleTelemetrySample
     double AntiRollLinkEfficiency01[TAPrototypeTelemetryWheelCount] =
         { 1.0, 1.0, 1.0, 1.0 };
 
+    double BrakeTemperatureC[TAPrototypeTelemetryWheelCount] = {};
+    double BrakeThermalTorqueFactor01[TAPrototypeTelemetryWheelCount] =
+        { 1.0, 1.0, 1.0, 1.0 };
+    double BrakeWear01[TAPrototypeTelemetryWheelCount] = {};
+    double BrakeWearTorqueFactor01[TAPrototypeTelemetryWheelCount] =
+        { 1.0, 1.0, 1.0, 1.0 };
+
     double TireSurfaceTemperatureC[TAPrototypeTelemetryWheelCount] = {};
     double TirePressureKPa[TAPrototypeTelemetryWheelCount] = {};
     double TireWear01[TAPrototypeTelemetryWheelCount] = {};
