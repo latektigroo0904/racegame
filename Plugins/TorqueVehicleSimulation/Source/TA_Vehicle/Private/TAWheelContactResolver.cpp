@@ -402,7 +402,8 @@ bool TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
             FinalGeometry.DamperLengthM);
 
     InOutSuspensionState.bKinematicCacheValid =
-        !HasMeaningfulDamage(DamageOffsets);
+        !HasMeaningfulDamage(DamageOffsets)
+        && FMath::Abs(RackDisplacementM) <= 1.0e-8;
 
     OutContact.TravelM = FinalTravelM;
     OutContact.Geometry = FinalGeometry;
