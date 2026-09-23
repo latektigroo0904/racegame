@@ -1172,4 +1172,208 @@ bool FTAVehicleDefinitionRejectsInvalidTorqueCurveTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionSuspensionStopAndCoolingAuthoringTest,
+    "TorqueAtlas.Vehicle.Definition.CompilesSuspensionStopsAndCooling",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionSuspensionStopAndCoolingAuthoringTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    Definition->FrontSuspension.BumpStopRateNPerM =
+        210000.0;
+
+    Definition->FrontSuspension.DroopStopRateNPerM =
+        135000.0;
+
+    Definition->RearSuspension.BumpStopRateNPerM =
+        195000.0;
+
+    Definition->RearSuspension.DroopStopRateNPerM =
+        125000.0;
+
+    Definition->Cooling.InitialCoolantMassKg =
+        7.2;
+
+    Definition->Cooling.PunctureThresholdEnergyJ =
+        3200.0;
+
+    Definition->Cooling.FullLeakEnergyJ =
+        24500.0;
+
+    Definition->Cooling.MaxLeakAreaMm2 =
+        24.0;
+
+    Definition->Cooling.LeakMassFlowKgPerSecPerMm2 =
+        0.004;
+
+    Definition->Cooling.MinimumAirflowEfficiency01 =
+        0.18;
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Suspension stop and cooling calibration compiles"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Front bump-stop rate reaches runtime"),
+        FMath::IsNearlyEqual(
+            Config.FourWheelRuntime.FrontAxle
+                .LeftSuspension.BumpStopRateNPerM,
+            210000.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front droop-stop rate reaches runtime"),
+        FMath::IsNearlyEqual(
+            Config.FourWheelRuntime.FrontAxle
+                .LeftSuspension.DroopStopRateNPerM,
+            135000.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Rear bump-stop rate reaches runtime"),
+        FMath::IsNearlyEqual(
+            Config.FourWheelRuntime.RearAxle
+                .LeftSuspension.BumpStopRateNPerM,
+            195000.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Rear droop-stop rate reaches runtime"),
+        FMath::IsNearlyEqual(
+            Config.FourWheelRuntime.RearAxle
+                .LeftSuspension.DroopStopRateNPerM,
+            125000.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Coolant mass reaches radiator runtime"),
+        FMath::IsNearlyEqual(
+            Config.VehicleRuntime.Radiator.InitialCoolantMassKg,
+            7.2,
+            1.0e-12));
+
+    TestTrue(
+        TEXT("Radiator puncture threshold reaches runtime"),
+        FMath::IsNearlyEqual(
+            Config.VehicleRuntime.Radiator.PunctureThresholdEnergyJ,
+            3200.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Radiator full-leak threshold reaches runtime"),
+        FMath::IsNearlyEqual(
+            Config.VehicleRuntime.Radiator.FullLeakEnergyJ,
+            24500.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Radiator leak calibration reaches runtime"),
+        FMath::IsNearlyEqual(
+            Config.VehicleRuntime.Radiator.LeakMassFlowKgPerSecPerMm2,
+            0.004,
+            1.0e-12));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionCoolingAndStopHashCoverageTest,
+    "TorqueAtlas.Vehicle.Definition.CoolingAndStopsChangePhysicsHash",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionCoolingAndStopHashCoverageTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAVehicleCompiledConfig Baseline;
+    FTAValidationResult BaselineValidation;
+
+    TestTrue(
+        TEXT("Baseline vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            Baseline,
+            BaselineValidation));
+
+    Definition->FrontSuspension.BumpStopRateNPerM +=
+        1000.0;
+
+    FTAVehicleCompiledConfig StopModified;
+    FTAValidationResult StopValidation;
+
+    TestTrue(
+        TEXT("Stop-modified vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            StopModified,
+            StopValidation));
+
+    TestTrue(
+        TEXT("Suspension stop calibration changes physics hash"),
+        StopModified.PhysicsConfigHash
+            != Baseline.PhysicsConfigHash);
+
+    Definition->Cooling.PunctureThresholdEnergyJ +=
+        250.0;
+
+    FTAVehicleCompiledConfig CoolingModified;
+    FTAValidationResult CoolingValidation;
+
+    TestTrue(
+        TEXT("Cooling-modified vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            CoolingModified,
+            CoolingValidation));
+
+    TestTrue(
+        TEXT("Radiator damage calibration changes physics hash"),
+        CoolingModified.PhysicsConfigHash
+            != StopModified.PhysicsConfigHash);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionRejectsInvalidCoolingCalibrationTest,
+    "TorqueAtlas.Vehicle.Definition.RejectsInvalidCoolingCalibration",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionRejectsInvalidCoolingCalibrationTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    Definition->Cooling.PunctureThresholdEnergyJ =
+        5000.0;
+
+    Definition->Cooling.FullLeakEnergyJ =
+        4000.0;
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestFalse(
+        TEXT("Full leak below puncture threshold is rejected"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Invalid cooling calibration emits errors"),
+        Validation.HasErrors());
+
+    return true;
+}
+
 #endif
