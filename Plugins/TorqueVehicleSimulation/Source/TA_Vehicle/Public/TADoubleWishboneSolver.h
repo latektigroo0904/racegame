@@ -12,6 +12,9 @@ struct TA_VEHICLE_API FTADoubleWishboneHardpoints
 
     FVector3d TieRodInner = FVector3d::ZeroVector;
 
+    FVector3d DamperChassis = FVector3d::ZeroVector;
+    FVector3d DamperLowerArmReference = FVector3d::ZeroVector;
+
     FVector3d UpperBallJointReference = FVector3d::ZeroVector;
     FVector3d LowerBallJointReference = FVector3d::ZeroVector;
     FVector3d TieRodOuterReference = FVector3d::ZeroVector;
@@ -46,6 +49,7 @@ struct TA_VEHICLE_API FTADoubleWishboneDamageOffsets
     FVector3d LowerInnerB = FVector3d::ZeroVector;
 
     FVector3d TieRodInner = FVector3d::ZeroVector;
+    FVector3d DamperChassis = FVector3d::ZeroVector;
 };
 
 struct TA_VEHICLE_API FTADoubleWishboneSolveInput
@@ -80,6 +84,9 @@ struct TA_VEHICLE_API FTADoubleWishboneSolveOutput
     FVector3d WheelForwardLocal = FVector3d(1.0, 0.0, 0.0);
     FVector3d WheelRightLocal = FVector3d(0.0, 1.0, 0.0);
     FVector3d WheelUpLocal = FVector3d(0.0, 0.0, 1.0);
+
+    FVector3d DamperLowerArmLocalM = FVector3d::ZeroVector;
+    double DamperLengthM = 0.0;
 
     double CamberRad = 0.0;
     double ToeRad = 0.0;
