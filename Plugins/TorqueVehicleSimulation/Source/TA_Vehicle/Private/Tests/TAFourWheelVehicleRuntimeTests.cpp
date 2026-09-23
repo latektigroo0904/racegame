@@ -532,4 +532,187 @@ bool FTAFourWheelBrakingTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAFourWheelSuspensionDamageLoadTest,
+    "TorqueAtlas.Vehicle.FourWheel.SuspensionDamageReducesCornerSupport",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAFourWheelSuspensionDamageLoadTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig VehicleConfig =
+        MakeVehicleConfig();
+
+    const FTAFourWheelRuntimeConfig RuntimeConfig =
+        MakeFourWheelRuntimeConfig();
+
+    FTAFourWheelRuntimeState HealthyState;
+    FTAFourWheelRuntimeState DamagedState;
+
+    TestTrue(
+        TEXT("Healthy fixture initializes"),
+        TAFourWheelVehicleRuntime::Initialize(
+            VehicleConfig,
+            HealthyState));
+
+    TestTrue(
+        TEXT("Damaged fixture initializes"),
+        TAFourWheelVehicleRuntime::Initialize(
+            VehicleConfig,
+            DamagedState));
+
+    HealthyState.Vehicle.Chassis.PositionWorldM =
+        FVector3d(0.0, 0.0, 0.777);
+
+    DamagedState.Vehicle.Chassis.PositionWorldM =
+        HealthyState.Vehicle.Chassis.PositionWorldM;
+
+    const int32 FrontLeftIndex =
+        static_cast<int32>(
+            ETAPrototypeWheelIndex::FrontLeft);
+
+    DamagedState.Vehicle.SuspensionDamage[
+        FrontLeftIndex].SpringEfficiency01 =
+        0.50;
+
+    const FTAFourWheelStepInput Input =
+        MakeFourWheelInput();
+
+    FTAFourWheelStepOutput HealthyOutput;
+    FTAFourWheelStepOutput DamagedOutput;
+
+    TestTrue(
+        TEXT("Healthy support step succeeds"),
+        TAFourWheelVehicleRuntime::Step(
+            VehicleConfig,
+            RuntimeConfig,
+            Input,
+            1.0 / 240.0,
+            HealthyState,
+            HealthyOutput));
+
+    TestTrue(
+        TEXT("Damaged support step succeeds"),
+        TAFourWheelVehicleRuntime::Step(
+            VehicleConfig,
+            RuntimeConfig,
+            Input,
+            1.0 / 240.0,
+            DamagedState,
+            DamagedOutput));
+
+    TestTrue(
+        TEXT("Reduced front-left spring efficiency reduces front-left normal load"),
+        DamagedOutput.FrontAxle.LeftContact.VerticalLoadN
+            < HealthyOutput.FrontAxle.LeftContact.VerticalLoadN);
+
+    TestTrue(
+        TEXT("Asymmetric suspension loss creates larger roll response than healthy fixture"),
+        FMath::Abs(
+            DamagedState.Vehicle.Chassis
+                .AngularVelocityWorldRadPerSec.X)
+            > FMath::Abs(
+                HealthyState.Vehicle.Chassis
+                    .AngularVelocityWorldRadPerSec.X));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAFourWheelAntiRollLinkFailureTest,
+    "TorqueAtlas.Vehicle.FourWheel.AntiRollLinkFailureRemovesTransfer",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAFourWheelAntiRollLinkFailureTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig VehicleConfig =
+        MakeVehicleConfig();
+
+    FTAFourWheelRuntimeConfig RuntimeConfig =
+        MakeFourWheelRuntimeConfig();
+
+    RuntimeConfig.FrontAxle.AntiRollBar.CouplingRateNPerM =
+        60000.0;
+
+    RuntimeConfig.FrontAxle.AntiRollBar.MaxTransferForceN =
+        5000.0;
+
+    FTAFourWheelRuntimeState HealthyState;
+    FTAFourWheelRuntimeState BrokenLinkState;
+
+    TestTrue(
+        TEXT("Healthy anti-roll fixture initializes"),
+        TAFourWheelVehicleRuntime::Initialize(
+            VehicleConfig,
+            HealthyState));
+
+    TestTrue(
+        TEXT("Broken-link fixture initializes"),
+        TAFourWheelVehicleRuntime::Initialize(
+            VehicleConfig,
+            BrokenLinkState));
+
+    HealthyState.Vehicle.Chassis.PositionWorldM =
+        FVector3d(0.0, 0.0, 0.777);
+
+    BrokenLinkState.Vehicle.Chassis.PositionWorldM =
+        HealthyState.Vehicle.Chassis.PositionWorldM;
+
+    const int32 FrontLeftIndex =
+        static_cast<int32>(
+            ETAPrototypeWheelIndex::FrontLeft);
+
+    BrokenLinkState.Vehicle.SuspensionDamage[
+        FrontLeftIndex].AntiRollLinkEfficiency01 =
+        0.0;
+
+    FTAFourWheelStepInput Input =
+        MakeFourWheelInput();
+
+    Input.FrontLeftRoad.PointWorldM.Z =
+        0.020;
+
+    FTAFourWheelStepOutput HealthyOutput;
+    FTAFourWheelStepOutput BrokenOutput;
+
+    TestTrue(
+        TEXT("Healthy asymmetric-road step succeeds"),
+        TAFourWheelVehicleRuntime::Step(
+            VehicleConfig,
+            RuntimeConfig,
+            Input,
+            1.0 / 240.0,
+            HealthyState,
+            HealthyOutput));
+
+    TestTrue(
+        TEXT("Broken-link asymmetric-road step succeeds"),
+        TAFourWheelVehicleRuntime::Step(
+            VehicleConfig,
+            RuntimeConfig,
+            Input,
+            1.0 / 240.0,
+            BrokenLinkState,
+            BrokenOutput));
+
+    const double HealthyFrontLoadSplitN =
+        FMath::Abs(
+            HealthyOutput.FrontAxle.LeftContact.VerticalLoadN
+            - HealthyOutput.FrontAxle.RightContact.VerticalLoadN);
+
+    const double BrokenFrontLoadSplitN =
+        FMath::Abs(
+            BrokenOutput.FrontAxle.LeftContact.VerticalLoadN
+            - BrokenOutput.FrontAxle.RightContact.VerticalLoadN);
+
+    TestTrue(
+        TEXT("Healthy anti-roll coupling creates more front load transfer than broken link"),
+        HealthyFrontLoadSplitN
+            > BrokenFrontLoadSplitN + 10.0);
+
+    return true;
+}
+
 #endif
