@@ -2,61 +2,109 @@
 
 Updated: 2026-09-23
 
+## Current phase
+Technical R&D transitioning into first Unreal/C++ prototype foundation.
+
 ## Completed / documented
 - overall game vision and product pillars;
 - business direction;
 - open-world and real-geographic-data strategy;
 - Unreal/custom-C++ architecture;
-- TA-P01 prototype vehicle direction;
-- suspension/powertrain architecture;
-- tire solver numerical v0.1 baseline;
+- TA-P01 prototype direction;
+- tire solver numerical v0.1;
 - surface/wetness model baseline;
 - continuous per-wheel aquaplaning v0.1;
-- steering/FFB coupling v0.2 direction;
-- structural node/constraint architecture;
-- structural solver v0.2 integration/compliance/plasticity/fracture plan;
-- structural/mechanical damage dependency concept;
-- physics tick ordering and performance targets;
-- telemetry/debug and regression strategy;
-- crash laboratory concept;
+- steering/FFB coupling direction;
+- structural solver v0.2 design;
 - GeoForge normalized data schema v0.1;
+- vehicle data/runtime-state schema v0.1;
+- powertrain solver v0.1 specification;
+- suspension kinematics v0.1;
+- Proof-of-Physics test matrix v0.1;
+- Unreal/C++ repository skeleton specification;
 - fictional brand pool (60/100 maximum);
-- roadmap and MVP;
-- GitHub repository baseline, changelog and ADR log.
+- roadmap/MVP;
+- decision log and changelog.
 
-## Important decisions from latest session
-1. Prototype tire backend uses a brush-inspired semi-empirical model behind a replaceable API.
-2. Aquaplaning is continuous, local and per wheel; water also creates displacement drag/yaw disturbances.
-3. Structural solver prototype uses iterative XPBD-style compliance with semi-implicit integration and adaptive crash quality.
-4. GeoForge converts all source datasets into a stable normalized intermediate schema before Unreal import.
+## Code now present
+Root:
+- `TorqueAtlas.uproject`;
+- Unreal `.gitignore`;
+- Game and Editor target files;
+- `TorqueAtlas` game module.
 
-## Assumptions still provisional
-- all tire calibration coefficients;
-- dry/wet surface multipliers;
-- solver iteration counts and frequency;
-- physics performance budgets;
+Plugin:
+`Plugins/TorqueVehicleSimulation`
+
+Enabled runtime modules:
+- `TA_Core`;
+- `TA_Vehicle`;
+- `TA_Powertrain`.
+
+Implemented baseline code:
+- simulation version and validation types;
+- SI/Unreal conversion helpers;
+- `UTAVehicleDefinition : UPrimaryDataAsset`;
+- native `FTAVehicleCompiledConfig`;
+- definition validation;
+- stable baseline physics configuration hash;
+- first engine rotational/friction helpers;
+- first clutch torque-capacity helper;
+- Unreal Automation smoke tests.
+
+## Important decisions from this session
+1. Vehicle definition, persistent owned instance and live simulation state are separate data domains.
+2. Authored Unreal assets compile into native immutable runtime configuration before high-frequency physics.
+3. Undamaged suspension may use compiled kinematic lookup; damaged geometry switches to runtime geometric solving.
+4. Plugin modules are enabled incrementally only when their source/dependencies exist.
+
+## Verification status
+**Not yet compiled against a real Unreal Engine 5.8 installation.**
+
+Therefore:
+- source structure is implementation-oriented but build success is unverified;
+- no claim is made that UHT/UBT/compiler validation has passed;
+- first real UE build is the next mandatory integration gate once an Unreal-capable development environment is connected.
+
+## Provisional assumptions
+Still tunable:
+- tire coefficients;
+- surface multipliers;
+- powertrain inertias/friction coefficients;
+- clutch stiffness/capacity;
+- suspension hardpoints;
+- structural iteration counts/compliance;
+- physics timestep/budgets;
 - aquaplaning calibration;
-- launch/world/team/budget scale estimates.
+- final performance targets.
 
-These must remain tunable and must not be represented as measured truth.
-
-## Risks currently highest
-1. Structural deformation stability/performance at high stiffness and crash speed.
-2. Coupling structural deformation to suspension/drivetrain without solver instability.
-3. High-speed multiplayer correction of damaged vehicles.
-4. Geo-data cleanup cost, especially intersections/bridges/tunnels.
-5. Tire calibration without proprietary test datasets.
+## Highest risks
+1. Structural crash stability/performance at high stiffness.
+2. Suspension/drivetrain coupling after structural deformation.
+3. Tire calibration without proprietary measurement datasets.
+4. High-speed multiplayer reconciliation after damage.
+5. GeoForge cleanup of complex intersections/bridges/tunnels.
+6. First Unreal compile may reveal API/build-rule adjustments.
 
 ## Immediate next work — no user input required
-1. Define `TA_VehicleDefinition` and simulation-state schemas in implementation-level detail.
-2. Define powertrain solver v0.1: engine inertia/torque, clutch slip/thermal, gearbox, differential and driveline compliance.
-3. Define suspension kinematics v0.1 and damaged-pickup coupling.
-4. Define Proof-of-Physics proving-ground test matrix and acceptance tolerances.
-5. Prepare Unreal/C++ repository skeleton specification (`Source`, plugin modules, tests, coding/units conventions).
-6. Only after those specs are coherent, begin actual code skeleton files.
+1. Complete Powertrain v0.1 code:
+   - engine torque map interface;
+   - idle/stall state;
+   - clutch thermal state;
+   - gearbox ratios/state;
+   - driveline torsional compliance;
+   - open differential.
+2. Add `TA_Tire` runtime module and implement first native force-solver API from docs/08.
+3. Add suspension runtime configuration/state to `TA_Vehicle`.
+4. Add `TA_Surface` runtime module.
+5. Add deterministic test fixtures for powertrain + tire low-speed transition.
+6. Add structural module skeleton only after the above APIs are coherent.
+7. When UE 5.8 build access exists: generate project files, compile Development Editor, run tests, fix all UHT/UBT/compiler errors before advancing broad feature work.
 
 ## Exact continuation point
-Start with **Vehicle Data Schema + Powertrain Solver v0.1**. Do not expand the world or brand roster in the next session unless core technical work becomes blocked.
+Resume at **Powertrain v0.1 code: gearbox + clutch thermal + driveline + open differential**, then create `TA_Tire`.
+
+Do not expand world size or brand roster in the next session unless core technical work becomes blocked.
 
 ## Checkpoint rule
 Update this file whenever a work session ends, before starting a new major subsystem.
