@@ -51,6 +51,32 @@ struct TA_POWERTRAIN_API FTAEngineRuntimeState
     double DamageTorqueFactor = 1.0;
 };
 
+struct TA_POWERTRAIN_API FTAEngineThermalConfig
+{
+    double AmbientTemperatureC = 20.0;
+    double InitialCoolantTemperatureC = 90.0;
+
+    double EffectiveThermalMassJPerC = 70000.0;
+
+    double BaseHeatGenerationW = 12000.0;
+    double FullLoadAdditionalHeatW = 95000.0;
+
+    double CoolingCapacityWPerC = 1450.0;
+
+    double DerateStartTemperatureC = 110.0;
+    double DerateFullTemperatureC = 135.0;
+    double MinimumThermalTorqueFactor = 0.40;
+
+    double DamageStartTemperatureC = 125.0;
+    double DamageRatePerSecondAt150C = 0.0025;
+};
+
+struct TA_POWERTRAIN_API FTAEngineThermalState
+{
+    double CoolantTemperatureC = 90.0;
+    double ThermalDamage01 = 0.0;
+};
+
 struct TA_POWERTRAIN_API FTAClutchRuntimeConfig
 {
     double MaxTorqueCapacityNm = 500.0;
@@ -112,6 +138,19 @@ namespace TAPowertrainSolver
         const FTAEngineRuntimeConfig& Config,
         const FTAEngineRuntimeState& State,
         double Throttle01);
+
+    TA_POWERTRAIN_API void InitializeEngineThermalState(
+        const FTAEngineThermalConfig& Config,
+        FTAEngineThermalState& OutState);
+
+    TA_POWERTRAIN_API void UpdateEngineThermalState(
+        const FTAEngineThermalConfig& Config,
+        double Throttle01,
+        double EngineRPM,
+        double CoolingEfficiency01,
+        double DeltaTimeSeconds,
+        FTAEngineThermalState& InOutThermalState,
+        FTAEngineRuntimeState& InOutEngineState);
 
     TA_POWERTRAIN_API double CalculateEngineFrictionTorqueNm(
         const FTAEngineRuntimeConfig& Config,
