@@ -157,6 +157,7 @@ namespace
         const FTASuspensionRuntimeState& PreviousSuspensionState,
         const FTATireRuntimeState& TireState,
         const double RackDisplacementM,
+        const double AdditionalSuspensionReactionN,
         const FTADoubleWishboneDamageOffsets& DamageOffsets,
         const FVector3d& RoadPointWorldM,
         const FVector3d& RoadNormalWorld,
@@ -212,6 +213,12 @@ namespace
             TASuspensionRuntime::CalculateForce(
                 SuspensionConfig,
                 OutEvaluation.SuspensionState);
+
+        OutEvaluation.SuspensionForce.TotalForceN =
+            FMath::Max(
+                0.0,
+                OutEvaluation.SuspensionForce.TotalForceN
+                + AdditionalSuspensionReactionN);
 
         const double RequestedDeflectionM =
             FMath::Max(
@@ -375,6 +382,7 @@ bool TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
             GeometryConfig,
             WheelRadiusM,
             RackDisplacementM,
+            AdditionalSuspensionReactionN,
             DamageOffsets,
             Road.PointWorldM,
             RoadNormal,
@@ -385,6 +393,7 @@ bool TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
             GeometryConfig,
             WheelRadiusM,
             RackDisplacementM,
+            AdditionalSuspensionReactionN,
             DamageOffsets,
             Road.PointWorldM,
             RoadNormal,
@@ -559,6 +568,7 @@ bool TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
     const FTASuspensionRuntimeConfig& SuspensionConfig,
     const FTATireRuntimeConfig& TireConfig,
     const double RackDisplacementM,
+    const double AdditionalSuspensionReactionN,
     const FTADoubleWishboneDamageOffsets& DamageOffsets,
     const FTARoadPlane& Road,
     const double DeltaTimeSeconds,
@@ -611,6 +621,7 @@ bool TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
             InOutSuspensionState,
             InOutTireState,
             RackDisplacementM,
+            AdditionalSuspensionReactionN,
             DamageOffsets,
             Road.PointWorldM,
             RoadNormal,
@@ -625,6 +636,7 @@ bool TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
             InOutSuspensionState,
             InOutTireState,
             RackDisplacementM,
+            AdditionalSuspensionReactionN,
             DamageOffsets,
             Road.PointWorldM,
             RoadNormal,
