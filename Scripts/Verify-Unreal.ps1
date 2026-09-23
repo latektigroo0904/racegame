@@ -85,8 +85,9 @@ function Invoke-NativeLogged {
     )
 
     Write-Host ">> $FilePath $($Arguments -join ' ')"
-    & $FilePath @Arguments 2>&1 | Tee-Object -FilePath $LogPath
-    return $LASTEXITCODE
+    & $FilePath @Arguments 2>&1 | Tee-Object -FilePath $LogPath | Out-Host
+    $ExitCode = $LASTEXITCODE
+    return $ExitCode
 }
 
 Write-Metadata
