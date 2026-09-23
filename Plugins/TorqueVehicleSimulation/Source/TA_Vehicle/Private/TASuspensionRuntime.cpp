@@ -79,7 +79,10 @@ FTASuspensionForceOutput TASuspensionRuntime::CalculateForce(
         FMath::Max(0.01, State.MotionRatio);
 
     const double SpringCompressionM =
-        FMath::Max(0.0, State.TravelM * MotionRatio);
+        FMath::Max(
+            0.0,
+            Config.StaticSpringCompressionM
+            + State.TravelM * MotionRatio);
 
     Output.SpringForceN =
         FMath::Max(0.0, Config.SpringRateNPerM)
