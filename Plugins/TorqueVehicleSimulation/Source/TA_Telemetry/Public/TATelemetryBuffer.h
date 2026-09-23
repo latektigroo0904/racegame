@@ -4,6 +4,7 @@
 #include "TAVehicleSimulation.h"
 
 struct FTAFrontAxleSolveOutput;
+struct FTAFourWheelStepOutput;
 
 constexpr int32 TAPrototypeTelemetryWheelCount = 4;
 
@@ -36,6 +37,15 @@ struct TA_TELEMETRY_API FTAVehicleTelemetrySample
     double TireLongitudinalForceN[TAPrototypeTelemetryWheelCount] = {};
     double TireLateralForceN[TAPrototypeTelemetryWheelCount] = {};
 
+    double WheelVerticalLoadN[TAPrototypeTelemetryWheelCount] = {};
+    double SuspensionTravelM[TAPrototypeTelemetryWheelCount] = {};
+    double WheelCamberRad[TAPrototypeTelemetryWheelCount] = {};
+    double WheelToeRad[TAPrototypeTelemetryWheelCount] = {};
+
+    double TireSurfaceTemperatureC[TAPrototypeTelemetryWheelCount] = {};
+    double TirePressureKPa[TAPrototypeTelemetryWheelCount] = {};
+    double TireWear01[TAPrototypeTelemetryWheelCount] = {};
+
     // Profiling fields are populated by higher-level instrumentation later.
     double VehicleSolverMs = 0.0;
     double TireSolverMs = 0.0;
@@ -65,6 +75,8 @@ public:
 
     const FTAVehicleTelemetrySample* GetChronological(int32 Index) const;
 
+    FString ExportCsv() const;
+
 private:
     TArray<FTAVehicleTelemetrySample> Samples;
 
@@ -80,5 +92,9 @@ namespace TATelemetry
 
     TA_TELEMETRY_API void ApplyFrontAxleSample(
         const FTAFrontAxleSolveOutput& FrontAxle,
+        FTAVehicleTelemetrySample& InOutSample);
+
+    TA_TELEMETRY_API void ApplyFourWheelSample(
+        const FTAFourWheelStepOutput& FourWheel,
         FTAVehicleTelemetrySample& InOutSample);
 }
