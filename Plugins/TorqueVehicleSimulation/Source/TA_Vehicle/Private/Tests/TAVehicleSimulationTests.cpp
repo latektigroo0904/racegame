@@ -890,4 +890,190 @@ bool FTAVehicleRuntimeSeparateSuspensionApplicationPointTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeBrakeFadeTest,
+    "TorqueAtlas.Vehicle.Runtime.HotBrakeReducesBrakeTorque",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeBrakeFadeTest::RunTest(
+    const FString& Parameters)
+{
+    FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    Config.Wheels[0].BrakeThermal.FadeStartTemperatureC =
+        100.0;
+
+    Config.Wheels[0].BrakeThermal.FadeEndTemperatureC =
+        200.0;
+
+    Config.Wheels[0].BrakeThermal.MinimumFadeTorqueFactor01 =
+        0.25;
+
+    FTAVehicleRuntimeState ColdState;
+    FTAVehicleRuntimeState HotState;
+
+    TestTrue(
+        TEXT("Cold brake fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            ColdState));
+
+    TestTrue(
+        TEXT("Hot brake fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            HotState));
+
+    ColdState.Wheels[0].AngularSpeedRadPerSec =
+        30.0;
+
+    HotState.Wheels[0].AngularSpeedRadPerSec =
+        30.0;
+
+    HotState.Wheels[0].BrakeThermal.TemperatureC =
+        200.0;
+
+    FTAVehicleStepInput Input =
+        MakeStaticContactInput();
+
+    for (FTAWheelContactInput& Contact :
+         Input.WheelContacts)
+    {
+        Contact.VerticalLoadN =
+            0.0;
+    }
+
+    Input.Controls.Brake01 =
+        1.0;
+
+    Input.Controls.SelectedGear =
+        0;
+
+    Input.Controls.ClutchEngagement01 =
+        0.0;
+
+    FTAVehicleStepOutput ColdOutput;
+    FTAVehicleStepOutput HotOutput;
+
+    TestTrue(
+        TEXT("Cold braking step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            ColdState,
+            ColdOutput));
+
+    TestTrue(
+        TEXT("Hot braking step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            HotState,
+            HotOutput));
+
+    TestTrue(
+        TEXT("Cold brake slows wheel more strongly than faded hot brake"),
+        ColdState.Wheels[0].AngularSpeedRadPerSec
+            < HotState.Wheels[0].AngularSpeedRadPerSec);
+
+    TestTrue(
+        TEXT("Hot brake remains above configured fade floor"),
+        TABrakeThermal::CalculateAvailableTorqueFactor01(
+            Config.Wheels[0].BrakeThermal,
+            HotState.Wheels[0].BrakeThermal)
+            >= 0.25 - 1.0e-9);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeBrakeWearTest,
+    "TorqueAtlas.Vehicle.Runtime.WornBrakeReducesBrakeTorque",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeBrakeWearTest::RunTest(
+    const FString& Parameters)
+{
+    FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    Config.Wheels[0].BrakeThermal.WearTorqueLossAtEnd01 =
+        0.50;
+
+    FTAVehicleRuntimeState FreshState;
+    FTAVehicleRuntimeState WornState;
+
+    TestTrue(
+        TEXT("Fresh brake fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            FreshState));
+
+    TestTrue(
+        TEXT("Worn brake fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            WornState));
+
+    FreshState.Wheels[0].AngularSpeedRadPerSec =
+        30.0;
+
+    WornState.Wheels[0].AngularSpeedRadPerSec =
+        30.0;
+
+    WornState.Wheels[0].BrakeThermal.Wear01 =
+        1.0;
+
+    FTAVehicleStepInput Input =
+        MakeStaticContactInput();
+
+    for (FTAWheelContactInput& Contact :
+         Input.WheelContacts)
+    {
+        Contact.VerticalLoadN =
+            0.0;
+    }
+
+    Input.Controls.Brake01 =
+        1.0;
+
+    Input.Controls.SelectedGear =
+        0;
+
+    Input.Controls.ClutchEngagement01 =
+        0.0;
+
+    FTAVehicleStepOutput FreshOutput;
+    FTAVehicleStepOutput WornOutput;
+
+    TestTrue(
+        TEXT("Fresh braking step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            FreshState,
+            FreshOutput));
+
+    TestTrue(
+        TEXT("Worn braking step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            WornState,
+            WornOutput));
+
+    TestTrue(
+        TEXT("Fresh brake slows wheel more strongly than fully worn brake"),
+        FreshState.Wheels[0].AngularSpeedRadPerSec
+            < WornState.Wheels[0].AngularSpeedRadPerSec);
+
+    return true;
+}
+
 #endif
