@@ -28,6 +28,12 @@ struct TA_POWERTRAIN_API FTAEngineRuntimeConfig
     double RedlineRPM = 7200.0;
     double LimiterRPM = 7400.0;
 
+    double StallRPM = 450.0;
+    double CombustionStartRPM = 650.0;
+
+    double StarterTorqueNm = 95.0;
+    double StarterMaxRPM = 900.0;
+
     double IdleControlGainNmPerRPM = 0.08;
     double MaxIdleControlTorqueNm = 90.0;
 
@@ -151,6 +157,16 @@ namespace TAPowertrainSolver
         double DeltaTimeSeconds,
         FTAEngineThermalState& InOutThermalState,
         FTAEngineRuntimeState& InOutEngineState);
+
+    TA_POWERTRAIN_API double CalculateStarterTorqueNm(
+        const FTAEngineRuntimeConfig& Config,
+        const FTAEngineRuntimeState& State,
+        bool bStarterEngaged);
+
+    TA_POWERTRAIN_API void UpdateEngineRunState(
+        const FTAEngineRuntimeConfig& Config,
+        bool bStarterEngaged,
+        FTAEngineRuntimeState& InOutState);
 
     TA_POWERTRAIN_API double CalculateEngineFrictionTorqueNm(
         const FTAEngineRuntimeConfig& Config,
