@@ -6,6 +6,61 @@ namespace
     {
         return static_cast<int32>(Wheel);
     }
+
+    FTASuspensionRuntimeConfig ApplySuspensionFunctionalDamage(
+        const FTASuspensionRuntimeConfig& Base,
+        const FTASuspensionFunctionalDamageState& Damage)
+    {
+        FTASuspensionRuntimeConfig Effective =
+            Base;
+
+        const double SpringEfficiency01 =
+            FMath::Clamp(
+                Damage.SpringEfficiency01,
+                0.0,
+                1.0);
+
+        const double DampingEfficiency01 =
+            FMath::Clamp(
+                Damage.DampingEfficiency01,
+                0.0,
+                1.0);
+
+        const double StopEfficiency01 =
+            FMath::Clamp(
+                Damage.StopEfficiency01,
+                0.0,
+                1.0);
+
+        Effective.SpringRateNPerM *=
+            SpringEfficiency01;
+
+        Effective.BumpDampingNsPerM *=
+            DampingEfficiency01;
+
+        Effective.ReboundDampingNsPerM *=
+            DampingEfficiency01;
+
+        Effective.BumpStopRateNPerM *=
+            StopEfficiency01;
+
+        Effective.DroopStopRateNPerM *=
+            StopEfficiency01;
+
+        return Effective;
+    }
+
+    double CalculateAxleAntiRollEfficiency01(
+        const FTASuspensionFunctionalDamageState& LeftDamage,
+        const FTASuspensionFunctionalDamageState& RightDamage)
+    {
+        return FMath::Clamp(
+            FMath::Min(
+                LeftDamage.AntiRollLinkEfficiency01,
+                RightDamage.AntiRollLinkEfficiency01),
+            0.0,
+            1.0);
+    }
 }
 
 bool TAFourWheelVehicleRuntime::Initialize(
@@ -38,7 +93,8 @@ bool TAFourWheelVehicleRuntime::Step(
     if (DeltaTimeSeconds <= 0.0 ||
         VehicleConfig.Wheels.Num() != 4 ||
         VehicleConfig.Tires.Num() != 4 ||
-        InOutState.Vehicle.Wheels.Num() != 4)
+        InOutState.Vehicle.Wheels.Num() != 4 ||
+        InOutState.Vehicle.SuspensionDamage.Num() != 4)
     {
         return false;
     }
@@ -73,9 +129,37 @@ bool TAFourWheelVehicleRuntime::Step(
     const int32 FrontRightIndex =
         ToIndex(ETAPrototypeWheelIndex::FrontRight);
 
+    FTAFrontAxleRuntimeConfig EffectiveFrontConfig =
+        RuntimeConfig.FrontAxle;
+
+    EffectiveFrontConfig.LeftSuspension =
+        ApplySuspensionFunctionalDamage(
+            RuntimeConfig.FrontAxle.LeftSuspension,
+            InOutState.Vehicle.SuspensionDamage[
+                FrontLeftIndex]);
+
+    EffectiveFrontConfig.RightSuspension =
+        ApplySuspensionFunctionalDamage(
+            RuntimeConfig.FrontAxle.RightSuspension,
+            InOutState.Vehicle.SuspensionDamage[
+                FrontRightIndex]);
+
+    const double FrontAntiRollEfficiency01 =
+        CalculateAxleAntiRollEfficiency01(
+            InOutState.Vehicle.SuspensionDamage[
+                FrontLeftIndex],
+            InOutState.Vehicle.SuspensionDamage[
+                FrontRightIndex]);
+
+    EffectiveFrontConfig.AntiRollBar.CouplingRateNPerM *=
+        FrontAntiRollEfficiency01;
+
+    EffectiveFrontConfig.AntiRollBar.MaxTransferForceN *=
+        FrontAntiRollEfficiency01;
+
     if (!TAFrontAxleRuntime::ResolveWithTireCompliance(
             InOutState.Vehicle.Chassis,
-            RuntimeConfig.FrontAxle,
+            EffectiveFrontConfig,
             FrontInput,
             VehicleConfig.Tires[FrontLeftIndex],
             VehicleConfig.Tires[FrontRightIndex],
@@ -108,9 +192,37 @@ bool TAFourWheelVehicleRuntime::Step(
     const int32 RearRightIndex =
         ToIndex(ETAPrototypeWheelIndex::RearRight);
 
+    FTARearAxleRuntimeConfig EffectiveRearConfig =
+        RuntimeConfig.RearAxle;
+
+    EffectiveRearConfig.LeftSuspension =
+        ApplySuspensionFunctionalDamage(
+            RuntimeConfig.RearAxle.LeftSuspension,
+            InOutState.Vehicle.SuspensionDamage[
+                RearLeftIndex]);
+
+    EffectiveRearConfig.RightSuspension =
+        ApplySuspensionFunctionalDamage(
+            RuntimeConfig.RearAxle.RightSuspension,
+            InOutState.Vehicle.SuspensionDamage[
+                RearRightIndex]);
+
+    const double RearAntiRollEfficiency01 =
+        CalculateAxleAntiRollEfficiency01(
+            InOutState.Vehicle.SuspensionDamage[
+                RearLeftIndex],
+            InOutState.Vehicle.SuspensionDamage[
+                RearRightIndex]);
+
+    EffectiveRearConfig.AntiRollBar.CouplingRateNPerM *=
+        RearAntiRollEfficiency01;
+
+    EffectiveRearConfig.AntiRollBar.MaxTransferForceN *=
+        RearAntiRollEfficiency01;
+
     if (!TARearAxleRuntime::ResolveWithTireCompliance(
             InOutState.Vehicle.Chassis,
-            RuntimeConfig.RearAxle,
+            EffectiveRearConfig,
             RearInput,
             VehicleConfig.Tires[RearLeftIndex],
             VehicleConfig.Tires[RearRightIndex],
