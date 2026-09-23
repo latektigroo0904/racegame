@@ -380,6 +380,30 @@ bool FTAExperimentalUnsprungForceOwnershipTest::RunTest(
             > 100.0);
 
     TestTrue(
+        TEXT("Dynamic contact advertises an explicit chassis suspension point"),
+        Output.VehicleContact
+            .bHasSuspensionForceApplicationPoint);
+
+    const FVector3d ExpectedDamperMountWorldM =
+        Input.Chassis.PositionWorldM
+        + Input.Chassis.OrientationWorld.RotateVector(
+            Config.Geometry.Hardpoints.DamperChassis
+            + Input.Damage.DamperChassis);
+
+    TestTrue(
+        TEXT("Suspension reaction is applied at damaged chassis-side damper mount"),
+        Output.VehicleContact
+            .SuspensionForceApplicationPointWorldM.Equals(
+                ExpectedDamperMountWorldM,
+                1.0e-9));
+
+    TestTrue(
+        TEXT("Settled generalized force balance is close to zero"),
+        FMath::Abs(
+            Output.GeneralizedForceBalanceN)
+            < 150.0);
+
+    TestTrue(
         TEXT("Settled relative velocity remains bounded"),
         FMath::Abs(
             State.Unsprung.TravelVelocityMps)
@@ -473,6 +497,57 @@ bool FTAExperimentalUnsprungDeterminismTest::RunTest(
             OutputA.TireNormalForceN,
             OutputB.TireNormalForceN,
             1.0e-9));
+
+    return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAExperimentalUnsprungConfigValidationTest,
+    "TorqueAtlas.Suspension.UnsprungCorner.ConfigValidation",
+    EAutomationTestFlags::EditorContext |
+    EAutomationTestFlags::EngineFilter)
+
+bool FTAExperimentalUnsprungConfigValidationTest::RunTest(
+    const FString& Parameters)
+{
+    FTAExperimentalUnsprungCornerConfig Config =
+        MakeDynamicCornerConfig(false);
+
+    TestTrue(
+        TEXT("Reference dynamic corner config validates"),
+        TAExperimentalUnsprungCorner::ValidateConfig(
+            Config));
+
+    Config.Unsprung.MaxTravelM =
+        Config.Geometry.MaxTravelM - 0.010;
+
+    TestFalse(
+        TEXT("Unsprung and geometry travel limits must describe same coordinate range"),
+        TAExperimentalUnsprungCorner::ValidateConfig(
+            Config));
+
+    Config =
+        MakeDynamicCornerConfig(false);
+
+    Config.Tire.RadialStiffnessNPerM =
+        0.0;
+
+    TestFalse(
+        TEXT("Dynamic corner rejects non-positive tire radial stiffness"),
+        TAExperimentalUnsprungCorner::ValidateConfig(
+            Config));
+
+    Config =
+        MakeDynamicCornerConfig(false);
+
+    Config.InternalSubsteps =
+        17;
+
+    TestFalse(
+        TEXT("Dynamic corner rejects excessive local substeps"),
+        TAExperimentalUnsprungCorner::ValidateConfig(
+            Config));
 
     return true;
 }
