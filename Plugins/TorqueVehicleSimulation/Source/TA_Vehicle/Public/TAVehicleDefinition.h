@@ -243,6 +243,18 @@ struct TA_VEHICLE_API FTARearSuspensionDefinition
 };
 
 USTRUCT(BlueprintType)
+struct TA_VEHICLE_API FTAEngineTorqueDefinitionPoint
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine", meta=(ClampMin="0.0", Units="rpm"))
+    double RPM = 0.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine", meta=(Units="N*m"))
+    double TorqueNm = 0.0;
+};
+
+USTRUCT(BlueprintType)
 struct TA_VEHICLE_API FTAPrototypeDrivetrainDefinition
 {
     GENERATED_BODY()
@@ -260,6 +272,9 @@ struct TA_VEHICLE_API FTAPrototypeDrivetrainDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Powertrain", meta=(ClampMin="0.01", Units="kg*m^2"))
     double CrankInertiaKgm2 = 0.20;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Powertrain")
+    TArray<FTAEngineTorqueDefinitionPoint> TorqueCurve;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch", meta=(ClampMin="0.0", Units="N*m"))
     double ClutchMaxTorqueNm = 500.0;
