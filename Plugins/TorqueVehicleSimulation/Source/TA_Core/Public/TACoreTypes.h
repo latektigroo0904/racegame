@@ -3,19 +3,29 @@
 #include "CoreMinimal.h"
 #include "TACoreTypes.generated.h"
 
+namespace TAVersion
+{
+    constexpr int32 CurrentSchemaVersion = 2;
+    constexpr int32 CurrentPhysicsVersion = 2;
+    constexpr int32 CurrentDamageModelVersion = 2;
+}
+
 USTRUCT(BlueprintType)
 struct TA_CORE_API FTASimulationVersion
 {
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Version")
-    int32 SchemaVersion = 1;
+    int32 SchemaVersion =
+        TAVersion::CurrentSchemaVersion;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Version")
-    int32 PhysicsVersion = 1;
+    int32 PhysicsVersion =
+        TAVersion::CurrentPhysicsVersion;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Version")
-    int32 DamageModelVersion = 1;
+    int32 DamageModelVersion =
+        TAVersion::CurrentDamageModelVersion;
 };
 
 UENUM(BlueprintType)
