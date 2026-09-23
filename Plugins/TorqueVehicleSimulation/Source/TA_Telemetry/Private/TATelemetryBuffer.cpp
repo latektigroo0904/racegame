@@ -1,4 +1,5 @@
 #include "TATelemetryBuffer.h"
+#include "TAFrontAxleRuntime.h"
 
 bool FTATelemetryRingBuffer::Initialize(const int32 InCapacity)
 {
@@ -106,4 +107,28 @@ FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
     }
 
     return Sample;
+}
+
+
+void TATelemetry::ApplyFrontAxleSample(
+    const FTAFrontAxleSolveOutput& FrontAxle,
+    FTAVehicleTelemetrySample& InOutSample)
+{
+    InOutSample.SteeringRackDisplacementM =
+        FrontAxle.RackDisplacementM;
+
+    InOutSample.FrontLeftSteeringAngleRad =
+        FrontAxle.LeftSteeringAngleRad;
+
+    InOutSample.FrontRightSteeringAngleRad =
+        FrontAxle.RightSteeringAngleRad;
+
+    InOutSample.FrontLeftBumpSteerRad =
+        FrontAxle.LeftBumpSteerRad;
+
+    InOutSample.FrontRightBumpSteerRad =
+        FrontAxle.RightBumpSteerRad;
+
+    InOutSample.FrontAckermannDeltaRad =
+        FrontAxle.AckermannDeltaRad;
 }
