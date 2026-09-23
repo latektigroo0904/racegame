@@ -2457,6 +2457,22 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
 
     Hash = HashDouble(
         Hash,
+        VehicleRuntime.Engine.CrankInertiaKgm2);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.FrictionConstantNm);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.FrictionLinearNms);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.FrictionQuadraticNms2);
+
+    Hash = HashDouble(
+        Hash,
         VehicleRuntime.Engine.IdleRPM);
 
     Hash = HashDouble(
@@ -2469,16 +2485,132 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
 
     Hash = HashDouble(
         Hash,
-        VehicleRuntime.Engine.CrankInertiaKgm2);
+        VehicleRuntime.Engine.StallRPM);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.CombustionStartRPM);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.StarterTorqueNm);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.StarterMaxRPM);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.IdleControlGainNmPerRPM);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.MaxIdleControlTorqueNm);
+
+    Hash = HashCombineFast(
+        Hash,
+        GetTypeHash(
+            VehicleRuntime.Engine.TorqueCurve.Num()));
+
+    for (const FTAEngineTorquePoint& Point :
+         VehicleRuntime.Engine.TorqueCurve)
+    {
+        Hash = HashDouble(
+            Hash,
+            Point.RPM);
+
+        Hash = HashDouble(
+            Hash,
+            Point.TorqueNm);
+    }
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.AmbientTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.InitialCoolantTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.EffectiveThermalMassJPerC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.BaseHeatGenerationW);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.FullLoadAdditionalHeatW);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.CoolingCapacityWPerC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.DerateStartTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.DerateFullTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.MinimumThermalTorqueFactor);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.DamageStartTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.EngineThermal.DamageRatePerSecondAt150C);
 
     Hash = HashDouble(
         Hash,
         VehicleRuntime.Clutch.MaxTorqueCapacityNm);
 
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Clutch.CouplingStiffnessNms);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Clutch.ThermalMassJPerC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Clutch.CoolingWPerC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Clutch.AmbientTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Clutch.FadeStartTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Clutch.FadeEndTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Clutch.WearEnergyCapacityJ);
+
+    Hash = HashCombineFast(
+        Hash,
+        GetTypeHash(
+            VehicleRuntime.Gearbox.ForwardGearRatios.Num()));
+
     for (const double Ratio :
          VehicleRuntime.Gearbox.ForwardGearRatios)
     {
-        Hash = HashDouble(Hash, Ratio);
+        Hash = HashDouble(
+            Hash,
+            Ratio);
     }
 
     Hash = HashDouble(
@@ -2492,6 +2624,14 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     Hash = HashDouble(
         Hash,
         VehicleRuntime.Gearbox.MechanicalEfficiency);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Driveline.TorsionalStiffnessNmPerRad);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Driveline.TorsionalDampingNmsPerRad);
 
     Hash = HashFrontGeometry(
         Hash,
