@@ -316,3 +316,24 @@
 **Status:** accepted 2026-09-23  
 **Decision:** first-stage brake wear accumulates from generated brake heat energy against an authored wear-energy capacity.  
 **Reason:** braking workload should determine wear more directly than elapsed time or arbitrary per-frame counters.
+
+
+## ADR-065 — Electrical and fuel damage remain separate from engine thermal damage
+**Status:** accepted 2026-09-23  
+**Decision:** engine thermal factors remain owned by the powertrain thermal solver. Electrical engine-control and fuel-delivery efficiencies multiply final combustion authority separately and never overwrite `ThermalTorqueFactor` or `DamageTorqueFactor`.  
+**Reason:** independent physical failure causes must remain independently observable and cumulative.
+
+## ADR-066 — Electrical bus damage separates starter and engine-control authority
+**Status:** accepted 2026-09-23  
+**Decision:** the first electrical model exposes independent starter efficiency and engine-control efficiency rather than one global electrical multiplier.  
+**Reason:** a damaged starter circuit and a damaged ECU/ignition supply can produce different vehicle behavior.
+
+## ADR-067 — Fluid-pressure and electrical-disconnection signals use normalized functional severity
+**Status:** accepted 2026-09-23  
+**Decision:** positive finite scalar values are normalized severity [0,1]; zero/non-positive discrete events mean full loss; non-finite values do not apply damage.  
+**Reason:** one signal type can represent both partial pressure/connection degradation and a complete line/connector failure.
+
+## ADR-068 — No generic damage HP for powertrain support systems
+**Status:** accepted 2026-09-23  
+**Decision:** electrical/fuel failures act only through concrete modeled functions such as starter torque and combustion authority.  
+**Reason:** preserves the project rule that mechanical consequences are subsystem-based rather than global-health based.
