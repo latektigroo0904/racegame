@@ -6,7 +6,9 @@
 UENUM(BlueprintType)
 enum class ETAVehicleDamageConsumerAuthoringType : uint8
 {
-    Radiator
+    Radiator,
+    SteeringRack,
+    WheelHub
 };
 
 USTRUCT(BlueprintType)
@@ -153,8 +155,29 @@ struct TA_VEHICLE_API FTAVehicleDamageRouteAuthoringDefinition
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route", meta=(ClampMin="0.0"))
     double ImpactEnergyScale = 1.0;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route", meta=(ClampMin="0.001", Units="J"))
+    double FullDamageEnergyJ = 12000.0;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route", meta=(ClampMin="0.001", Units="m"))
     double FullCrushDisplacementM = 0.15;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route")
+    int32 WheelIndex = INDEX_NONE;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Steering", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumSteeringAuthority01 = 0.20;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Steering", meta=(ClampMin="0.0", Units="m"))
+    double MaximumSteeringFreePlayM = 0.010;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Hub", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumBrakeEfficiency01 = 0.20;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Hub", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumDriveEfficiency01 = 0.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Hub", meta=(ClampMin="0.0", Units="N*m"))
+    double MaximumBearingDragTorqueNm = 80.0;
 };
 
 USTRUCT(BlueprintType)
