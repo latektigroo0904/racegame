@@ -10,7 +10,9 @@ Working title: **Torque Atlas**.
 
 ## Current status
 
-Torque Atlas is now in a **four-wheel compliant vehicle-physics + collision/structure coupling prototype** phase.
+Torque Atlas is now in a **Proof-of-Physics + build-verification-readiness** phase.
+
+The canonical four-wheel solver remains the quasi-static compliant-contact path. An explicit dynamic-unsprung corner now exists as an isolated experiment, and the vehicle/damage/telemetry content pipeline has advanced to schema/physics/damage **v2/v2/v2**.
 
 The canonical high-fidelity proving-ground chain is:
 
@@ -121,9 +123,11 @@ TA_Telemetry
 - fracture;
 - weighted structural-node → suspension-pickup bindings;
 - momentum-neutral spatial impact distribution;
-- radiator puncture/leak;
-- coolant loss;
-- engine overheating/derate.
+- radiator puncture/leak and coolant loss;
+- steering-rack authority/free-play damage;
+- per-wheel hub brake/drive efficiency and bearing-drag damage;
+- engine overheating/derate;
+- chassis owns world gravity; vehicle-attached internal structure uses zero local gravity.
 
 ### Unsprung dynamics
 - isolated explicit vertical unsprung-mass integrator exists;
@@ -133,21 +137,27 @@ TA_Telemetry
 ### Content pipeline
 `UTAVehicleDefinition` now compiles into a runtime-ready `FTAVehicleCompiledConfig` containing:
 - chassis/wheel/tire/drivetrain runtime config;
+- engine/clutch/thermal/cooling calibration;
 - complete front/rear axle runtime config;
 - COM-local suspension hardpoints;
-- validated geometry;
-- handling-critical `PhysicsConfigHash`.
+- compiler-derived 17-point kinematic caches;
+- structural nodes/constraints/bindings/routes;
+- validated geometry and calibration;
+- handling/crash-critical `PhysicsConfigHash`.
 
-The fixed-step solver does not read mutable UObject data.
+Current vehicle content defaults to schema/physics/damage **2/2/2**. The fixed-step solver does not read mutable UObject data.
 
 ### Telemetry
-- fixed-capacity ring buffer;
+- fixed-capacity full vehicle ring buffer;
 - engine/chassis/tire channels;
 - four wheel loads/travels/camber/toe;
 - steering rack/Ackermann/bump steer;
+- steering-rack damage/authority/free play;
+- per-wheel hub damage/brake/drive/drag;
 - tire temperature/pressure/wear/radial deflection;
 - physics config hash;
-- CSV export outside the solver step.
+- CSV export outside the solver step;
+- scenario regression envelopes and rich min/max/steady-state CSV/JSONL reports.
 
 ## Canonical documentation
 
@@ -180,19 +190,49 @@ The fixed-step solver does not read mutable UObject data.
 - [Unsprung Vertical Dynamics](docs/26-UNSPRUNG-VERTICAL-DYNAMICS-V01.md)
 - [Vehicle Content Compilation](docs/27-VEHICLE-CONTENT-COMPILATION-V01.md)
 - [Collision / Structure Coupling](docs/28-COLLISION-STRUCTURE-COUPLING-V01.md)
+- [Structure Damage Signal Routing](docs/29-STRUCTURE-DAMAGE-SIGNAL-ROUTING-V01.md)
+- [Structural Content Schema](docs/30-STRUCTURAL-CONTENT-SCHEMA-V01.md)
+- [Regression Envelope](docs/31-REGRESSION-ENVELOPE-V01.md)
+- [Functional Damage & Regression](docs/32-FUNCTIONAL-DAMAGE-AND-REGRESSION-V01.md)
+- [Experimental Dynamic Unsprung Corner](docs/33-EXPERIMENTAL-UNSPRUNG-CORNER-V01.md)
+- [Vehicle Calibration Authoring v2](docs/34-VEHICLE-CALIBRATION-AUTHORING-V02.md)
+- [UE 5.8 Verification Harness](docs/35-UE58-VERIFICATION-HARNESS-V01.md)
 - [Architecture Decisions](docs/DECISIONS.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Current Checkpoint](docs/CHECKPOINT.md)
 
+## Verification
+
+Static source checks:
+
+```bash
+python Scripts/source_sanity.py
+```
+
+Windows UE 5.8 build + Automation:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Scripts\Verify-Unreal.ps1
+```
+
+Linux/macOS UE 5.8 build + Automation:
+
+```bash
+bash Scripts/verify-unreal.sh --ue-root /path/to/UE_5.8
+```
+
+Verification artifacts are written to `Saved/Verification/<timestamp>/`.
+
+**Current status:** the harness exists, but no UE 5.8 build or Automation run has yet been executed in this environment.
+
 ## Immediate engineering order
 
-1. turn structural fracture/displacement results into deterministic typed damage signals;
-2. route collision/structure outputs into suspension/radiator/mechanical damage consumers;
-3. add authored structural node/constraint + damage-binding content compilation;
-4. promote explicit unsprung dynamics into one experimental high-fidelity corner without double-counting tire/chassis normal forces;
-5. add static-settle/step-road regression envelopes and telemetry comparison;
-6. complete remaining tire/powertrain authoring fields;
-7. perform the first actual Unreal Engine 5.8 compile and Automation run when a suitable toolchain is available.
+1. run the first real UE 5.8 Development Editor build and `TorqueAtlas.*` Automation suite when a suitable toolchain is available;
+2. repair UHT/UBT/compiler or Automation failures from that run before expanding the canonical physics path;
+3. capture and review first real regression traces, then promote only measured ranges to trusted baselines;
+4. profile the isolated dynamic-unsprung corner against the canonical compliant-contact solver before any four-corner promotion;
+5. continue discrete suspension-component, fluid/electrical and brake-thermal damage work only without weakening the build gate;
+6. keep world/roster/career expansion behind the Proof-of-Physics gate.
 
 ## Correctness rules
 
