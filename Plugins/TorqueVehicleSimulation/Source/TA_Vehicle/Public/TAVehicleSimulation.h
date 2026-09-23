@@ -26,6 +26,9 @@ struct TA_VEHICLE_API FTAWheelContactInput
     FVector3d ForwardDirectionWorld = FVector3d(1.0, 0.0, 0.0);
     FVector3d RightDirectionWorld = FVector3d(0.0, 1.0, 0.0);
 
+    // Reaction from spring/damper/anti-roll/contact stack, supplied by suspension runtime.
+    FVector3d SuspensionForceWorldN = FVector3d::ZeroVector;
+
     FTASurfaceSample Surface;
 };
 
