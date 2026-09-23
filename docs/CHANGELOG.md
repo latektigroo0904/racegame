@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-09-23 — Vehicle foundation and first code session
+Added implementation-level specifications:
+- `11-VEHICLE-DATA-SCHEMA.md`;
+- `12-POWERTRAIN-SOLVER-V01.md`;
+- `13-SUSPENSION-KINEMATICS-V01.md`;
+- `14-PROOF-OF-PHYSICS-TEST-MATRIX.md`;
+- `15-UNREAL-CPP-SKELETON.md`.
+
+Added first Unreal project/code foundation:
+- `TorqueAtlas.uproject`;
+- game/editor target files;
+- `TorqueAtlas` game module;
+- `TorqueVehicleSimulation` plugin;
+- `TA_Core`, `TA_Vehicle`, and `TA_Powertrain` runtime modules;
+- native SI/unit/version/validation types;
+- `UTAVehicleDefinition : UPrimaryDataAsset`;
+- compiled native vehicle configuration;
+- vehicle definition validation/hash path;
+- initial engine rotational/friction helper functions;
+- initial clutch torque-capacity helper;
+- Unreal Automation smoke tests;
+- Unreal-oriented `.gitignore`.
+
+Decisions recorded:
+- authored vehicle definition, persistent instance and live simulation state remain distinct;
+- mutable UObject assets are compiled to native runtime configuration before high-frequency simulation;
+- suspension uses cached undamaged kinematics plus runtime solving for damaged geometry;
+- plugin modules are enabled incrementally as real code appears.
+
+Important limitation:
+- repository skeleton has **not yet been compiled against an installed Unreal Engine 5.8 toolchain**. Build success is not claimed.
+
 ## 2026-09-23 — Numerical simulation design session
 Added:
 - `08-TIRE-SOLVER-NUMERICAL.md` with initial numerical force model, combined slip, load sensitivity, thermal/pressure/wear state, wet-surface model, continuous per-wheel aquaplaning, FFB coupling and regression tests;
