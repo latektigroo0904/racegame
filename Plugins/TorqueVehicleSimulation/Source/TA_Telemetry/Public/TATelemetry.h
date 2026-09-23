@@ -21,6 +21,14 @@ struct TA_TELEMETRY_API FTATelemetrySample
 
     double LeftDrivenWheelTorqueNm = 0.0;
     double RightDrivenWheelTorqueNm = 0.0;
+
+    // Exact aerodynamic result applied by the vehicle step. These values are
+    // copied from FTAVehicleStepOutput::Aerodynamics and are never recomputed
+    // inside telemetry, preserving single-source-of-truth physics reporting.
+    double AeroRelativeAirSpeedMps = 0.0;
+    double AeroDynamicPressurePa = 0.0;
+    FVector3d AeroForceWorldN = FVector3d::ZeroVector;
+    FVector3d AeroTorqueWorldNm = FVector3d::ZeroVector;
 };
 
 class TA_TELEMETRY_API FTACompactTelemetryRingBuffer
