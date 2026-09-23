@@ -42,13 +42,13 @@ Checks include:
 - module rules file presence;
 - project EngineAssociation = 5.8.
 
-The GitHub workflow also runs:
+The GitHub workflow also validates:
 
-`bash -n Scripts/verify-unreal.sh`
+- Bash syntax for `Scripts/verify-unreal.sh`;
+- PowerShell parser syntax for `Scripts/Verify-Unreal.ps1`;
+- `Scripts/test_validate_automation_report.py`, which exercises passing, failed, not-run, in-process, wrong-prefix and empty-report cases.
 
-to validate the Unix verification-runner syntax.
-
-Passing this workflow means only that the repository passed these static checks.
+Passing this workflow means only that the repository passed these static/harness checks.
 
 ## 3. Windows verification
 
@@ -135,7 +135,7 @@ TorqueAtlas.uproject
 → UHT
 → UBT/C++ compiler
 → UnrealEditor-Cmd
-→ Automation RunTests TorqueAtlas.
+→ Automation RunTest TorqueAtlas.
 → report + logs + metadata
 ```
 
@@ -155,13 +155,19 @@ Unix target:
 
 The runners use the command namespace:
 
-`Automation RunTests TorqueAtlas.`
+`Automation RunTest TorqueAtlas.`
 
 and wait for:
 
 `Automation Test Queue Empty`
 
 The Editor is launched unattended with NullRHI so physics/unit regressions do not require normal rendering.
+
+After Unreal exits successfully, both runners execute:
+
+`Scripts/validate_automation_report.py`
+
+against `AutomationReport/index.json`. A verification run is rejected if the report is missing, empty, contains failed/not-run/in-process tests, contains tests outside the requested `TorqueAtlas.` namespace, or contains no successful tests.
 
 ## 8. Verification artifacts
 
@@ -176,6 +182,8 @@ Expected contents include:
 - `build.log`
 - `automation.log`
 - `automation-stdout.log`
+- `automation-report-validation.log`
+- `automation-report-summary.json`
 - `AutomationReport/`
 
 `Saved/` is ignored by Git.
