@@ -391,4 +391,127 @@ bool FTATelemetryRegressionInvalidWheelTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTATelemetryRegressionFunctionalDamageMetricsTest,
+    "TorqueAtlas.Telemetry.Regression.FunctionalDamageMetrics",
+    EAutomationTestFlags::EditorContext |
+    EAutomationTestFlags::EngineFilter)
+
+bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
+    const FString& Parameters)
+{
+    FTATelemetryRingBuffer Buffer;
+
+    TestTrue(
+        TEXT("Damage regression buffer initializes"),
+        Buffer.Initialize(4));
+
+    for (int32 Index = 0;
+         Index < 4;
+         ++Index)
+    {
+        FTAVehicleTelemetrySample Sample;
+        Sample.PhysicsConfigHash = 2468u;
+
+        Sample.SteeringRackDamage01 =
+            0.1 * static_cast<double>(Index);
+
+        Sample.SteeringCommandAuthority01 =
+            1.0 - 0.1 * static_cast<double>(Index);
+
+        Sample.WheelHubDamage01[1] =
+            0.2 * static_cast<double>(Index);
+
+        Sample.WheelHubBrakeEfficiency01[1] =
+            1.0 - 0.15 * static_cast<double>(Index);
+
+        Buffer.Push(Sample);
+    }
+
+    FTATelemetryRegressionConfig Config;
+    Config.ScenarioId =
+        TEXT("FunctionalDamageMetrics");
+    Config.ExpectedPhysicsConfigHash =
+        2468u;
+    Config.MinimumRequiredSamples =
+        4;
+
+    FTATelemetryMetricEnvelope SteeringDamage;
+    SteeringDamage.Metric =
+        ETATelemetryMetric::SteeringRackDamage01;
+    SteeringDamage.Statistic =
+        ETATelemetryStatistic::Maximum;
+    SteeringDamage.MinimumAllowed =
+        0.29;
+    SteeringDamage.MaximumAllowed =
+        0.31;
+
+    Config.Envelopes.Add(
+        SteeringDamage);
+
+    FTATelemetryMetricEnvelope SteeringAuthority;
+    SteeringAuthority.Metric =
+        ETATelemetryMetric::SteeringCommandAuthority01;
+    SteeringAuthority.Statistic =
+        ETATelemetryStatistic::Minimum;
+    SteeringAuthority.MinimumAllowed =
+        0.69;
+    SteeringAuthority.MaximumAllowed =
+        0.71;
+
+    Config.Envelopes.Add(
+        SteeringAuthority);
+
+    FTATelemetryMetricEnvelope HubDamage;
+    HubDamage.Metric =
+        ETATelemetryMetric::WheelHubDamage01;
+    HubDamage.Statistic =
+        ETATelemetryStatistic::Maximum;
+    HubDamage.WheelIndex =
+        1;
+    HubDamage.MinimumAllowed =
+        0.59;
+    HubDamage.MaximumAllowed =
+        0.61;
+
+    Config.Envelopes.Add(
+        HubDamage);
+
+    FTATelemetryMetricEnvelope HubBrake;
+    HubBrake.Metric =
+        ETATelemetryMetric::WheelHubBrakeEfficiency01;
+    HubBrake.Statistic =
+        ETATelemetryStatistic::Minimum;
+    HubBrake.WheelIndex =
+        1;
+    HubBrake.MinimumAllowed =
+        0.54;
+    HubBrake.MaximumAllowed =
+        0.56;
+
+    Config.Envelopes.Add(
+        HubBrake);
+
+    FTATelemetryRegressionResult Result;
+
+    TestTrue(
+        TEXT("Functional damage regression evaluates"),
+        TATelemetryRegression::Evaluate(
+            Buffer,
+            Config,
+            Result));
+
+    TestTrue(
+        TEXT("Functional damage metrics pass expected envelopes"),
+        Result.bPassed);
+
+    TestEqual(
+        TEXT("All four functional damage envelopes pass"),
+        Result.PassedEnvelopeCount,
+        4);
+
+    return true;
+}
+
 #endif
