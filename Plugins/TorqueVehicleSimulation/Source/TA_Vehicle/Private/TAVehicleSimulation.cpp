@@ -65,6 +65,16 @@ bool TAVehicleSimulation::Initialize(
         return false;
     }
 
+    for (const FTAWheelRuntimeConfig& Wheel :
+         Config.Wheels)
+    {
+        if (!TABrakeThermal::ValidateConfig(
+                Wheel.BrakeThermal))
+        {
+            return false;
+        }
+    }
+
     OutState = FTAVehicleRuntimeState{};
     OutState.Wheels.SetNum(Config.Wheels.Num());
     OutState.WheelHubDamage.SetNum(Config.Wheels.Num());
