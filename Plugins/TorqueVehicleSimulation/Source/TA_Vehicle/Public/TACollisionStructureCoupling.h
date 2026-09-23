@@ -13,6 +13,10 @@ struct TA_VEHICLE_API FTACollisionStructureInput
 {
     FVector3d ContactPointWorldM = FVector3d::ZeroVector;
     FVector3d CollisionImpulseWorldNs = FVector3d::ZeroVector;
+
+    // Optional externally solved collision energy budget.
+    // <= 0 means unavailable and leaves only the impulse/velocity safety caps active.
+    double AvailableImpactEnergyJ = 0.0;
 };
 
 struct TA_VEHICLE_API FTACollisionStructureOutput
