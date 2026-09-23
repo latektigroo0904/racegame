@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026-09-23 — Core solver implementation session
+
+Added runtime modules:
+- `TA_Surface`;
+- `TA_Tire`;
+- `TA_Structure`;
+- `TA_Damage`.
+
+Implemented:
+- typed surface samples and dry/wet/ice baseline blending;
+- first native tire force solver with slip ratio/angle, load sensitivity, combined slip, camber contribution, pneumatic trail, rolling resistance and continuous per-wheel aquaplaning;
+- tire smoke/regression tests including worn-vs-new standing-water behaviour;
+- clutch thermal/wear integration;
+- gearbox ratio transforms;
+- separate final-drive transforms;
+- driveline torsional compliance state/helpers;
+- quasi-static open-differential torque-limiting helper;
+- extended powertrain automation tests;
+- first XPBD-style structural distance solver;
+- structural plastic rest-length change and fracture;
+- structural regression tests;
+- deterministic typed damage event queue;
+- radiator impact, leak, coolant-loss and cooling-efficiency model;
+- damage/radiator automation tests.
+
+Documentation:
+- added `16-DAMAGE-GRAPH-V01.md`;
+- corrected the earlier gearbox-speed equation in `12-POWERTRAIN-SOLVER-V01.md`;
+- recorded new architecture decisions.
+
+Important limitation:
+- the Unreal/C++ source still has not been compiled against an installed Unreal Engine 5.8 toolchain. Code is reviewed for API/architecture consistency but remains build-unverified.
+
 ## 2026-09-23 — Vehicle foundation and first code session
 Added implementation-level specifications:
 - `11-VEHICLE-DATA-SCHEMA.md`;
