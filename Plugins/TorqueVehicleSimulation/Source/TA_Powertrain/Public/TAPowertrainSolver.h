@@ -2,17 +2,53 @@
 
 #include "CoreMinimal.h"
 
+struct TA_POWERTRAIN_API FTAEngineTorquePoint
+{
+    double RPM = 0.0;
+    double TorqueNm = 0.0;
+};
+
+enum class ETAEngineRunState : uint8
+{
+    Stopped,
+    Cranking,
+    Running,
+    Stalled,
+    Seized
+};
+
 struct TA_POWERTRAIN_API FTAEngineRuntimeConfig
 {
     double CrankInertiaKgm2 = 0.20;
     double FrictionConstantNm = 8.0;
     double FrictionLinearNms = 0.02;
     double FrictionQuadraticNms2 = 0.00002;
+
+    double IdleRPM = 850.0;
+    double RedlineRPM = 7200.0;
+    double LimiterRPM = 7400.0;
+
+    double IdleControlGainNmPerRPM = 0.08;
+    double MaxIdleControlTorqueNm = 90.0;
+
+    TArray<FTAEngineTorquePoint> TorqueCurve {
+        { 1000.0, 150.0 },
+        { 2000.0, 310.0 },
+        { 3000.0, 400.0 },
+        { 4000.0, 410.0 },
+        { 5000.0, 405.0 },
+        { 6000.0, 365.0 },
+        { 7000.0, 300.0 }
+    };
 };
 
 struct TA_POWERTRAIN_API FTAEngineRuntimeState
 {
     double AngularSpeedRadPerSec = 0.0;
+    ETAEngineRunState RunState = ETAEngineRunState::Running;
+
+    double ThermalTorqueFactor = 1.0;
+    double DamageTorqueFactor = 1.0;
 };
 
 struct TA_POWERTRAIN_API FTAClutchRuntimeConfig
@@ -26,7 +62,6 @@ struct TA_POWERTRAIN_API FTAClutchRuntimeConfig
     double FadeStartTemperatureC = 220.0;
     double FadeEndTemperatureC = 420.0;
 
-    // Effective friction-work budget used as a provisional wear calibration seed.
     double WearEnergyCapacityJ = 1.0e8;
 };
 
@@ -69,6 +104,15 @@ struct TA_POWERTRAIN_API FTAOpenDifferentialTorqueOutput
 
 namespace TAPowertrainSolver
 {
+    TA_POWERTRAIN_API double EvaluateTorqueCurveNm(
+        const FTAEngineRuntimeConfig& Config,
+        double RPM);
+
+    TA_POWERTRAIN_API double CalculateCombustionTorqueNm(
+        const FTAEngineRuntimeConfig& Config,
+        const FTAEngineRuntimeState& State,
+        double Throttle01);
+
     TA_POWERTRAIN_API double CalculateEngineFrictionTorqueNm(
         const FTAEngineRuntimeConfig& Config,
         double AngularSpeedRadPerSec);
@@ -93,13 +137,10 @@ namespace TAPowertrainSolver
         double DeltaTimeSeconds,
         FTAClutchRuntimeState& InOutState);
 
-    // Gear convention:
-    // -1 = reverse, 0 = neutral, 1..N = forward gears.
     TA_POWERTRAIN_API double GetSelectedGearRatio(
         const FTAGearboxRuntimeConfig& Config,
         int32 SelectedGear);
 
-    // Conventional reduction ratio G = input speed / output speed.
     TA_POWERTRAIN_API double CalculateGearboxOutputSpeedRadPerSec(
         double GearboxInputSpeedRadPerSec,
         double GearRatio);
@@ -127,8 +168,6 @@ namespace TAPowertrainSolver
         double DeltaTimeSeconds,
         FTADrivelineComplianceState& InOutState);
 
-    // Quasi-static v0.1 approximation. Full coupled differential dynamics
-    // will later solve carrier/side-gear inertias explicitly.
     TA_POWERTRAIN_API FTAOpenDifferentialTorqueOutput CalculateOpenDifferentialTorque(
         double DifferentialInputTorqueNm,
         double LeftReactionCapacityNm,
