@@ -28,6 +28,9 @@ struct TA_TELEMETRY_API FTATelemetryScenarioBaseline
     FString Purpose;
 
     FTATelemetryRegressionConfig Regression;
+
+    // Rich min/max/steady-state report definition for the same scenario.
+    FTATelemetryScenarioProfileConfig Profile;
 };
 
 namespace TATelemetryScenarioBaselines
