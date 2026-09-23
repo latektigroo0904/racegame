@@ -108,6 +108,74 @@ double TAPowertrainSolver::CalculateCombustionTorqueNm(
         * StateFactor);
 }
 
+double TAPowertrainSolver::CalculateStarterTorqueNm(
+    const FTAEngineRuntimeConfig& Config,
+    const FTAEngineRuntimeState& State,
+    const bool bStarterEngaged)
+{
+    if (!bStarterEngaged || State.RunState == ETAEngineRunState::Seized)
+    {
+        return 0.0;
+    }
+
+    if (State.RunState == ETAEngineRunState::Running)
+    {
+        return 0.0;
+    }
+
+    const double RPM =
+        State.AngularSpeedRadPerSec * 60.0 / (2.0 * UE_DOUBLE_PI);
+
+    if (RPM >= Config.StarterMaxRPM)
+    {
+        return 0.0;
+    }
+
+    return FMath::Max(0.0, Config.StarterTorqueNm);
+}
+
+void TAPowertrainSolver::UpdateEngineRunState(
+    const FTAEngineRuntimeConfig& Config,
+    const bool bStarterEngaged,
+    FTAEngineRuntimeState& InOutState)
+{
+    if (InOutState.RunState == ETAEngineRunState::Seized)
+    {
+        return;
+    }
+
+    const double RPM =
+        InOutState.AngularSpeedRadPerSec * 60.0 / (2.0 * UE_DOUBLE_PI);
+
+    if (InOutState.RunState == ETAEngineRunState::Running)
+    {
+        if (RPM < Config.StallRPM)
+        {
+            InOutState.RunState = ETAEngineRunState::Stalled;
+        }
+        return;
+    }
+
+    if (bStarterEngaged &&
+        (InOutState.RunState == ETAEngineRunState::Stopped ||
+         InOutState.RunState == ETAEngineRunState::Stalled))
+    {
+        InOutState.RunState = ETAEngineRunState::Cranking;
+    }
+
+    if (InOutState.RunState == ETAEngineRunState::Cranking)
+    {
+        if (RPM >= Config.CombustionStartRPM)
+        {
+            InOutState.RunState = ETAEngineRunState::Running;
+        }
+        else if (!bStarterEngaged)
+        {
+            InOutState.RunState = ETAEngineRunState::Stalled;
+        }
+    }
+}
+
 void TAPowertrainSolver::InitializeEngineThermalState(
     const FTAEngineThermalConfig& Config,
     FTAEngineThermalState& OutState)
@@ -135,17 +203,21 @@ void TAPowertrainSolver::UpdateEngineThermalState(
     const double CoolingEfficiency =
         FMath::Clamp(CoolingEfficiency01, 0.0, 1.0);
 
+    const bool bEngineRunning =
+        InOutEngineState.RunState == ETAEngineRunState::Running;
+
     const double RPMFactor =
-        FMath::Clamp(
-            EngineRPM / FMath::Max(1.0, InOutEngineState.RunState == ETAEngineRunState::Running ? 7000.0 : 1.0),
-            0.0,
-            1.5);
+        bEngineRunning
+        ? FMath::Clamp(EngineRPM / 7000.0, 0.0, 1.5)
+        : 0.0;
 
     const double GeneratedHeatW =
-        FMath::Max(0.0, Config.BaseHeatGenerationW)
-        + FMath::Max(0.0, Config.FullLoadAdditionalHeatW)
-        * Throttle
-        * FMath::Max(0.25, RPMFactor);
+        bEngineRunning
+        ? FMath::Max(0.0, Config.BaseHeatGenerationW)
+            + FMath::Max(0.0, Config.FullLoadAdditionalHeatW)
+            * Throttle
+            * FMath::Max(0.25, RPMFactor)
+        : 0.0;
 
     const double TemperatureDeltaFromAmbient =
         FMath::Max(
