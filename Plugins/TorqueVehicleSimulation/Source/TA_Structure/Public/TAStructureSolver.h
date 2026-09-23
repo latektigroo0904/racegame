@@ -4,6 +4,9 @@
 
 struct TA_STRUCTURE_API FTAStructureNode
 {
+    // Undamaged/reference location in structure-local coordinates.
+    FVector3d ReferencePositionM = FVector3d::ZeroVector;
+
     FVector3d PositionM = FVector3d::ZeroVector;
     FVector3d PreviousPositionM = FVector3d::ZeroVector;
     FVector3d VelocityMps = FVector3d::ZeroVector;
@@ -45,6 +48,12 @@ struct TA_STRUCTURE_API FTAStructureSolverConfig
 
 namespace TAStructureSolver
 {
+    TA_STRUCTURE_API void InitializeReferencePositionsFromCurrent(
+        TArray<FTAStructureNode>& Nodes);
+
+    TA_STRUCTURE_API FVector3d CalculateNodeDisplacement(
+        const FTAStructureNode& Node);
+
     TA_STRUCTURE_API void PredictPositions(
         const FTAStructureSolverConfig& Config,
         double DeltaTimeSeconds,
