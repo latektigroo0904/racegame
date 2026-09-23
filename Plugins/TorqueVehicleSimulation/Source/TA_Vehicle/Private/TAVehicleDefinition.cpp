@@ -703,6 +703,254 @@ namespace
         return !OutValidation.HasErrors();
     }
 
+    bool CalculateBindingReferencePosition(
+        const TArray<FTAStructureNode>& Nodes,
+        const FTAStructureDisplacementBinding& Binding,
+        FVector3d& OutPositionM)
+    {
+        OutPositionM =
+            FVector3d::ZeroVector;
+
+        if (Binding.NodeIndices.Num() == 0)
+        {
+            return false;
+        }
+
+        if (Binding.NodeIndices.Num()
+            != Binding.Weights.Num())
+        {
+            return false;
+        }
+
+        double WeightSum = 0.0;
+
+        for (int32 Index = 0;
+             Index < Binding.NodeIndices.Num();
+             ++Index)
+        {
+            const int32 NodeIndex =
+                Binding.NodeIndices[Index];
+
+            if (!Nodes.IsValidIndex(NodeIndex))
+            {
+                return false;
+            }
+
+            const double Weight =
+                Binding.Weights[Index];
+
+            OutPositionM +=
+                Nodes[NodeIndex].ReferencePositionM
+                * Weight;
+
+            WeightSum +=
+                Weight;
+        }
+
+        if (WeightSum <= UE_DOUBLE_SMALL_NUMBER)
+        {
+            return false;
+        }
+
+        OutPositionM /=
+            WeightSum;
+
+        return true;
+    }
+
+    void ValidateBindingAnchorLocation(
+        const TArray<FTAStructureNode>& Nodes,
+        const FTAStructureDisplacementBinding& Binding,
+        const FVector3d& PhysicalPickupM,
+        const FString& Label,
+        FTAValidationResult& OutValidation)
+    {
+        if (Binding.NodeIndices.Num() == 0)
+        {
+            return;
+        }
+
+        FVector3d BoundReferencePositionM;
+
+        if (!CalculateBindingReferencePosition(
+                Nodes,
+                Binding,
+                BoundReferencePositionM))
+        {
+            return;
+        }
+
+        const double DistanceM =
+            (BoundReferencePositionM
+                - PhysicalPickupM).Length();
+
+        constexpr double WarningDistanceM = 0.10;
+        constexpr double ErrorDistanceM = 0.30;
+
+        if (DistanceM > ErrorDistanceM)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.StructureBindingSpatialMismatch"),
+                FString::Printf(
+                    TEXT("%s structural binding is %.3f m from its physical suspension pickup."),
+                    *Label,
+                    DistanceM));
+        }
+        else if (DistanceM > WarningDistanceM)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Warning,
+                TEXT("Vehicle.StructureBindingSpatialWarning"),
+                FString::Printf(
+                    TEXT("%s structural binding centroid is %.3f m from its physical suspension pickup."),
+                    *Label,
+                    DistanceM));
+        }
+    }
+
+    void ValidateStructureBindingLocations(
+        const FTAVehicleStructureCompiledConfig& Structure,
+        const FTADoubleWishboneSolverConfig& FrontRight,
+        const FTAMultiLinkSolverConfig& RearRight,
+        FTAValidationResult& OutValidation)
+    {
+        if (!Structure.HasStructure())
+        {
+            return;
+        }
+
+        const FTADoubleWishboneSolverConfig FrontLeft =
+            TADoubleWishboneSolver::MirrorAcrossCenterline(
+                FrontRight);
+
+        const FTAMultiLinkSolverConfig RearLeft =
+            TAMultiLinkSolver::MirrorAcrossCenterline(
+                RearRight);
+
+        const FTADoubleWishboneStructuralBindings* FrontBindings[2] =
+        {
+            &Structure.FrontLeftSuspensionBindings,
+            &Structure.FrontRightSuspensionBindings
+        };
+
+        const FTADoubleWishboneSolverConfig* FrontGeometry[2] =
+        {
+            &FrontLeft,
+            &FrontRight
+        };
+
+        const TCHAR* FrontSideNames[2] =
+        {
+            TEXT("FrontLeft"),
+            TEXT("FrontRight")
+        };
+
+        for (int32 Side = 0; Side < 2; ++Side)
+        {
+            const FTADoubleWishboneStructuralBindings& B =
+                *FrontBindings[Side];
+
+            const FTADoubleWishboneHardpoints& H =
+                FrontGeometry[Side]->Hardpoints;
+
+            ValidateBindingAnchorLocation(
+                Structure.InitialNodes,
+                B.UpperInnerA,
+                H.UpperInnerA,
+                FString::Printf(TEXT("%s.UpperInnerA"), FrontSideNames[Side]),
+                OutValidation);
+
+            ValidateBindingAnchorLocation(
+                Structure.InitialNodes,
+                B.UpperInnerB,
+                H.UpperInnerB,
+                FString::Printf(TEXT("%s.UpperInnerB"), FrontSideNames[Side]),
+                OutValidation);
+
+            ValidateBindingAnchorLocation(
+                Structure.InitialNodes,
+                B.LowerInnerA,
+                H.LowerInnerA,
+                FString::Printf(TEXT("%s.LowerInnerA"), FrontSideNames[Side]),
+                OutValidation);
+
+            ValidateBindingAnchorLocation(
+                Structure.InitialNodes,
+                B.LowerInnerB,
+                H.LowerInnerB,
+                FString::Printf(TEXT("%s.LowerInnerB"), FrontSideNames[Side]),
+                OutValidation);
+
+            ValidateBindingAnchorLocation(
+                Structure.InitialNodes,
+                B.TieRodInner,
+                H.TieRodInner,
+                FString::Printf(TEXT("%s.TieRodInner"), FrontSideNames[Side]),
+                OutValidation);
+
+            ValidateBindingAnchorLocation(
+                Structure.InitialNodes,
+                B.DamperChassis,
+                H.DamperChassis,
+                FString::Printf(TEXT("%s.DamperChassis"), FrontSideNames[Side]),
+                OutValidation);
+        }
+
+        const FTAMultiLinkStructuralBindings* RearBindings[2] =
+        {
+            &Structure.RearLeftSuspensionBindings,
+            &Structure.RearRightSuspensionBindings
+        };
+
+        const FTAMultiLinkSolverConfig* RearGeometry[2] =
+        {
+            &RearLeft,
+            &RearRight
+        };
+
+        const TCHAR* RearSideNames[2] =
+        {
+            TEXT("RearLeft"),
+            TEXT("RearRight")
+        };
+
+        for (int32 Side = 0; Side < 2; ++Side)
+        {
+            const FTAMultiLinkStructuralBindings& B =
+                *RearBindings[Side];
+
+            const FTAMultiLinkSolverConfig& G =
+                *RearGeometry[Side];
+
+            for (int32 Link = 0;
+                 Link < TARearMultiLinkCount;
+                 ++Link)
+            {
+                ValidateBindingAnchorLocation(
+                    Structure.InitialNodes,
+                    B.ChassisPickups[Link],
+                    G.Links[Link].ChassisPickupReference,
+                    FString::Printf(
+                        TEXT("%s.Link%d"),
+                        RearSideNames[Side],
+                        Link),
+                    OutValidation);
+            }
+
+            ValidateBindingAnchorLocation(
+                Structure.InitialNodes,
+                B.DamperChassis,
+                G.DamperChassisReference,
+                FString::Printf(
+                    TEXT("%s.DamperChassis"),
+                    RearSideNames[Side]),
+                OutValidation);
+        }
+    }
+
     uint32 HashStructureRuntime(
         uint32 Hash,
         const FTAVehicleStructureCompiledConfig& Structure)
@@ -1269,6 +1517,12 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
         Structure,
         CenterOfMassVehicleLocalM,
         OutConfig.StructureRuntime,
+        OutValidation);
+
+    ValidateStructureBindingLocations(
+        OutConfig.StructureRuntime,
+        FrontGeometry,
+        RearGeometry,
         OutValidation);
 
     if (!TADoubleWishboneSolver::ValidateConfig(
