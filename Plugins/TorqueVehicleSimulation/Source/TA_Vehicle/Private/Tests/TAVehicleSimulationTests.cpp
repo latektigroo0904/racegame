@@ -216,4 +216,71 @@ bool FTAVehicleRuntimeSplitMuTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeCoolingDamageTest,
+    "TorqueAtlas.Vehicle.Runtime.RadiatorDamageCausesThermalDerate",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeCoolingDamageTest::RunTest(const FString& Parameters)
+{
+    FTAVehicleRuntimeConfig Config = MakePrototypeRuntimeConfig();
+
+    // Accelerated calibration for a short deterministic regression test.
+    Config.Radiator.LeakMassFlowKgPerSecPerMm2 = 0.05;
+    Config.EngineThermal.EffectiveThermalMassJPerC = 5000.0;
+    Config.EngineThermal.CoolingCapacityWPerC = 200.0;
+
+    FTAVehicleRuntimeState State;
+    TestTrue(
+        TEXT("Runtime initializes"),
+        TAVehicleSimulation::Initialize(Config, State));
+
+    TADamage::ApplyRadiatorImpact(
+        Config.Radiator,
+        Config.Radiator.FullLeakEnergyJ,
+        1.0,
+        State.Radiator);
+
+    FTAVehicleStepInput Input = MakeStaticContactInput();
+    Input.Controls.Throttle01 = 1.0;
+    Input.Controls.ClutchEngagement01 = 0.0;
+    Input.Controls.SelectedGear = 0;
+
+    const double InitialCoolantMass = State.Radiator.CoolantMassKg;
+    const double InitialTemperature = State.EngineThermal.CoolantTemperatureC;
+
+    FTAVehicleStepOutput Output;
+
+    for (int32 StepIndex = 0; StepIndex < 600; ++StepIndex)
+    {
+        TestTrue(
+            TEXT("Thermal integration step succeeds"),
+            TAVehicleSimulation::Step(
+                Config,
+                Input,
+                1.0 / 60.0,
+                State,
+                Output));
+    }
+
+    TestTrue(
+        TEXT("Damaged radiator loses coolant"),
+        State.Radiator.CoolantMassKg < InitialCoolantMass);
+
+    TestTrue(
+        TEXT("Cooling efficiency falls after leak/crush"),
+        State.Radiator.CoolingEfficiency01 < 1.0);
+
+    TestTrue(
+        TEXT("Coolant temperature rises under degraded cooling"),
+        State.EngineThermal.CoolantTemperatureC > InitialTemperature);
+
+    TestTrue(
+        TEXT("High coolant temperature reduces engine thermal torque factor"),
+        State.Engine.ThermalTorqueFactor < 1.0);
+
+    return true;
+}
+
 #endif
