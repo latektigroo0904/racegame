@@ -1076,4 +1076,267 @@ bool FTAVehicleRuntimeBrakeWearTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeElectricalStarterFailureTest,
+    "TorqueAtlas.Vehicle.Runtime.ElectricalDamageCanDisableStarter",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeElectricalStarterFailureTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState HealthyState;
+    FTAVehicleRuntimeState FailedState;
+
+    TestTrue(
+        TEXT("Healthy starter fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            HealthyState));
+
+    TestTrue(
+        TEXT("Failed starter fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            FailedState));
+
+    HealthyState.Engine.AngularSpeedRadPerSec =
+        0.0;
+
+    FailedState.Engine.AngularSpeedRadPerSec =
+        0.0;
+
+    HealthyState.Engine.RunState =
+        ETAEngineRunState::Stalled;
+
+    FailedState.Engine.RunState =
+        ETAEngineRunState::Stalled;
+
+    FailedState.ElectricalDamage.StarterEfficiency01 =
+        0.0;
+
+    FTAVehicleStepInput Input =
+        MakeStaticContactInput();
+
+    Input.Controls.bStarterEngaged =
+        true;
+
+    Input.Controls.SelectedGear =
+        0;
+
+    Input.Controls.ClutchEngagement01 =
+        0.0;
+
+    FTAVehicleStepOutput HealthyOutput;
+    FTAVehicleStepOutput FailedOutput;
+
+    TestTrue(
+        TEXT("Healthy starter step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 60.0,
+            HealthyState,
+            HealthyOutput));
+
+    TestTrue(
+        TEXT("Failed starter step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 60.0,
+            FailedState,
+            FailedOutput));
+
+    TestTrue(
+        TEXT("Healthy electrical system spins engine"),
+        HealthyState.Engine.AngularSpeedRadPerSec
+            > 0.0);
+
+    TestTrue(
+        TEXT("Zero starter efficiency prevents engine cranking torque"),
+        FailedState.Engine.AngularSpeedRadPerSec
+            < HealthyState.Engine.AngularSpeedRadPerSec);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeFuelDeliveryLossTest,
+    "TorqueAtlas.Vehicle.Runtime.FuelDeliveryLossReducesCombustionTorque",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeFuelDeliveryLossTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState HealthyState;
+    FTAVehicleRuntimeState FuelLossState;
+
+    TestTrue(
+        TEXT("Healthy fuel fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            HealthyState));
+
+    TestTrue(
+        TEXT("Fuel-loss fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            FuelLossState));
+
+    const double EngineSpeedRadPerSec =
+        3000.0
+        * (2.0 * UE_DOUBLE_PI)
+        / 60.0;
+
+    HealthyState.Engine.AngularSpeedRadPerSec =
+        EngineSpeedRadPerSec;
+
+    FuelLossState.Engine.AngularSpeedRadPerSec =
+        EngineSpeedRadPerSec;
+
+    HealthyState.Engine.RunState =
+        ETAEngineRunState::Running;
+
+    FuelLossState.Engine.RunState =
+        ETAEngineRunState::Running;
+
+    FuelLossState.FuelDeliveryDamage.DeliveryEfficiency01 =
+        0.0;
+
+    FTAVehicleStepInput Input =
+        MakeStaticContactInput();
+
+    Input.Controls.Throttle01 =
+        1.0;
+
+    Input.Controls.SelectedGear =
+        0;
+
+    Input.Controls.ClutchEngagement01 =
+        0.0;
+
+    FTAVehicleStepOutput HealthyOutput;
+    FTAVehicleStepOutput FuelLossOutput;
+
+    TestTrue(
+        TEXT("Healthy combustion step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 120.0,
+            HealthyState,
+            HealthyOutput));
+
+    TestTrue(
+        TEXT("Fuel-loss combustion step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 120.0,
+            FuelLossState,
+            FuelLossOutput));
+
+    TestTrue(
+        TEXT("Fuel delivery loss leaves lower engine speed after same throttle step"),
+        FuelLossState.Engine.AngularSpeedRadPerSec
+            < HealthyState.Engine.AngularSpeedRadPerSec);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeEngineControlLossTest,
+    "TorqueAtlas.Vehicle.Runtime.EngineControlLossReducesCombustionTorque",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeEngineControlLossTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState HealthyState;
+    FTAVehicleRuntimeState ElectricalLossState;
+
+    TestTrue(
+        TEXT("Healthy engine-control fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            HealthyState));
+
+    TestTrue(
+        TEXT("Electrical-loss fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            ElectricalLossState));
+
+    const double EngineSpeedRadPerSec =
+        3000.0
+        * (2.0 * UE_DOUBLE_PI)
+        / 60.0;
+
+    HealthyState.Engine.AngularSpeedRadPerSec =
+        EngineSpeedRadPerSec;
+
+    ElectricalLossState.Engine.AngularSpeedRadPerSec =
+        EngineSpeedRadPerSec;
+
+    HealthyState.Engine.RunState =
+        ETAEngineRunState::Running;
+
+    ElectricalLossState.Engine.RunState =
+        ETAEngineRunState::Running;
+
+    ElectricalLossState.ElectricalDamage
+        .EngineControlEfficiency01 =
+        0.0;
+
+    FTAVehicleStepInput Input =
+        MakeStaticContactInput();
+
+    Input.Controls.Throttle01 =
+        1.0;
+
+    Input.Controls.SelectedGear =
+        0;
+
+    Input.Controls.ClutchEngagement01 =
+        0.0;
+
+    FTAVehicleStepOutput HealthyOutput;
+    FTAVehicleStepOutput ElectricalLossOutput;
+
+    TestTrue(
+        TEXT("Healthy engine-control step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 120.0,
+            HealthyState,
+            HealthyOutput));
+
+    TestTrue(
+        TEXT("Electrical engine-control-loss step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 120.0,
+            ElectricalLossState,
+            ElectricalLossOutput));
+
+    TestTrue(
+        TEXT("Engine-control loss leaves lower engine speed after same throttle step"),
+        ElectricalLossState.Engine.AngularSpeedRadPerSec
+            < HealthyState.Engine.AngularSpeedRadPerSec);
+
+    return true;
+}
+
 #endif
