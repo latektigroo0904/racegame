@@ -186,6 +186,9 @@ struct TA_VEHICLE_API FTAVehicleStructureAuthoringDefinition
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Impact", meta=(ClampMin="0.0", ClampMax="1.0"))
     double DeformationImpulseFraction01 = 0.35;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Impact", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MaxDeformationEnergyFraction01 = 0.65;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Impact", meta=(ClampMin="0.0", Units="m/s"))
     double MaxNodeDeltaVelocityMps = 35.0;
 
