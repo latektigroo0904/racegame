@@ -268,6 +268,21 @@ bool FTATelemetryFunctionalDamageCaptureTest::RunTest(
     State.Wheels[0].BrakeThermal.WearTorqueFactor01 =
         0.91;
 
+    State.ElectricalDamage.Damage01 =
+        0.80;
+
+    State.ElectricalDamage.StarterEfficiency01 =
+        0.20;
+
+    State.ElectricalDamage.EngineControlEfficiency01 =
+        0.30;
+
+    State.FuelDeliveryDamage.Damage01 =
+        0.70;
+
+    State.FuelDeliveryDamage.DeliveryEfficiency01 =
+        0.40;
+
     FTAVehicleStepOutput Output;
 
     const FTAVehicleTelemetrySample Sample =
@@ -394,6 +409,41 @@ bool FTATelemetryFunctionalDamageCaptureTest::RunTest(
             0.91,
             1.0e-9));
 
+    TestTrue(
+        TEXT("Electrical damage severity maps"),
+        FMath::IsNearlyEqual(
+            Sample.ElectricalDamage01,
+            0.80,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Starter efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.StarterEfficiency01,
+            0.20,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Engine-control efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.EngineControlEfficiency01,
+            0.30,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Fuel-delivery damage severity maps"),
+        FMath::IsNearlyEqual(
+            Sample.FuelDeliveryDamage01,
+            0.70,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Fuel-delivery efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.FuelDeliveryEfficiency01,
+            0.40,
+            1.0e-9));
+
     return true;
 }
 
@@ -429,6 +479,11 @@ bool FTATelemetryFunctionalDamageCsvTest::RunTest(
     Sample.BrakeThermalTorqueFactor01[0] = 0.5;
     Sample.BrakeWear01[0] = 0.4;
     Sample.BrakeWearTorqueFactor01[0] = 0.9;
+    Sample.ElectricalDamage01 = 0.8;
+    Sample.StarterEfficiency01 = 0.2;
+    Sample.EngineControlEfficiency01 = 0.3;
+    Sample.FuelDeliveryDamage01 = 0.7;
+    Sample.FuelDeliveryEfficiency01 = 0.4;
 
     TestTrue(
         TEXT("Damage sample pushes"),
@@ -476,6 +531,26 @@ bool FTATelemetryFunctionalDamageCsvTest::RunTest(
     TestTrue(
         TEXT("CSV exposes front-left brake wear channel"),
         Csv.Contains(TEXT("brakewear_fl")));
+
+    TestTrue(
+        TEXT("CSV exposes electrical damage channel"),
+        Csv.Contains(TEXT("electrical_damage")));
+
+    TestTrue(
+        TEXT("CSV exposes starter efficiency channel"),
+        Csv.Contains(TEXT("starter_efficiency")));
+
+    TestTrue(
+        TEXT("CSV exposes engine-control efficiency channel"),
+        Csv.Contains(TEXT("engine_control_efficiency")));
+
+    TestTrue(
+        TEXT("CSV exposes fuel-delivery damage channel"),
+        Csv.Contains(TEXT("fuel_delivery_damage")));
+
+    TestTrue(
+        TEXT("CSV exposes fuel-delivery efficiency channel"),
+        Csv.Contains(TEXT("fuel_delivery_efficiency")));
 
     return true;
 }
