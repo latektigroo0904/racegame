@@ -85,4 +85,16 @@ namespace TAFrontAxleRuntime
         double DeltaTimeSeconds,
         FTAFrontAxleRuntimeState& InOutState,
         FTAFrontAxleSolveOutput& OutOutput);
+
+    TA_VEHICLE_API bool ResolveWithTireCompliance(
+        const FTAChassisState& Chassis,
+        const FTAFrontAxleRuntimeConfig& Config,
+        const FTAFrontAxleSolveInput& Input,
+        const FTATireRuntimeConfig& LeftTireConfig,
+        const FTATireRuntimeConfig& RightTireConfig,
+        double DeltaTimeSeconds,
+        FTAFrontAxleRuntimeState& InOutState,
+        FTATireRuntimeState& InOutLeftTireState,
+        FTATireRuntimeState& InOutRightTireState,
+        FTAFrontAxleSolveOutput& OutOutput);
 }
