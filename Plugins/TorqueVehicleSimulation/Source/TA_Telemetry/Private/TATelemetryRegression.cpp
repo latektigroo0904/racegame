@@ -21,6 +21,10 @@ namespace
         case ETATelemetryMetric::SuspensionStopEfficiency01:
         case ETATelemetryMetric::AntiRollLinkDamage01:
         case ETATelemetryMetric::AntiRollLinkEfficiency01:
+        case ETATelemetryMetric::BrakeTemperatureC:
+        case ETATelemetryMetric::BrakeThermalTorqueFactor01:
+        case ETATelemetryMetric::BrakeWear01:
+        case ETATelemetryMetric::BrakeWearTorqueFactor01:
         case ETATelemetryMetric::TireRadialDeflectionM:
         case ETATelemetryMetric::WheelSlipRatio:
         case ETATelemetryMetric::TireLongitudinalForceN:
@@ -192,6 +196,26 @@ namespace
         case ETATelemetryMetric::AntiRollLinkEfficiency01:
             OutValue =
                 Sample.AntiRollLinkEfficiency01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::BrakeTemperatureC:
+            OutValue =
+                Sample.BrakeTemperatureC[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::BrakeThermalTorqueFactor01:
+            OutValue =
+                Sample.BrakeThermalTorqueFactor01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::BrakeWear01:
+            OutValue =
+                Sample.BrakeWear01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::BrakeWearTorqueFactor01:
+            OutValue =
+                Sample.BrakeWearTorqueFactor01[WheelIndex];
             break;
 
         case ETATelemetryMetric::TireRadialDeflectionM:
@@ -429,6 +453,14 @@ namespace
             return TEXT("AntiRollLinkDamage01");
         case ETATelemetryMetric::AntiRollLinkEfficiency01:
             return TEXT("AntiRollLinkEfficiency01");
+        case ETATelemetryMetric::BrakeTemperatureC:
+            return TEXT("BrakeTemperatureC");
+        case ETATelemetryMetric::BrakeThermalTorqueFactor01:
+            return TEXT("BrakeThermalTorqueFactor01");
+        case ETATelemetryMetric::BrakeWear01:
+            return TEXT("BrakeWear01");
+        case ETATelemetryMetric::BrakeWearTorqueFactor01:
+            return TEXT("BrakeWearTorqueFactor01");
         case ETATelemetryMetric::TireRadialDeflectionM:
             return TEXT("TireRadialDeflectionM");
         case ETATelemetryMetric::WheelSlipRatio:
