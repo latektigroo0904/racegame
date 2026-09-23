@@ -8,7 +8,9 @@ enum class ETAVehicleDamageConsumerAuthoringType : uint8
 {
     Radiator,
     SteeringRack,
-    WheelHub
+    WheelHub,
+    SuspensionCorner,
+    AntiRollLink
 };
 
 USTRUCT(BlueprintType)
@@ -178,6 +180,18 @@ struct TA_VEHICLE_API FTAVehicleDamageRouteAuthoringDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Hub", meta=(ClampMin="0.0", Units="N*m"))
     double MaximumBearingDragTorqueNm = 80.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Suspension", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumSpringEfficiency01 = 0.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Suspension", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumDampingEfficiency01 = 0.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|Suspension", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumStopEfficiency01 = 0.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Route|AntiRoll", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumAntiRollLinkEfficiency01 = 0.0;
 };
 
 USTRUCT(BlueprintType)
