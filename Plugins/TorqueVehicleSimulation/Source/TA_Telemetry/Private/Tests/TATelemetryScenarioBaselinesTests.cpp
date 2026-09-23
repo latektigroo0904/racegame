@@ -49,6 +49,15 @@ bool FTATelemetryScenarioBaselineSetTest::RunTest(
             TEXT("Scenario contains at least one metric envelope"),
             Baseline.Regression.Envelopes.Num() > 0);
 
+        TestTrue(
+            TEXT("Scenario contains at least one rich profile metric"),
+            Baseline.Profile.Metrics.Num() > 0);
+
+        TestEqual(
+            TEXT("Profile expected physics hash matches envelope config"),
+            Baseline.Profile.ExpectedPhysicsConfigHash,
+            Baseline.Regression.ExpectedPhysicsConfigHash);
+
         TestFalse(
             TEXT("Scenario ID is unique"),
             ScenarioIds.Contains(
@@ -82,12 +91,18 @@ bool FTATelemetryScenarioTrustedHashRuleTest::RunTest(
     Baseline.bTrustedBaseline =
         true;
 
+    Baseline.Profile.bTrustedBaseline =
+        true;
+
     TestFalse(
         TEXT("Trusted baseline without physics hash is rejected"),
         TATelemetryScenarioBaselines::ValidateBaseline(
             Baseline));
 
     Baseline.Regression.ExpectedPhysicsConfigHash =
+        123u;
+
+    Baseline.Profile.ExpectedPhysicsConfigHash =
         123u;
 
     TestTrue(
