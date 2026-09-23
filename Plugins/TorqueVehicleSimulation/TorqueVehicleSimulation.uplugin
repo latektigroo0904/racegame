@@ -35,6 +35,11 @@
       "LoadingPhase": "Default"
     },
     {
+      "Name": "TA_Damage",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
       "Name": "TA_Vehicle",
       "Type": "Runtime",
       "LoadingPhase": "Default"
