@@ -10,19 +10,34 @@ Working title: **Torque Atlas**.
 
 ## Current status
 
-The project has moved from pure design into its **first Unreal/C++ prototype foundation**.
+The project is now in an **early Unreal/C++ physics prototype foundation** phase.
 
-The repository now contains:
-- a UE 5.8-targeted project descriptor;
-- game/editor targets;
-- a custom `TorqueVehicleSimulation` plugin;
-- initial `TA_Core`, `TA_Vehicle`, and `TA_Powertrain` modules;
-- a data-driven `UTAVehicleDefinition`;
-- native compiled runtime configuration;
-- initial powertrain math;
-- automation smoke tests.
+The repository contains a UE 5.8-targeted project skeleton plus first native implementations for:
+- core simulation/versioning;
+- vehicle definitions and compiled runtime configuration;
+- road/surface state;
+- tire forces and aquaplaning;
+- engine/clutch/gearbox/final-drive/differential helpers;
+- structural compliant constraints, plasticity and fracture;
+- typed functional damage events;
+- radiator puncture/leak/cooling degradation;
+- Unreal Automation test sources.
 
-**Important:** the skeleton has not yet been compiled against an installed Unreal Engine 5.8 toolchain, so build success is not claimed.
+**Important:** the source has not yet been compiled against an installed Unreal Engine 5.8 toolchain, so build success is not claimed.
+
+## Runtime modules
+
+`Plugins/TorqueVehicleSimulation` currently enables:
+
+```
+TA_Core
+TA_Surface
+TA_Tire
+TA_Powertrain
+TA_Structure
+TA_Damage
+TA_Vehicle
+```
 
 ## Canonical documentation
 
@@ -42,19 +57,31 @@ The repository now contains:
 - [Suspension Kinematics v0.1](docs/13-SUSPENSION-KINEMATICS-V01.md)
 - [Proof-of-Physics Test Matrix](docs/14-PROOF-OF-PHYSICS-TEST-MATRIX.md)
 - [Unreal/C++ Skeleton](docs/15-UNREAL-CPP-SKELETON.md)
+- [Functional Damage Graph](docs/16-DAMAGE-GRAPH-V01.md)
 - [Architecture Decisions](docs/DECISIONS.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Current Checkpoint](docs/CHECKPOINT.md)
 
-## Immediate work order
+## Immediate engineering order
 
-1. finish native powertrain v0.1;
-2. add the native tire runtime module;
-3. add suspension runtime geometry/state;
-4. add surface contact runtime module;
-5. expand automated physics regression tests;
-6. compile and verify against Unreal 5.8 when a suitable build environment is available;
-7. prove one complete vehicle before scaling world/content.
+1. build the integrated `TA_Vehicle` fixed-step runtime;
+2. add wheel rotational dynamics and brake torque;
+3. add suspension runtime geometry and damaged pickup coupling;
+4. finish engine torque-map / idle / starter / turbo / over-rev state;
+5. connect structure → radiator → cooling → engine thermal consequences;
+6. add telemetry;
+7. compile and run the full test set against Unreal 5.8 when a suitable build environment is available;
+8. prove one complete vehicle before scaling world/content.
+
+## Correctness rules
+
+- no global vehicle HP drives physics;
+- no per-car constants buried in solver code;
+- no mutable UObject access in high-frequency solver loops;
+- use fixed-step simulation;
+- structural displacement should alter geometry directly where possible;
+- all calibration seeds remain provisional until validated;
+- never claim a build/test pass before it has actually run.
 
 ## Core development rule
 
