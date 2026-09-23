@@ -188,7 +188,7 @@ set +e
   -NoSound \
   -stdout \
   -FullStdOutLogOutput \
-  "-ExecCmds=Automation RunTests TorqueAtlas." \
+  "-ExecCmds=Automation RunTest TorqueAtlas." \
   "-TestExit=Automation Test Queue Empty" \
   "-ReportExportPath=$REPORT_ROOT" \
   "-abslog=$VERIFY_ROOT/automation.log" \
@@ -199,6 +199,25 @@ set -e
 if [[ "$AUTOMATION_EXIT" -ne 0 ]]; then
   write_metadata "failed" "Unreal Automation failed with exit code $AUTOMATION_EXIT"
   exit "$AUTOMATION_EXIT"
+fi
+
+REPORT_VALIDATOR="$REPO_ROOT/Scripts/validate_automation_report.py"
+REPORT_SUMMARY="$VERIFY_ROOT/automation-report-summary.json"
+
+if [[ ! -f "$REPORT_VALIDATOR" ]]; then
+  write_metadata "failed" "Automation report validator not found: $REPORT_VALIDATOR"
+  echo "Automation report validator not found: $REPORT_VALIDATOR" >&2
+  exit 1
+fi
+
+set +e
+python3 "$REPORT_VALIDATOR" "$REPORT_ROOT" --prefix "TorqueAtlas." --summary-output "$REPORT_SUMMARY" 2>&1 | tee "$VERIFY_ROOT/automation-report-validation.log"
+REPORT_VALIDATION_EXIT=${PIPESTATUS[0]}
+set -e
+
+if [[ "$REPORT_VALIDATION_EXIT" -ne 0 ]]; then
+  write_metadata "failed" "Automation JSON report validation failed with exit code $REPORT_VALIDATION_EXIT"
+  exit "$REPORT_VALIDATION_EXIT"
 fi
 
 write_metadata "passed"
