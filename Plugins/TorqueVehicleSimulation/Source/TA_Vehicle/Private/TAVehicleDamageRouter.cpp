@@ -205,6 +205,128 @@ namespace
         return true;
     }
 
+    bool ApplySuspensionCornerSignal(
+        const FTAVehicleDamageRoute& Route,
+        const FTADamageSignal& Signal,
+        FTAVehicleRuntimeState& InOutVehicleState)
+    {
+        if (!InOutVehicleState.SuspensionDamage.IsValidIndex(
+                Route.WheelIndex))
+        {
+            return false;
+        }
+
+        const double Severity01 =
+            CalculateFunctionalDamageSeverity01(
+                Route,
+                Signal);
+
+        if (Severity01 <= 0.0)
+        {
+            return false;
+        }
+
+        FTASuspensionFunctionalDamageState& Damage =
+            InOutVehicleState.SuspensionDamage[
+                Route.WheelIndex];
+
+        Damage.SpringDamperDamage01 =
+            FMath::Max(
+                Damage.SpringDamperDamage01,
+                Severity01);
+
+        const double TargetSpringEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumSpringEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        const double TargetDampingEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumDampingEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        const double TargetStopEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumStopEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        Damage.SpringEfficiency01 =
+            FMath::Min(
+                Damage.SpringEfficiency01,
+                TargetSpringEfficiency01);
+
+        Damage.DampingEfficiency01 =
+            FMath::Min(
+                Damage.DampingEfficiency01,
+                TargetDampingEfficiency01);
+
+        Damage.StopEfficiency01 =
+            FMath::Min(
+                Damage.StopEfficiency01,
+                TargetStopEfficiency01);
+
+        return true;
+    }
+
+    bool ApplyAntiRollLinkSignal(
+        const FTAVehicleDamageRoute& Route,
+        const FTADamageSignal& Signal,
+        FTAVehicleRuntimeState& InOutVehicleState)
+    {
+        if (!InOutVehicleState.SuspensionDamage.IsValidIndex(
+                Route.WheelIndex))
+        {
+            return false;
+        }
+
+        const double Severity01 =
+            CalculateFunctionalDamageSeverity01(
+                Route,
+                Signal);
+
+        if (Severity01 <= 0.0)
+        {
+            return false;
+        }
+
+        FTASuspensionFunctionalDamageState& Damage =
+            InOutVehicleState.SuspensionDamage[
+                Route.WheelIndex];
+
+        Damage.AntiRollLinkDamage01 =
+            FMath::Max(
+                Damage.AntiRollLinkDamage01,
+                Severity01);
+
+        const double TargetEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumAntiRollLinkEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        Damage.AntiRollLinkEfficiency01 =
+            FMath::Min(
+                Damage.AntiRollLinkEfficiency01,
+                TargetEfficiency01);
+
+        return true;
+    }
+
     bool ApplyRadiatorSignal(
         const FTAVehicleDamageRoute& Route,
         const FTAVehicleRuntimeConfig& VehicleConfig,
@@ -308,7 +430,21 @@ bool TAVehicleDamageRouter::ValidateConfig(
             Route.MinimumDriveEfficiency01 > 1.0 ||
             !FMath::IsFinite(Route.MaximumBearingDragTorqueNm) ||
             Route.MaximumBearingDragTorqueNm < 0.0 ||
-            (Route.Consumer == ETAVehicleDamageConsumerType::WheelHub &&
+            !FMath::IsFinite(Route.MinimumSpringEfficiency01) ||
+            Route.MinimumSpringEfficiency01 < 0.0 ||
+            Route.MinimumSpringEfficiency01 > 1.0 ||
+            !FMath::IsFinite(Route.MinimumDampingEfficiency01) ||
+            Route.MinimumDampingEfficiency01 < 0.0 ||
+            Route.MinimumDampingEfficiency01 > 1.0 ||
+            !FMath::IsFinite(Route.MinimumStopEfficiency01) ||
+            Route.MinimumStopEfficiency01 < 0.0 ||
+            Route.MinimumStopEfficiency01 > 1.0 ||
+            !FMath::IsFinite(Route.MinimumAntiRollLinkEfficiency01) ||
+            Route.MinimumAntiRollLinkEfficiency01 < 0.0 ||
+            Route.MinimumAntiRollLinkEfficiency01 > 1.0 ||
+            ((Route.Consumer == ETAVehicleDamageConsumerType::WheelHub ||
+              Route.Consumer == ETAVehicleDamageConsumerType::SuspensionCorner ||
+              Route.Consumer == ETAVehicleDamageConsumerType::AntiRollLink) &&
              Route.WheelIndex < 0))
         {
             return false;
@@ -404,6 +540,32 @@ bool TAVehicleDamageRouter::RouteSignals(
             if (bApplied)
             {
                 ++OutOutput.WheelHubSignalsApplied;
+            }
+            break;
+
+        case ETAVehicleDamageConsumerType::SuspensionCorner:
+            bApplied =
+                ApplySuspensionCornerSignal(
+                    *Route,
+                    Signal,
+                    InOutVehicleState);
+
+            if (bApplied)
+            {
+                ++OutOutput.SuspensionCornerSignalsApplied;
+            }
+            break;
+
+        case ETAVehicleDamageConsumerType::AntiRollLink:
+            bApplied =
+                ApplyAntiRollLinkSignal(
+                    *Route,
+                    Signal,
+                    InOutVehicleState);
+
+            if (bApplied)
+            {
+                ++OutOutput.AntiRollLinkSignalsApplied;
             }
             break;
 
