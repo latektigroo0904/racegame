@@ -4,7 +4,6 @@ bool TACrashDamagePipeline::ProcessImpact(
     const FTACrashDamagePipelineConfig& PipelineConfig,
     const FTAVehicleRuntimeConfig& VehicleConfig,
     const FTACrashDamagePipelineInput& Input,
-    FTAChassisState& InOutChassisState,
     FTAVehicleRuntimeState& InOutVehicleState,
     TArray<FTAStructureNode>& InOutStructureNodes,
     TArray<FTADistanceConstraint>& InOutConstraints,
@@ -35,7 +34,7 @@ bool TACrashDamagePipeline::ProcessImpact(
             PipelineConfig.CollisionCoupling,
             VehicleConfig.Chassis,
             Input.Collision,
-            InOutChassisState,
+            InOutVehicleState.Chassis,
             InOutStructureNodes,
             InOutImpactScratch,
             OutOutput.Collision))
