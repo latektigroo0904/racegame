@@ -596,6 +596,36 @@ namespace
             0.0,
             1.0);
 
+        AddEnvelope(
+            Out.Regression,
+            ETATelemetryMetric::SteeringRackDamage01,
+            ETATelemetryStatistic::Maximum,
+            0.0001,
+            1.0);
+
+        AddEnvelope(
+            Out.Regression,
+            ETATelemetryMetric::SteeringCommandAuthority01,
+            ETATelemetryStatistic::Minimum,
+            0.0,
+            0.9999);
+
+        AddEnvelope(
+            Out.Regression,
+            ETATelemetryMetric::WheelHubDamage01,
+            ETATelemetryStatistic::Maximum,
+            0.0001,
+            1.0,
+            1);
+
+        AddEnvelope(
+            Out.Regression,
+            ETATelemetryMetric::WheelHubBrakeEfficiency01,
+            ETATelemetryStatistic::Minimum,
+            0.0,
+            0.9999,
+            1);
+
         AddProfile(
             Out.Profile,
             ETATelemetryMetric::ChassisYawRateRadPerSec,
@@ -646,6 +676,50 @@ namespace
             INDEX_NONE,
             0.0,
             1.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::SteeringRackDamage01,
+            INDEX_NONE,
+            0.0,
+            1.0,
+            0.0001,
+            1.0,
+            0.0,
+            1.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::SteeringCommandAuthority01,
+            INDEX_NONE,
+            0.0,
+            0.9999,
+            0.0,
+            1.0,
+            0.0,
+            1.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::WheelHubDamage01,
+            1,
+            0.0,
+            1.0,
+            0.0001,
+            1.0,
+            0.0,
+            1.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::WheelHubBrakeEfficiency01,
+            1,
+            0.0,
+            0.9999,
             0.0,
             1.0,
             0.0,
