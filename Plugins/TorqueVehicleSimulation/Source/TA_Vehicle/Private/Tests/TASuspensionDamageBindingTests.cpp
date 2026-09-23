@@ -126,4 +126,75 @@ bool FTASuspensionDamageBindingWeightedTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAMultiLinkDamageBindingTest,
+    "TorqueAtlas.Suspension.DamageBinding.StructureToRearMultiLink",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAMultiLinkDamageBindingTest::RunTest(const FString& Parameters)
+{
+    TArray<FTAStructureNode> Nodes;
+    Nodes.SetNum(TARearMultiLinkCount + 1);
+
+    for (int32 Index = 0;
+         Index < Nodes.Num();
+         ++Index)
+    {
+        Nodes[Index].PositionM =
+            FVector3d(
+                static_cast<double>(Index),
+                0.0,
+                0.0);
+    }
+
+    TAStructureSolver::InitializeReferencePositionsFromCurrent(
+        Nodes);
+
+    Nodes[2].PositionM.Y -= 0.015;
+    Nodes[5].PositionM.Z += 0.012;
+
+    FTAMultiLinkStructuralBindings Bindings;
+
+    for (int32 Index = 0;
+         Index < TARearMultiLinkCount;
+         ++Index)
+    {
+        Bindings.ChassisPickups[Index].NodeIndices.Add(Index);
+        Bindings.ChassisPickups[Index].Weights.Add(1.0);
+    }
+
+    Bindings.DamperChassis.NodeIndices.Add(5);
+    Bindings.DamperChassis.Weights.Add(1.0);
+
+    FTAMultiLinkDamageOffsets Offsets;
+
+    TestTrue(
+        TEXT("Rear multi-link bindings resolve"),
+        TASuspensionDamageBinding::ResolveMultiLinkDamageOffsets(
+            MakeArrayView(Nodes),
+            Bindings,
+            Offsets));
+
+    TestTrue(
+        TEXT("Deformed third rear pickup follows structure node"),
+        FMath::IsNearlyEqual(
+            Offsets.ChassisPickupOffsets[2].Y,
+            -0.015,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Undeformed rear pickup remains zero"),
+        Offsets.ChassisPickupOffsets[0].IsNearlyZero());
+
+    TestTrue(
+        TEXT("Rear damper chassis mount follows structure node"),
+        FMath::IsNearlyEqual(
+            Offsets.DamperChassisOffset.Z,
+            0.012,
+            1.0e-9));
+
+    return true;
+}
+
 #endif
