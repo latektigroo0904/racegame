@@ -1,36 +1,5 @@
 #include "TAVehicleDefinition.h"
 
-FTAPrototypeDrivetrainDefinition::FTAPrototypeDrivetrainDefinition()
-{
-    ForwardGearRatios =
-    {
-        3.45,
-        2.15,
-        1.52,
-        1.16,
-        0.92,
-        0.76
-    };
-}
-
-FTARearSuspensionDefinition::FTARearSuspensionDefinition()
-{
-    Link0.ChassisPickup = FVector(-1.15, 0.35, -0.18);
-    Link0.UprightPickup = FVector(-1.20, 0.68, -0.24);
-
-    Link1.ChassisPickup = FVector(-1.50, 0.36, -0.20);
-    Link1.UprightPickup = FVector(-1.42, 0.69, -0.25);
-
-    Link2.ChassisPickup = FVector(-1.10, 0.34, -0.46);
-    Link2.UprightPickup = FVector(-1.18, 0.72, -0.49);
-
-    Link3.ChassisPickup = FVector(-1.53, 0.33, -0.47);
-    Link3.UprightPickup = FVector(-1.45, 0.73, -0.50);
-
-    Link4.ChassisPickup = FVector(-1.50, 0.38, -0.36);
-    Link4.UprightPickup = FVector(-1.48, 0.71, -0.38);
-}
-
 namespace
 {
     void AddValidation(
@@ -47,8 +16,17 @@ namespace
     }
 
     uint32 HashDouble(
-        const uint32 Seed,
+        uint32 Seed,
         const double Value)
+    {
+        return HashCombineFast(
+            Seed,
+            GetTypeHash(Value));
+    }
+
+    uint32 HashBool(
+        uint32 Seed,
+        const bool Value)
     {
         return HashCombineFast(
             Seed,
@@ -65,255 +43,225 @@ namespace
         return Seed;
     }
 
-    FVector3d CompilePointRelativeToCom(
-        const FVector& AuthoredPoint,
-        const FVector& AuthoredCenterOfMass)
+    FVector3d ToComLocal(
+        const FVector& VehicleLocalPoint,
+        const FVector3d& CenterOfMassVehicleLocalM)
     {
-        return FVector3d(
-            AuthoredPoint - AuthoredCenterOfMass);
+        return
+            FVector3d(VehicleLocalPoint)
+            - CenterOfMassVehicleLocalM;
     }
 
-    FTADoubleWishboneSolverConfig BuildFrontGeometry(
-        const FTAFrontSuspensionDefinition& Definition,
-        const FVector& AuthoredCenterOfMass)
+    FTASuspensionRuntimeConfig BuildSuspensionConfig(
+        const double SpringRateNPerM,
+        const double StaticSpringCompressionM,
+        const double BumpDampingNsPerM,
+        const double ReboundDampingNsPerM,
+        const double MinTravelM,
+        const double MaxTravelM)
     {
-        FTADoubleWishboneSolverConfig Config;
-        FTADoubleWishboneHardpoints& H =
-            Config.Hardpoints;
+        FTASuspensionRuntimeConfig Config;
 
-        H.UpperInnerA =
-            CompilePointRelativeToCom(
-                Definition.UpperInnerA,
-                AuthoredCenterOfMass);
+        Config.SpringRateNPerM =
+            SpringRateNPerM;
 
-        H.UpperInnerB =
-            CompilePointRelativeToCom(
-                Definition.UpperInnerB,
-                AuthoredCenterOfMass);
+        Config.StaticSpringCompressionM =
+            StaticSpringCompressionM;
 
-        H.LowerInnerA =
-            CompilePointRelativeToCom(
-                Definition.LowerInnerA,
-                AuthoredCenterOfMass);
+        Config.BumpDampingNsPerM =
+            BumpDampingNsPerM;
 
-        H.LowerInnerB =
-            CompilePointRelativeToCom(
-                Definition.LowerInnerB,
-                AuthoredCenterOfMass);
+        Config.ReboundDampingNsPerM =
+            ReboundDampingNsPerM;
 
-        H.TieRodInner =
-            CompilePointRelativeToCom(
-                Definition.TieRodInner,
-                AuthoredCenterOfMass);
+        Config.DroopStopTravelM =
+            MinTravelM;
 
-        H.DamperChassis =
-            CompilePointRelativeToCom(
-                Definition.DamperChassis,
-                AuthoredCenterOfMass);
-
-        H.DamperLowerArmReference =
-            CompilePointRelativeToCom(
-                Definition.DamperLowerArm,
-                AuthoredCenterOfMass);
-
-        H.UpperBallJointReference =
-            CompilePointRelativeToCom(
-                Definition.UpperBallJoint,
-                AuthoredCenterOfMass);
-
-        H.LowerBallJointReference =
-            CompilePointRelativeToCom(
-                Definition.LowerBallJoint,
-                AuthoredCenterOfMass);
-
-        H.TieRodOuterReference =
-            CompilePointRelativeToCom(
-                Definition.TieRodOuter,
-                AuthoredCenterOfMass);
-
-        H.WheelCenterReference =
-            CompilePointRelativeToCom(
-                Definition.WheelCenter,
-                AuthoredCenterOfMass);
-
-        H.WheelForwardReference =
-            FVector3d(1.0, 0.0, 0.0);
-
-        H.WheelUpReference =
-            FVector3d(0.0, 0.0, 1.0);
-
-        H.SteeringRackAxisLocal =
-            FVector3d(0.0, 1.0, 0.0);
-
-        H.SideSign = 1.0;
-
-        Config.MinTravelM =
-            Definition.MinTravelM;
-
-        Config.MaxTravelM =
-            Definition.MaxTravelM;
-
-        Config.MaxIterations = 80;
-        Config.PositionToleranceM = 0.0005;
+        Config.BumpStopTravelM =
+            MaxTravelM;
 
         return Config;
     }
 
-    FTAMultiLinkSolverConfig BuildRearGeometry(
-        const FTARearSuspensionDefinition& Definition,
-        const FVector& AuthoredCenterOfMass)
+    void CompileTire(
+        const FTAPrototypeTireDefinition& Authored,
+        FTATireRuntimeConfig& Out)
     {
-        FTAMultiLinkSolverConfig Config;
+        Out.UnloadedRadiusM =
+            Authored.UnloadedRadiusM;
 
-        const FTARearLinkDefinition* Links[TARearMultiLinkCount] =
-        {
-            &Definition.Link0,
-            &Definition.Link1,
-            &Definition.Link2,
-            &Definition.Link3,
-            &Definition.Link4
-        };
+        Out.ReferenceLoadN =
+            Authored.ReferenceLoadN;
 
+        Out.ReferencePressureKPa =
+            Authored.ReferencePressureKPa;
+
+        Out.DryPeakMu =
+            Authored.DryPeakMu;
+
+        Out.NewTreadDepthMm =
+            Authored.NewTreadDepthMm;
+
+        Out.RadialStiffnessNPerM =
+            Authored.RadialStiffnessNPerM;
+
+        Out.RadialProgressiveStiffnessNPerM2 =
+            Authored.RadialProgressiveStiffnessNPerM2;
+
+        Out.RadialDampingNsPerM =
+            Authored.RadialDampingNsPerM;
+
+        Out.MaxRadialDeflectionM =
+            Authored.MaxRadialDeflectionM;
+    }
+
+    uint32 HashTireConfig(
+        uint32 Hash,
+        const FTATireRuntimeConfig& Tire)
+    {
+        Hash = HashDouble(Hash, Tire.UnloadedRadiusM);
+        Hash = HashDouble(Hash, Tire.ReferenceLoadN);
+        Hash = HashDouble(Hash, Tire.DryPeakMu);
+        Hash = HashDouble(Hash, Tire.LoadSensitivityExponent);
+        Hash = HashDouble(Hash, Tire.LongitudinalStiffnessN);
+        Hash = HashDouble(Hash, Tire.CorneringStiffnessNPerRad);
+        Hash = HashDouble(Hash, Tire.CamberStiffnessNPerRad);
+        Hash = HashDouble(Hash, Tire.SaturationExponent);
+        Hash = HashDouble(Hash, Tire.PneumaticTrailM);
+        Hash = HashDouble(Hash, Tire.RollingResistanceCoefficient);
+        Hash = HashDouble(Hash, Tire.ReferencePressureKPa);
+        Hash = HashDouble(Hash, Tire.ReferencePressureTemperatureC);
+        Hash = HashDouble(Hash, Tire.RadialStiffnessNPerM);
+        Hash = HashDouble(Hash, Tire.RadialProgressiveStiffnessNPerM2);
+        Hash = HashDouble(Hash, Tire.RadialDampingNsPerM);
+        Hash = HashDouble(Hash, Tire.MaxRadialDeflectionM);
+        Hash = HashDouble(Hash, Tire.PressureRadialStiffnessExponent);
+        Hash = HashDouble(Hash, Tire.NewTreadDepthMm);
+        Hash = HashDouble(Hash, Tire.MinimumTreadDepthMm);
+        Hash = HashDouble(Hash, Tire.OptimalSurfaceTemperatureC);
+        Hash = HashDouble(Hash, Tire.ColdGripMultiplier);
+        Hash = HashDouble(Hash, Tire.HotGripMultiplier);
+        Hash = HashDouble(Hash, Tire.HotGripTemperatureC);
+        Hash = HashDouble(Hash, Tire.PressureGripSensitivity);
+        Hash = HashDouble(Hash, Tire.WearGripLossAtEnd);
+        Hash = HashDouble(Hash, Tire.HydroReferenceOnsetSpeedMps);
+        Hash = HashDouble(Hash, Tire.HydroReferenceWaterDepthMm);
+        return Hash;
+    }
+
+    uint32 HashSuspensionConfig(
+        uint32 Hash,
+        const FTASuspensionRuntimeConfig& Suspension)
+    {
+        Hash = HashDouble(Hash, Suspension.SpringRateNPerM);
+        Hash = HashDouble(Hash, Suspension.StaticSpringCompressionM);
+        Hash = HashDouble(Hash, Suspension.BumpDampingNsPerM);
+        Hash = HashDouble(Hash, Suspension.ReboundDampingNsPerM);
+        Hash = HashDouble(Hash, Suspension.BumpStopTravelM);
+        Hash = HashDouble(Hash, Suspension.DroopStopTravelM);
+        Hash = HashDouble(Hash, Suspension.BumpStopRateNPerM);
+        Hash = HashDouble(Hash, Suspension.DroopStopRateNPerM);
+        return Hash;
+    }
+
+    uint32 HashFrontGeometry(
+        uint32 Hash,
+        const FTADoubleWishboneSolverConfig& Config)
+    {
+        const FTADoubleWishboneHardpoints& H =
+            Config.Hardpoints;
+
+        Hash = HashVector(Hash, H.UpperInnerA);
+        Hash = HashVector(Hash, H.UpperInnerB);
+        Hash = HashVector(Hash, H.LowerInnerA);
+        Hash = HashVector(Hash, H.LowerInnerB);
+        Hash = HashVector(Hash, H.TieRodInner);
+        Hash = HashVector(Hash, H.DamperChassis);
+        Hash = HashVector(Hash, H.DamperLowerArmReference);
+        Hash = HashVector(Hash, H.UpperBallJointReference);
+        Hash = HashVector(Hash, H.LowerBallJointReference);
+        Hash = HashVector(Hash, H.TieRodOuterReference);
+        Hash = HashVector(Hash, H.WheelCenterReference);
+        Hash = HashDouble(Hash, Config.MinTravelM);
+        Hash = HashDouble(Hash, Config.MaxTravelM);
+        Hash = HashCombineFast(Hash, GetTypeHash(Config.MaxIterations));
+        Hash = HashDouble(Hash, Config.PositionToleranceM);
+        return Hash;
+    }
+
+    uint32 HashRearGeometry(
+        uint32 Hash,
+        const FTAMultiLinkSolverConfig& Config)
+    {
         for (int32 Index = 0;
              Index < TARearMultiLinkCount;
              ++Index)
         {
-            Config.Links[Index].ChassisPickupReference =
-                CompilePointRelativeToCom(
-                    Links[Index]->ChassisPickup,
-                    AuthoredCenterOfMass);
+            Hash = HashVector(
+                Hash,
+                Config.Links[Index].ChassisPickupReference);
 
-            Config.Links[Index].UprightPickupReference =
-                CompilePointRelativeToCom(
-                    Links[Index]->UprightPickup,
-                    AuthoredCenterOfMass);
+            Hash = HashVector(
+                Hash,
+                Config.Links[Index].UprightPickupReference);
         }
 
-        Config.WheelCenterReference =
-            CompilePointRelativeToCom(
-                Definition.WheelCenter,
-                AuthoredCenterOfMass);
+        Hash = HashVector(
+            Hash,
+            Config.WheelCenterReference);
 
-        Config.DamperChassisReference =
-            CompilePointRelativeToCom(
-                Definition.DamperChassis,
-                AuthoredCenterOfMass);
+        Hash = HashVector(
+            Hash,
+            Config.DamperChassisReference);
 
-        Config.DamperUprightReference =
-            CompilePointRelativeToCom(
-                Definition.DamperUpright,
-                AuthoredCenterOfMass);
+        Hash = HashVector(
+            Hash,
+            Config.DamperUprightReference);
 
-        Config.WheelForwardReference =
-            FVector3d(1.0, 0.0, 0.0);
+        Hash = HashDouble(Hash, Config.MinTravelM);
+        Hash = HashDouble(Hash, Config.MaxTravelM);
+        Hash = HashCombineFast(Hash, GetTypeHash(Config.MaxIterations));
+        Hash = HashDouble(Hash, Config.PositionToleranceM);
 
-        Config.WheelUpReference =
-            FVector3d(0.0, 0.0, 1.0);
-
-        Config.SideSign = 1.0;
-
-        Config.MinTravelM =
-            Definition.MinTravelM;
-
-        Config.MaxTravelM =
-            Definition.MaxTravelM;
-
-        Config.MaxIterations = 180;
-        Config.PositionToleranceM = 0.001;
-
-        return Config;
+        return Hash;
     }
+}
 
-    FTASuspensionRuntimeConfig BuildFrontSuspensionForceConfig(
-        const FTAFrontSuspensionDefinition& Definition)
-    {
-        FTASuspensionRuntimeConfig Config;
+FTARearSuspensionDefinition::FTARearSuspensionDefinition()
+{
+    Link0.ChassisPickup =
+        FVector(-1.15, 0.35, -0.18);
+    Link0.UprightPickup =
+        FVector(-1.20, 0.68, -0.24);
 
-        Config.SpringRateNPerM =
-            Definition.SpringRateNPerM;
+    Link1.ChassisPickup =
+        FVector(-1.50, 0.36, -0.20);
+    Link1.UprightPickup =
+        FVector(-1.42, 0.69, -0.25);
 
-        Config.StaticSpringCompressionM =
-            Definition.StaticSpringCompressionM;
+    Link2.ChassisPickup =
+        FVector(-1.10, 0.34, -0.46);
+    Link2.UprightPickup =
+        FVector(-1.18, 0.72, -0.49);
 
-        Config.BumpDampingNsPerM =
-            Definition.BumpDampingNsPerM;
+    Link3.ChassisPickup =
+        FVector(-1.53, 0.33, -0.47);
+    Link3.UprightPickup =
+        FVector(-1.45, 0.73, -0.50);
 
-        Config.ReboundDampingNsPerM =
-            Definition.ReboundDampingNsPerM;
-
-        Config.BumpStopTravelM =
-            Definition.MaxTravelM;
-
-        Config.DroopStopTravelM =
-            Definition.MinTravelM;
-
-        return Config;
-    }
-
-    FTASuspensionRuntimeConfig BuildRearSuspensionForceConfig(
-        const FTARearSuspensionDefinition& Definition)
-    {
-        FTASuspensionRuntimeConfig Config;
-
-        Config.SpringRateNPerM =
-            Definition.SpringRateNPerM;
-
-        Config.StaticSpringCompressionM =
-            Definition.StaticSpringCompressionM;
-
-        Config.BumpDampingNsPerM =
-            Definition.BumpDampingNsPerM;
-
-        Config.ReboundDampingNsPerM =
-            Definition.ReboundDampingNsPerM;
-
-        Config.BumpStopTravelM =
-            Definition.MaxTravelM;
-
-        Config.DroopStopTravelM =
-            Definition.MinTravelM;
-
-        return Config;
-    }
-
-    void ApplyTireDefinition(
-        const FTAPrototypeTireDefinition& Definition,
-        FTATireRuntimeConfig& OutConfig)
-    {
-        OutConfig.UnloadedRadiusM =
-            Definition.UnloadedRadiusM;
-
-        OutConfig.ReferenceLoadN =
-            Definition.ReferenceLoadN;
-
-        OutConfig.ReferencePressureKPa =
-            Definition.ReferencePressureKPa;
-
-        OutConfig.DryPeakMu =
-            Definition.DryPeakMu;
-
-        OutConfig.NewTreadDepthMm =
-            Definition.NewTreadDepthMm;
-
-        OutConfig.RadialStiffnessNPerM =
-            Definition.RadialStiffnessNPerM;
-
-        OutConfig.RadialProgressiveStiffnessNPerM2 =
-            Definition.RadialProgressiveStiffnessNPerM2;
-
-        OutConfig.RadialDampingNsPerM =
-            Definition.RadialDampingNsPerM;
-
-        OutConfig.MaxRadialDeflectionM =
-            Definition.MaxRadialDeflectionM;
-    }
+    Link4.ChassisPickup =
+        FVector(-1.50, 0.38, -0.36);
+    Link4.UprightPickup =
+        FVector(-1.48, 0.71, -0.38);
 }
 
 bool UTAVehicleDefinition::BuildCompiledConfig(
     FTAVehicleCompiledConfig& OutConfig,
     FTAValidationResult& OutValidation) const
 {
-    OutConfig = FTAVehicleCompiledConfig{};
+    OutConfig =
+        FTAVehicleCompiledConfig{};
+
     OutValidation.Messages.Reset();
 
     if (DefinitionId.IsNone())
@@ -342,7 +290,7 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             OutValidation,
             ETAValidationSeverity::Error,
             TEXT("Vehicle.InvalidInertia"),
-            TEXT("All principal inertia components must be greater than zero."));
+            TEXT("All principal inertia values must be greater than zero."));
     }
 
     if (Dimensions.WheelbaseMeters <= 0.0 ||
@@ -362,11 +310,10 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             OutValidation,
             ETAValidationSeverity::Error,
             TEXT("Vehicle.PrototypeRequiresFourWheels"),
-            TEXT("The current high-fidelity prototype runtime requires exactly four wheels."));
+            TEXT("The current high-fidelity compiled runtime requires exactly four wheels."));
     }
 
     if (Tire.UnloadedRadiusM <= 0.0 ||
-        Tire.ReferencePressureKPa <= 0.0 ||
         Tire.ReferenceLoadN <= 0.0 ||
         Tire.RadialStiffnessNPerM <= 0.0 ||
         Tire.MaxRadialDeflectionM <= 0.0)
@@ -375,49 +322,30 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             OutValidation,
             ETAValidationSeverity::Error,
             TEXT("Vehicle.InvalidTire"),
-            TEXT("Tire radius, reference pressure/load, radial stiffness and max deflection must be positive."));
+            TEXT("Tire radius, reference load, radial stiffness and max radial deflection must be positive."));
     }
 
     if (FrontSuspension.MaxTravelM <=
-        FrontSuspension.MinTravelM)
+            FrontSuspension.MinTravelM ||
+        RearSuspension.MaxTravelM <=
+            RearSuspension.MinTravelM)
     {
         AddValidation(
             OutValidation,
             ETAValidationSeverity::Error,
-            TEXT("Vehicle.InvalidFrontTravel"),
-            TEXT("Front suspension max travel must exceed min travel."));
+            TEXT("Vehicle.InvalidSuspensionTravel"),
+            TEXT("Suspension maximum travel must be greater than minimum travel."));
     }
 
-    if (RearSuspension.MaxTravelM <=
-        RearSuspension.MinTravelM)
-    {
-        AddValidation(
-            OutValidation,
-            ETAValidationSeverity::Error,
-            TEXT("Vehicle.InvalidRearTravel"),
-            TEXT("Rear suspension max travel must exceed min travel."));
-    }
-
-    if (Drivetrain.IdleRPM <= 0.0 ||
-        Drivetrain.RedlineRPM <= Drivetrain.IdleRPM ||
-        Drivetrain.LimiterRPM < Drivetrain.RedlineRPM)
-    {
-        AddValidation(
-            OutValidation,
-            ETAValidationSeverity::Error,
-            TEXT("Vehicle.InvalidEngineSpeedRange"),
-            TEXT("Engine idle, redline and limiter RPM values are inconsistent."));
-    }
-
-    if (Drivetrain.ForwardGearRatios.Num() == 0 ||
+    if (Drivetrain.ForwardGearRatios.Num() <= 0 ||
         Drivetrain.FinalDriveRatio <= 0.0 ||
-        Drivetrain.ReverseGearRatio <= 0.0)
+        Drivetrain.MechanicalEfficiency <= 0.0)
     {
         AddValidation(
             OutValidation,
             ETAValidationSeverity::Error,
-            TEXT("Vehicle.InvalidGearbox"),
-            TEXT("Gearbox requires positive forward, reverse and final-drive ratios."));
+            TEXT("Vehicle.InvalidDrivetrain"),
+            TEXT("Drivetrain requires forward gears, a positive final drive and positive efficiency."));
     }
 
     for (const double Ratio :
@@ -428,41 +356,10 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             AddValidation(
                 OutValidation,
                 ETAValidationSeverity::Error,
-                TEXT("Vehicle.InvalidForwardGearRatio"),
+                TEXT("Vehicle.InvalidForwardGear"),
                 TEXT("All forward gear ratios must be positive."));
-
             break;
         }
-    }
-
-    const FTADoubleWishboneSolverConfig FrontGeometry =
-        BuildFrontGeometry(
-            FrontSuspension,
-            Mass.CenterOfMassMeters);
-
-    const FTAMultiLinkSolverConfig RearGeometry =
-        BuildRearGeometry(
-            RearSuspension,
-            Mass.CenterOfMassMeters);
-
-    if (!TADoubleWishboneSolver::ValidateConfig(
-            FrontGeometry))
-    {
-        AddValidation(
-            OutValidation,
-            ETAValidationSeverity::Error,
-            TEXT("Vehicle.InvalidFrontSuspensionGeometry"),
-            TEXT("Front double-wishbone geometry is degenerate or inconsistent."));
-    }
-
-    if (!TAMultiLinkSolver::ValidateConfig(
-            RearGeometry))
-    {
-        AddValidation(
-            OutValidation,
-            ETAValidationSeverity::Error,
-            TEXT("Vehicle.InvalidRearSuspensionGeometry"),
-            TEXT("Rear five-link geometry is degenerate or inconsistent."));
     }
 
     if (OutValidation.HasErrors())
@@ -470,8 +367,11 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
         return false;
     }
 
-    OutConfig.Version = Version;
-    OutConfig.DefinitionId = DefinitionId;
+    OutConfig.Version =
+        Version;
+
+    OutConfig.DefinitionId =
+        DefinitionId;
 
     OutConfig.MassKg =
         Mass.ReferenceMassKg;
@@ -518,16 +418,20 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     VehicleRuntime.Wheels.SetNum(4);
     VehicleRuntime.Tires.SetNum(4);
 
+    FTATireRuntimeConfig TireRuntime;
+    CompileTire(
+        Tire,
+        TireRuntime);
+
     for (int32 Index = 0;
          Index < 4;
          ++Index)
     {
-        ApplyTireDefinition(
-            Tire,
-            VehicleRuntime.Tires[Index]);
+        VehicleRuntime.Tires[Index] =
+            TireRuntime;
 
         VehicleRuntime.Wheels[Index].RadiusM =
-            Tire.UnloadedRadiusM;
+            TireRuntime.UnloadedRadiusM;
 
         VehicleRuntime.Wheels[Index].InertiaKgm2 =
             Wheel.InertiaKgm2;
@@ -536,14 +440,28 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             Wheel.MaxBrakeTorqueNm;
     }
 
-    const int32 DrivenLeft =
-        Drivetrain.bRearWheelDrive ? 2 : 0;
+    const bool bRearDriven =
+        Drivetrain.bRearWheelDrive;
 
-    const int32 DrivenRight =
-        Drivetrain.bRearWheelDrive ? 3 : 1;
+    VehicleRuntime.Wheels[
+        static_cast<int32>(
+            ETAPrototypeWheelIndex::FrontLeft)].bDriven =
+        !bRearDriven;
 
-    VehicleRuntime.Wheels[DrivenLeft].bDriven = true;
-    VehicleRuntime.Wheels[DrivenRight].bDriven = true;
+    VehicleRuntime.Wheels[
+        static_cast<int32>(
+            ETAPrototypeWheelIndex::FrontRight)].bDriven =
+        !bRearDriven;
+
+    VehicleRuntime.Wheels[
+        static_cast<int32>(
+            ETAPrototypeWheelIndex::RearLeft)].bDriven =
+        bRearDriven;
+
+    VehicleRuntime.Wheels[
+        static_cast<int32>(
+            ETAPrototypeWheelIndex::RearRight)].bDriven =
+        bRearDriven;
 
     VehicleRuntime.Engine.IdleRPM =
         Drivetrain.IdleRPM;
@@ -572,49 +490,277 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     VehicleRuntime.Gearbox.MechanicalEfficiency =
         Drivetrain.MechanicalEfficiency;
 
-    FTAFourWheelRuntimeConfig& FourWheelRuntime =
+    const FVector3d CenterOfMassVehicleLocalM =
+        OutConfig.CenterOfMassMeters;
+
+    FTAFourWheelRuntimeConfig& FourWheel =
         OutConfig.FourWheelRuntime;
 
-    FourWheelRuntime.FrontAxle.RightGeometry =
-        FrontGeometry;
+    FTADoubleWishboneSolverConfig& FrontGeometry =
+        FourWheel.FrontAxle.RightGeometry;
 
-    FourWheelRuntime.FrontAxle.LeftSuspension =
-        BuildFrontSuspensionForceConfig(
-            FrontSuspension);
+    FTADoubleWishboneHardpoints& FrontHardpoints =
+        FrontGeometry.Hardpoints;
 
-    FourWheelRuntime.FrontAxle.RightSuspension =
-        FourWheelRuntime.FrontAxle.LeftSuspension;
+    FrontHardpoints.UpperInnerA =
+        ToComLocal(
+            FrontSuspension.UpperInnerA,
+            CenterOfMassVehicleLocalM);
 
-    FourWheelRuntime.FrontAxle.AntiRollBar.CouplingRateNPerM =
+    FrontHardpoints.UpperInnerB =
+        ToComLocal(
+            FrontSuspension.UpperInnerB,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.LowerInnerA =
+        ToComLocal(
+            FrontSuspension.LowerInnerA,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.LowerInnerB =
+        ToComLocal(
+            FrontSuspension.LowerInnerB,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.TieRodInner =
+        ToComLocal(
+            FrontSuspension.TieRodInner,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.DamperChassis =
+        ToComLocal(
+            FrontSuspension.DamperChassis,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.DamperLowerArmReference =
+        ToComLocal(
+            FrontSuspension.DamperLowerArm,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.UpperBallJointReference =
+        ToComLocal(
+            FrontSuspension.UpperBallJoint,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.LowerBallJointReference =
+        ToComLocal(
+            FrontSuspension.LowerBallJoint,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.TieRodOuterReference =
+        ToComLocal(
+            FrontSuspension.TieRodOuter,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.WheelCenterReference =
+        ToComLocal(
+            FrontSuspension.WheelCenter,
+            CenterOfMassVehicleLocalM);
+
+    FrontHardpoints.WheelForwardReference =
+        FVector3d(1.0, 0.0, 0.0);
+
+    FrontHardpoints.WheelUpReference =
+        FVector3d(0.0, 0.0, 1.0);
+
+    FrontHardpoints.SteeringRackAxisLocal =
+        FVector3d(0.0, 1.0, 0.0);
+
+    FrontHardpoints.SideSign = 1.0;
+
+    FrontGeometry.MinTravelM =
+        FrontSuspension.MinTravelM;
+
+    FrontGeometry.MaxTravelM =
+        FrontSuspension.MaxTravelM;
+
+    FrontGeometry.MaxIterations =
+        FrontSuspension.MaxSolverIterations;
+
+    FrontGeometry.PositionToleranceM =
+        FrontSuspension.PositionToleranceM;
+
+    FourWheel.FrontAxle.LeftSuspension =
+        BuildSuspensionConfig(
+            FrontSuspension.SpringRateNPerM,
+            FrontSuspension.StaticSpringCompressionM,
+            FrontSuspension.BumpDampingNsPerM,
+            FrontSuspension.ReboundDampingNsPerM,
+            FrontSuspension.MinTravelM,
+            FrontSuspension.MaxTravelM);
+
+    FourWheel.FrontAxle.RightSuspension =
+        FourWheel.FrontAxle.LeftSuspension;
+
+    FourWheel.FrontAxle.AntiRollBar.CouplingRateNPerM =
         FrontSuspension.AntiRollCouplingRateNPerM;
 
-    FourWheelRuntime.FrontAxle.AntiRollBar.MaxTransferForceN =
+    FourWheel.FrontAxle.AntiRollBar.MaxTransferForceN =
         FrontSuspension.AntiRollMaxTransferForceN;
 
-    FourWheelRuntime.FrontAxle.SteeringRack.MaxRackDisplacementM =
+    FourWheel.FrontAxle.SteeringRack.MaxRackDisplacementM =
         FrontSuspension.MaxRackDisplacementM;
 
-    FourWheelRuntime.FrontAxle.SteeringRack.InputExponent =
+    FourWheel.FrontAxle.SteeringRack.InputExponent =
         FrontSuspension.SteeringInputExponent;
 
-    FourWheelRuntime.FrontAxle.SteeringRack.SteeringSign =
+    FourWheel.FrontAxle.SteeringRack.SteeringSign =
         FrontSuspension.SteeringSign;
 
-    FourWheelRuntime.RearAxle.RightGeometry =
-        RearGeometry;
+    FTAMultiLinkSolverConfig& RearGeometry =
+        FourWheel.RearAxle.RightGeometry;
 
-    FourWheelRuntime.RearAxle.LeftSuspension =
-        BuildRearSuspensionForceConfig(
-            RearSuspension);
+    const FTARearLinkDefinition* RearLinks[TARearMultiLinkCount] =
+    {
+        &RearSuspension.Link0,
+        &RearSuspension.Link1,
+        &RearSuspension.Link2,
+        &RearSuspension.Link3,
+        &RearSuspension.Link4
+    };
 
-    FourWheelRuntime.RearAxle.RightSuspension =
-        FourWheelRuntime.RearAxle.LeftSuspension;
+    for (int32 Index = 0;
+         Index < TARearMultiLinkCount;
+         ++Index)
+    {
+        RearGeometry.Links[Index].ChassisPickupReference =
+            ToComLocal(
+                RearLinks[Index]->ChassisPickup,
+                CenterOfMassVehicleLocalM);
 
-    FourWheelRuntime.RearAxle.AntiRollBar.CouplingRateNPerM =
+        RearGeometry.Links[Index].UprightPickupReference =
+            ToComLocal(
+                RearLinks[Index]->UprightPickup,
+                CenterOfMassVehicleLocalM);
+    }
+
+    RearGeometry.WheelCenterReference =
+        ToComLocal(
+            RearSuspension.WheelCenter,
+            CenterOfMassVehicleLocalM);
+
+    RearGeometry.DamperChassisReference =
+        ToComLocal(
+            RearSuspension.DamperChassis,
+            CenterOfMassVehicleLocalM);
+
+    RearGeometry.DamperUprightReference =
+        ToComLocal(
+            RearSuspension.DamperUpright,
+            CenterOfMassVehicleLocalM);
+
+    RearGeometry.WheelForwardReference =
+        FVector3d(1.0, 0.0, 0.0);
+
+    RearGeometry.WheelUpReference =
+        FVector3d(0.0, 0.0, 1.0);
+
+    RearGeometry.SideSign = 1.0;
+
+    RearGeometry.MinTravelM =
+        RearSuspension.MinTravelM;
+
+    RearGeometry.MaxTravelM =
+        RearSuspension.MaxTravelM;
+
+    RearGeometry.MaxIterations =
+        RearSuspension.MaxSolverIterations;
+
+    RearGeometry.PositionToleranceM =
+        RearSuspension.PositionToleranceM;
+
+    FourWheel.RearAxle.LeftSuspension =
+        BuildSuspensionConfig(
+            RearSuspension.SpringRateNPerM,
+            RearSuspension.StaticSpringCompressionM,
+            RearSuspension.BumpDampingNsPerM,
+            RearSuspension.ReboundDampingNsPerM,
+            RearSuspension.MinTravelM,
+            RearSuspension.MaxTravelM);
+
+    FourWheel.RearAxle.RightSuspension =
+        FourWheel.RearAxle.LeftSuspension;
+
+    FourWheel.RearAxle.AntiRollBar.CouplingRateNPerM =
         RearSuspension.AntiRollCouplingRateNPerM;
 
-    FourWheelRuntime.RearAxle.AntiRollBar.MaxTransferForceN =
+    FourWheel.RearAxle.AntiRollBar.MaxTransferForceN =
         RearSuspension.AntiRollMaxTransferForceN;
+
+    if (!TADoubleWishboneSolver::ValidateConfig(
+            FourWheel.FrontAxle.RightGeometry))
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.InvalidFrontSuspension"),
+            TEXT("Compiled front double-wishbone geometry is invalid or degenerate."));
+    }
+
+    if (!TAMultiLinkSolver::ValidateConfig(
+            FourWheel.RearAxle.RightGeometry))
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.InvalidRearSuspension"),
+            TEXT("Compiled rear multi-link geometry is invalid or degenerate."));
+    }
+
+    const double CompiledWheelbaseM =
+        FrontGeometry.Hardpoints.WheelCenterReference.X
+        - RearGeometry.WheelCenterReference.X;
+
+    if (FMath::Abs(
+            CompiledWheelbaseM
+            - Dimensions.WheelbaseMeters) > 0.02)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Warning,
+            TEXT("Vehicle.WheelbaseHardpointMismatch"),
+            FString::Printf(
+                TEXT("Authored wheelbase %.3f m differs from suspension wheel-center geometry %.3f m."),
+                Dimensions.WheelbaseMeters,
+                CompiledWheelbaseM));
+    }
+
+    const double CompiledFrontTrackM =
+        2.0
+        * FMath::Abs(
+            FrontGeometry.Hardpoints.WheelCenterReference.Y);
+
+    const double CompiledRearTrackM =
+        2.0
+        * FMath::Abs(
+            RearGeometry.WheelCenterReference.Y);
+
+    if (FMath::Abs(
+            CompiledFrontTrackM
+            - Dimensions.TrackFrontMeters) > 0.02)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Warning,
+            TEXT("Vehicle.FrontTrackHardpointMismatch"),
+            TEXT("Front track metadata differs from suspension wheel-center geometry."));
+    }
+
+    if (FMath::Abs(
+            CompiledRearTrackM
+            - Dimensions.TrackRearMeters) > 0.02)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Warning,
+            TEXT("Vehicle.RearTrackHardpointMismatch"),
+            TEXT("Rear track metadata differs from suspension wheel-center geometry."));
+    }
+
+    if (OutValidation.HasErrors())
+    {
+        return false;
+    }
 
     uint32 Hash =
         GetTypeHash(DefinitionId);
@@ -631,112 +777,138 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
         Hash,
         GetTypeHash(Version.DamageModelVersion));
 
-    Hash = HashDouble(Hash, OutConfig.MassKg);
-    Hash = HashVector(Hash, OutConfig.CenterOfMassMeters);
-    Hash = HashVector(Hash, OutConfig.PrincipalInertiaKgm2);
+    Hash = HashDouble(
+        Hash,
+        OutConfig.MassKg);
 
-    Hash = HashDouble(Hash, OutConfig.LengthMeters);
-    Hash = HashDouble(Hash, OutConfig.WidthMeters);
-    Hash = HashDouble(Hash, OutConfig.HeightMeters);
-    Hash = HashDouble(Hash, OutConfig.WheelbaseMeters);
-    Hash = HashDouble(Hash, OutConfig.TrackFrontMeters);
-    Hash = HashDouble(Hash, OutConfig.TrackRearMeters);
+    Hash = HashVector(
+        Hash,
+        OutConfig.CenterOfMassMeters);
 
-    Hash = HashDouble(Hash, Tire.UnloadedRadiusM);
-    Hash = HashDouble(Hash, Tire.ReferenceLoadN);
-    Hash = HashDouble(Hash, Tire.ReferencePressureKPa);
-    Hash = HashDouble(Hash, Tire.DryPeakMu);
-    Hash = HashDouble(Hash, Tire.NewTreadDepthMm);
-    Hash = HashDouble(Hash, Tire.RadialStiffnessNPerM);
-    Hash = HashDouble(Hash, Tire.RadialProgressiveStiffnessNPerM2);
-    Hash = HashDouble(Hash, Tire.RadialDampingNsPerM);
-    Hash = HashDouble(Hash, Tire.MaxRadialDeflectionM);
+    Hash = HashVector(
+        Hash,
+        OutConfig.PrincipalInertiaKgm2);
 
-    Hash = HashDouble(Hash, Wheel.InertiaKgm2);
-    Hash = HashDouble(Hash, Wheel.MaxBrakeTorqueNm);
+    Hash = HashDouble(
+        Hash,
+        OutConfig.WheelbaseMeters);
 
-    const FTADoubleWishboneHardpoints& FrontH =
-        FrontGeometry.Hardpoints;
+    Hash = HashDouble(
+        Hash,
+        OutConfig.TrackFrontMeters);
 
-    Hash = HashVector(Hash, FrontH.UpperInnerA);
-    Hash = HashVector(Hash, FrontH.UpperInnerB);
-    Hash = HashVector(Hash, FrontH.LowerInnerA);
-    Hash = HashVector(Hash, FrontH.LowerInnerB);
-    Hash = HashVector(Hash, FrontH.TieRodInner);
-    Hash = HashVector(Hash, FrontH.DamperChassis);
-    Hash = HashVector(Hash, FrontH.DamperLowerArmReference);
-    Hash = HashVector(Hash, FrontH.UpperBallJointReference);
-    Hash = HashVector(Hash, FrontH.LowerBallJointReference);
-    Hash = HashVector(Hash, FrontH.TieRodOuterReference);
-    Hash = HashVector(Hash, FrontH.WheelCenterReference);
+    Hash = HashDouble(
+        Hash,
+        OutConfig.TrackRearMeters);
 
-    Hash = HashDouble(Hash, FrontSuspension.MinTravelM);
-    Hash = HashDouble(Hash, FrontSuspension.MaxTravelM);
-    Hash = HashDouble(Hash, FrontSuspension.SpringRateNPerM);
-    Hash = HashDouble(Hash, FrontSuspension.StaticSpringCompressionM);
-    Hash = HashDouble(Hash, FrontSuspension.BumpDampingNsPerM);
-    Hash = HashDouble(Hash, FrontSuspension.ReboundDampingNsPerM);
-    Hash = HashDouble(Hash, FrontSuspension.AntiRollCouplingRateNPerM);
-    Hash = HashDouble(Hash, FrontSuspension.AntiRollMaxTransferForceN);
-    Hash = HashDouble(Hash, FrontSuspension.MaxRackDisplacementM);
-    Hash = HashDouble(Hash, FrontSuspension.SteeringInputExponent);
-    Hash = HashDouble(Hash, FrontSuspension.SteeringSign);
+    Hash = HashCombineFast(
+        Hash,
+        GetTypeHash(OutConfig.WheelCount));
 
-    for (int32 Index = 0;
-         Index < TARearMultiLinkCount;
-         ++Index)
+    Hash = HashTireConfig(
+        Hash,
+        VehicleRuntime.Tires[0]);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Wheels[0].InertiaKgm2);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Wheels[0].MaxBrakeTorqueNm);
+
+    for (const FTAWheelRuntimeConfig& WheelConfig :
+         VehicleRuntime.Wheels)
     {
-        Hash = HashVector(
+        Hash = HashBool(
             Hash,
-            RearGeometry.Links[Index].ChassisPickupReference);
-
-        Hash = HashVector(
-            Hash,
-            RearGeometry.Links[Index].UprightPickupReference);
+            WheelConfig.bDriven);
     }
 
-    Hash = HashVector(
+    Hash = HashDouble(
         Hash,
-        RearGeometry.WheelCenterReference);
+        VehicleRuntime.Engine.IdleRPM);
 
-    Hash = HashVector(
+    Hash = HashDouble(
         Hash,
-        RearGeometry.DamperChassisReference);
+        VehicleRuntime.Engine.RedlineRPM);
 
-    Hash = HashVector(
+    Hash = HashDouble(
         Hash,
-        RearGeometry.DamperUprightReference);
+        VehicleRuntime.Engine.LimiterRPM);
 
-    Hash = HashDouble(Hash, RearSuspension.MinTravelM);
-    Hash = HashDouble(Hash, RearSuspension.MaxTravelM);
-    Hash = HashDouble(Hash, RearSuspension.SpringRateNPerM);
-    Hash = HashDouble(Hash, RearSuspension.StaticSpringCompressionM);
-    Hash = HashDouble(Hash, RearSuspension.BumpDampingNsPerM);
-    Hash = HashDouble(Hash, RearSuspension.ReboundDampingNsPerM);
-    Hash = HashDouble(Hash, RearSuspension.AntiRollCouplingRateNPerM);
-    Hash = HashDouble(Hash, RearSuspension.AntiRollMaxTransferForceN);
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Engine.CrankInertiaKgm2);
 
-    Hash = HashDouble(Hash, Drivetrain.IdleRPM);
-    Hash = HashDouble(Hash, Drivetrain.RedlineRPM);
-    Hash = HashDouble(Hash, Drivetrain.LimiterRPM);
-    Hash = HashDouble(Hash, Drivetrain.CrankInertiaKgm2);
-    Hash = HashDouble(Hash, Drivetrain.ClutchMaxTorqueNm);
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Clutch.MaxTorqueCapacityNm);
 
     for (const double Ratio :
-         Drivetrain.ForwardGearRatios)
+         VehicleRuntime.Gearbox.ForwardGearRatios)
     {
         Hash = HashDouble(Hash, Ratio);
     }
 
-    Hash = HashDouble(Hash, Drivetrain.ReverseGearRatio);
-    Hash = HashDouble(Hash, Drivetrain.FinalDriveRatio);
-    Hash = HashDouble(Hash, Drivetrain.MechanicalEfficiency);
-
-    Hash = HashCombineFast(
+    Hash = HashDouble(
         Hash,
-        GetTypeHash(
-            Drivetrain.bRearWheelDrive));
+        VehicleRuntime.Gearbox.ReverseGearRatio);
 
-    OutConfig.PhysicsConfigHash = Hash;
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Gearbox.FinalDriveRatio);
+
+    Hash = HashDouble(
+        Hash,
+        VehicleRuntime.Gearbox.MechanicalEfficiency);
+
+    Hash = HashFrontGeometry(
+        Hash,
+        FrontGeometry);
+
+    Hash = HashSuspensionConfig(
+        Hash,
+        FourWheel.FrontAxle.LeftSuspension);
+
+    Hash = HashDouble(
+        Hash,
+        FourWheel.FrontAxle.AntiRollBar.CouplingRateNPerM);
+
+    Hash = HashDouble(
+        Hash,
+        FourWheel.FrontAxle.AntiRollBar.MaxTransferForceN);
+
+    Hash = HashDouble(
+        Hash,
+        FourWheel.FrontAxle.SteeringRack.MaxRackDisplacementM);
+
+    Hash = HashDouble(
+        Hash,
+        FourWheel.FrontAxle.SteeringRack.InputExponent);
+
+    Hash = HashDouble(
+        Hash,
+        FourWheel.FrontAxle.SteeringRack.SteeringSign);
+
+    Hash = HashRearGeometry(
+        Hash,
+        RearGeometry);
+
+    Hash = HashSuspensionConfig(
+        Hash,
+        FourWheel.RearAxle.LeftSuspension);
+
+    Hash = HashDouble(
+        Hash,
+        FourWheel.RearAxle.AntiRollBar.CouplingRateNPerM);
+
+    Hash = HashDouble(
+        Hash,
+        FourWheel.RearAxle.AntiRollBar.MaxTransferForceN);
+
+    OutConfig.PhysicsConfigHash =
+        Hash;
+
     return true;
 }
