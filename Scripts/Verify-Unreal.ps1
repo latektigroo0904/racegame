@@ -148,7 +148,7 @@ try {
         "-NoSound",
         "-stdout",
         "-FullStdOutLogOutput",
-        "-ExecCmds=Automation RunTests TorqueAtlas.",
+        "-ExecCmds=Automation RunTest TorqueAtlas.",
         "-TestExit=Automation Test Queue Empty",
         "-ReportExportPath=$ReportRoot",
         "-abslog=$AutomationLog"
@@ -160,6 +160,20 @@ try {
 
     if ($AutomationExit -ne 0) {
         throw "Unreal Automation failed with exit code $AutomationExit."
+    }
+
+    $ReportValidator = Join-Path $RepoRoot "Scripts\validate_automation_report.py"
+    $ReportSummary = Join-Path $VerificationRoot "automation-report-summary.json"
+
+    if (-not (Test-Path $ReportValidator)) {
+        throw "Automation report validator not found at $ReportValidator"
+    }
+
+    & python $ReportValidator $ReportRoot --prefix "TorqueAtlas." --summary-output $ReportSummary 2>&1 | Tee-Object -FilePath (Join-Path $VerificationRoot "automation-report-validation.log") | Out-Host
+    $ReportValidationExit = $LASTEXITCODE
+
+    if ($ReportValidationExit -ne 0) {
+        throw "Automation JSON report validation failed with exit code $ReportValidationExit."
     }
 
     $Metadata.status = "passed"
