@@ -722,3 +722,446 @@ FString TATelemetryRegression::ExportJsonLines(
 
     return JsonLines;
 }
+
+
+bool TATelemetryRegression::ValidateProfileConfig(
+    const FTATelemetryScenarioProfileConfig& Config)
+{
+    if (Config.ScenarioId.IsNone() ||
+        Config.BaselineVersion <= 0 ||
+        Config.MinimumRequiredSamples <= 0 ||
+        Config.Metrics.Num() <= 0)
+    {
+        return false;
+    }
+
+    if (Config.bTrustedBaseline &&
+        Config.ExpectedPhysicsConfigHash == 0)
+    {
+        return false;
+    }
+
+    const auto IsValidRange =
+        [](const FTARegressionRange& Range)
+        {
+            return
+                FMath::IsFinite(
+                    Range.MinInclusive)
+                && FMath::IsFinite(
+                    Range.MaxInclusive)
+                && Range.MinInclusive
+                    <= Range.MaxInclusive;
+        };
+
+    for (const FTATelemetryMetricProfile& Metric :
+         Config.Metrics)
+    {
+        if (!FMath::IsFinite(
+                Metric.StartFraction01) ||
+            !FMath::IsFinite(
+                Metric.EndFraction01) ||
+            Metric.StartFraction01 < 0.0 ||
+            Metric.EndFraction01 > 1.0 ||
+            Metric.EndFraction01
+                <= Metric.StartFraction01 ||
+            !FMath::IsFinite(
+                Metric.SteadyStateFraction01) ||
+            Metric.SteadyStateFraction01 <= 0.0 ||
+            Metric.SteadyStateFraction01 > 1.0 ||
+            !IsValidRange(
+                Metric.MinimumEnvelope) ||
+            !IsValidRange(
+                Metric.MaximumEnvelope) ||
+            !IsValidRange(
+                Metric.SteadyStateEnvelope))
+        {
+            return false;
+        }
+
+        if (IsWheelMetric(Metric.Metric) &&
+            (Metric.WheelIndex < 0 ||
+             Metric.WheelIndex >=
+                TAPrototypeTelemetryWheelCount))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool TATelemetryRegression::EvaluateProfile(
+    const FTATelemetryRingBuffer& Buffer,
+    const FTATelemetryScenarioProfileConfig& Config,
+    FTATelemetryScenarioProfileResult& OutResult)
+{
+    OutResult =
+        FTATelemetryScenarioProfileResult{};
+
+    OutResult.ScenarioId =
+        Config.ScenarioId;
+
+    OutResult.BaselineVersion =
+        Config.BaselineVersion;
+
+    OutResult.bTrustedBaseline =
+        Config.bTrustedBaseline;
+
+    OutResult.ExpectedPhysicsConfigHash =
+        Config.ExpectedPhysicsConfigHash;
+
+    OutResult.SampleCount =
+        Buffer.Num();
+
+    if (!ValidateProfileConfig(Config))
+    {
+        OutResult.Failures.Add(
+            TEXT(
+                "Invalid telemetry scenario profile configuration."));
+
+        return false;
+    }
+
+    uint32 ObservedHash = 0;
+    bool bHashInitialized = false;
+    bool bHashConsistent = true;
+
+    for (int32 SampleIndex = 0;
+         SampleIndex < Buffer.Num();
+         ++SampleIndex)
+    {
+        const FTAVehicleTelemetrySample* Sample =
+            Buffer.GetChronological(
+                SampleIndex);
+
+        if (!Sample)
+        {
+            OutResult.Failures.Add(
+                TEXT(
+                    "Telemetry buffer returned an invalid chronological sample."));
+
+            return false;
+        }
+
+        if (!bHashInitialized)
+        {
+            ObservedHash =
+                Sample->PhysicsConfigHash;
+
+            bHashInitialized =
+                true;
+        }
+        else if (Sample->PhysicsConfigHash
+            != ObservedHash)
+        {
+            bHashConsistent =
+                false;
+        }
+    }
+
+    OutResult.ObservedPhysicsConfigHash =
+        ObservedHash;
+
+    OutResult.bPhysicsConfigHashConsistent =
+        bHashConsistent;
+
+    OutResult.bPhysicsConfigHashMatched =
+        bHashConsistent
+        && (Config.ExpectedPhysicsConfigHash == 0
+            || ObservedHash
+                == Config.ExpectedPhysicsConfigHash);
+
+    if (!bHashConsistent)
+    {
+        OutResult.Failures.Add(
+            TEXT(
+                "Telemetry trace contains more than one physics config hash."));
+    }
+    else if (Config.ExpectedPhysicsConfigHash != 0 &&
+             ObservedHash
+                != Config.ExpectedPhysicsConfigHash)
+    {
+        OutResult.Failures.Add(
+            FString::Printf(
+                TEXT(
+                    "Physics config hash mismatch: expected %u, observed %u."),
+                Config.ExpectedPhysicsConfigHash,
+                ObservedHash));
+    }
+
+    if (Buffer.Num() <
+        Config.MinimumRequiredSamples)
+    {
+        OutResult.Failures.Add(
+            FString::Printf(
+                TEXT(
+                    "Scenario %s requires at least %d samples; got %d."),
+                *Config.ScenarioId.ToString(),
+                Config.MinimumRequiredSamples,
+                Buffer.Num()));
+
+        return true;
+    }
+
+    OutResult.MetricResults.Reserve(
+        Config.Metrics.Num());
+
+    for (const FTATelemetryMetricProfile& Metric :
+         Config.Metrics)
+    {
+        FTATelemetryMetricEnvelope Window;
+        Window.Metric =
+            Metric.Metric;
+
+        Window.WheelIndex =
+            Metric.WheelIndex;
+
+        Window.StartFraction01 =
+            Metric.StartFraction01;
+
+        Window.EndFraction01 =
+            Metric.EndFraction01;
+
+        int32 StartIndex = 0;
+        int32 EndExclusive = 0;
+
+        CalculateWindowIndices(
+            Buffer.Num(),
+            Window,
+            StartIndex,
+            EndExclusive);
+
+        TArray<double> Samples;
+        Samples.Reserve(
+            EndExclusive - StartIndex);
+
+        bool bMetricReadSucceeded =
+            true;
+
+        for (int32 SampleIndex = StartIndex;
+             SampleIndex < EndExclusive;
+             ++SampleIndex)
+        {
+            const FTAVehicleTelemetrySample* Sample =
+                Buffer.GetChronological(
+                    SampleIndex);
+
+            double Value = 0.0;
+
+            if (!Sample ||
+                !ReadMetricValue(
+                    *Sample,
+                    Window,
+                    Value))
+            {
+                bMetricReadSucceeded =
+                    false;
+
+                break;
+            }
+
+            Samples.Add(
+                Value);
+        }
+
+        FTATelemetryMetricProfileResult MetricResult;
+
+        MetricResult.Metric =
+            Metric.Metric;
+
+        MetricResult.WheelIndex =
+            Metric.WheelIndex;
+
+        MetricResult.StartFraction01 =
+            Metric.StartFraction01;
+
+        MetricResult.EndFraction01 =
+            Metric.EndFraction01;
+
+        MetricResult.MinimumEnvelope =
+            Metric.MinimumEnvelope;
+
+        MetricResult.MaximumEnvelope =
+            Metric.MaximumEnvelope;
+
+        MetricResult.SteadyStateEnvelope =
+            Metric.SteadyStateEnvelope;
+
+        if (bMetricReadSucceeded)
+        {
+            MetricResult.Evaluation =
+                TARegressionEnvelope::Evaluate(
+                    Samples,
+                    Metric.SteadyStateFraction01,
+                    Metric.MinimumEnvelope,
+                    Metric.MaximumEnvelope,
+                    Metric.SteadyStateEnvelope);
+        }
+
+        if (!bMetricReadSucceeded ||
+            !MetricResult.Evaluation.bPassed)
+        {
+            OutResult.Failures.Add(
+                FString::Printf(
+                    TEXT(
+                        "%s wheel=%d failed: observed min=%.9g max=%.9g steady=%.9g."),
+                    *MetricToString(
+                        Metric.Metric),
+                    Metric.WheelIndex,
+                    MetricResult.Evaluation.Summary.MinValue,
+                    MetricResult.Evaluation.Summary.MaxValue,
+                    MetricResult.Evaluation.Summary.SteadyStateMean));
+        }
+
+        OutResult.MetricResults.Add(
+            MoveTemp(MetricResult));
+    }
+
+    bool bAllMetricsPassed =
+        OutResult.MetricResults.Num()
+        == Config.Metrics.Num();
+
+    for (const FTATelemetryMetricProfileResult& Metric :
+         OutResult.MetricResults)
+    {
+        bAllMetricsPassed &=
+            Metric.Evaluation.bPassed;
+    }
+
+    OutResult.bPassed =
+        OutResult.bPhysicsConfigHashMatched
+        && bAllMetricsPassed;
+
+    return true;
+}
+
+FString TATelemetryRegression::ExportProfileCsv(
+    const FTATelemetryScenarioProfileResult& Result)
+{
+    FString Csv;
+
+    Csv += TEXT(
+        "scenario_id,baseline_version,trusted_baseline,"
+        "expected_physics_config_hash,observed_physics_config_hash,"
+        "hash_consistent,hash_matched,sample_count,"
+        "metric,wheel_index,window_start,window_end,"
+        "observed_min,observed_max,observed_mean,observed_steady_state,"
+        "expected_min_low,expected_min_high,"
+        "expected_max_low,expected_max_high,"
+        "expected_steady_low,expected_steady_high,pass\n");
+
+    const FString Scenario =
+        Result.ScenarioId.ToString()
+            .Replace(
+                TEXT("\""),
+                TEXT("\"\""));
+
+    for (const FTATelemetryMetricProfileResult& Metric :
+         Result.MetricResults)
+    {
+        Csv.Appendf(
+            TEXT(
+                "\"%s\",%d,%d,%u,%u,%d,%d,%d,"
+                "%s,%d,%.9g,%.9g,"
+                "%.9g,%.9g,%.9g,%.9g,"
+                "%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,%d\n"),
+            *Scenario,
+            Result.BaselineVersion,
+            Result.bTrustedBaseline ? 1 : 0,
+            Result.ExpectedPhysicsConfigHash,
+            Result.ObservedPhysicsConfigHash,
+            Result.bPhysicsConfigHashConsistent ? 1 : 0,
+            Result.bPhysicsConfigHashMatched ? 1 : 0,
+            Result.SampleCount,
+            *MetricToString(
+                Metric.Metric),
+            Metric.WheelIndex,
+            Metric.StartFraction01,
+            Metric.EndFraction01,
+            Metric.Evaluation.Summary.MinValue,
+            Metric.Evaluation.Summary.MaxValue,
+            Metric.Evaluation.Summary.MeanValue,
+            Metric.Evaluation.Summary.SteadyStateMean,
+            Metric.MinimumEnvelope.MinInclusive,
+            Metric.MinimumEnvelope.MaxInclusive,
+            Metric.MaximumEnvelope.MinInclusive,
+            Metric.MaximumEnvelope.MaxInclusive,
+            Metric.SteadyStateEnvelope.MinInclusive,
+            Metric.SteadyStateEnvelope.MaxInclusive,
+            Metric.Evaluation.bPassed ? 1 : 0);
+    }
+
+    return Csv;
+}
+
+FString TATelemetryRegression::ExportProfileJsonLines(
+    const FTATelemetryScenarioProfileResult& Result)
+{
+    FString JsonLines;
+
+    const FString Scenario =
+        EscapeJsonString(
+            Result.ScenarioId.ToString());
+
+    for (const FTATelemetryMetricProfileResult& Metric :
+         Result.MetricResults)
+    {
+        JsonLines.Appendf(
+            TEXT(
+                "{\"scenario_id\":\"%s\","
+                "\"baseline_version\":%d,"
+                "\"trusted_baseline\":%s,"
+                "\"expected_physics_config_hash\":%u,"
+                "\"observed_physics_config_hash\":%u,"
+                "\"hash_consistent\":%s,"
+                "\"hash_matched\":%s,"
+                "\"sample_count\":%d,"
+                "\"metric\":\"%s\","
+                "\"wheel_index\":%d,"
+                "\"window_start\":%.9g,"
+                "\"window_end\":%.9g,"
+                "\"observed_min\":%.9g,"
+                "\"observed_max\":%.9g,"
+                "\"observed_mean\":%.9g,"
+                "\"observed_steady_state\":%.9g,"
+                "\"expected_min\":[%.9g,%.9g],"
+                "\"expected_max\":[%.9g,%.9g],"
+                "\"expected_steady_state\":[%.9g,%.9g],"
+                "\"pass\":%s}\n"),
+            *Scenario,
+            Result.BaselineVersion,
+            Result.bTrustedBaseline
+                ? TEXT("true")
+                : TEXT("false"),
+            Result.ExpectedPhysicsConfigHash,
+            Result.ObservedPhysicsConfigHash,
+            Result.bPhysicsConfigHashConsistent
+                ? TEXT("true")
+                : TEXT("false"),
+            Result.bPhysicsConfigHashMatched
+                ? TEXT("true")
+                : TEXT("false"),
+            Result.SampleCount,
+            *EscapeJsonString(
+                MetricToString(
+                    Metric.Metric)),
+            Metric.WheelIndex,
+            Metric.StartFraction01,
+            Metric.EndFraction01,
+            Metric.Evaluation.Summary.MinValue,
+            Metric.Evaluation.Summary.MaxValue,
+            Metric.Evaluation.Summary.MeanValue,
+            Metric.Evaluation.Summary.SteadyStateMean,
+            Metric.MinimumEnvelope.MinInclusive,
+            Metric.MinimumEnvelope.MaxInclusive,
+            Metric.MaximumEnvelope.MinInclusive,
+            Metric.MaximumEnvelope.MaxInclusive,
+            Metric.SteadyStateEnvelope.MinInclusive,
+            Metric.SteadyStateEnvelope.MaxInclusive,
+            Metric.Evaluation.bPassed
+                ? TEXT("true")
+                : TEXT("false"));
+    }
+
+    return JsonLines;
+}
