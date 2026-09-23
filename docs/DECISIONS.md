@@ -141,3 +141,33 @@
 **Decision:** `TA_Telemetry` depends on public vehicle state and captures samples into a fixed-capacity ring buffer; the vehicle solver does not depend on telemetry.  
 **Reason:** logging/regression instrumentation must not become part of simulation truth or introduce solver-side allocations.
 
+## ADR-031 — Damaged front suspension uses a 3D constraint solve
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** front double-wishbone runtime geometry is solved from physical upper/lower inner pickups, ball joints, tie rod and a rigid upright constraint set, with wheel travel as the remaining mechanism coordinate.  
+**Reason:** structural pickup displacement and steering must alter alignment through geometry rather than artificial camber/toe damage scalars.
+
+## ADR-032 — Motion ratio comes from current suspension geometry
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** a chassis damper mount and lower-arm damper mount are part of the suspension geometry. The damaged-mode motion ratio is estimated from the local derivative of damper length with respect to wheel travel.  
+**Reason:** a constant 1.0 motion ratio becomes physically inconsistent when arms or chassis mounts move.
+
+## ADR-033 — High-fidelity contact derives load and velocity
+**Status:** accepted for front prototype 2026-09-23  
+**Decision:** the canonical high-fidelity front path derives road reach, suspension travel, normal load, contact position and patch velocity from chassis/suspension/road state. Manually supplied VerticalLoadN and contact velocity remain test/LOD interfaces only.  
+**Reason:** weight transfer and damaged geometry must emerge from the same physical state used by the tire solver.
+
+## ADR-034 — Structural node displacement directly drives suspension pickup displacement
+**Status:** accepted 2026-09-23  
+**Decision:** structure nodes retain reference positions; compiled weighted bindings map current-minus-reference node displacement into suspension pickup offsets.  
+**Reason:** crash deformation can therefore change alignment without a generic suspension-damage percentage.
+
+## ADR-035 — Tire grip state is thermal, pressure and wear dependent
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** slip/rolling energy drives a two-layer tire thermal model, internal-air temperature drives pressure, dissipated energy drives wear/tread loss, and effective friction includes reversible temperature/pressure effects plus permanent wear/thermal degradation.  
+**Reason:** tire behavior must evolve during use and wet-weather behavior must depend on actual tread state.
+
+## ADR-036 — Anti-roll bars transfer equal/opposite axle load
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** left/right suspension travel difference creates bounded equal/opposite normal-load adjustments at an axle.  
+**Reason:** independent corner springs alone do not provide the required roll-stiffness/load-transfer behavior.
+
