@@ -39,7 +39,7 @@ struct TA_VEHICLE_API FTAVehicleMassDefinition
     double ReferenceMassKg = 1420.0;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Mass")
-    FVector CenterOfMassMeters = FVector(0.0, 0.0, 0.45);
+    FVector CenterOfMassMeters = FVector::ZeroVector;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Mass")
     FVector PrincipalInertiaKgm2 = FVector(650.0, 1800.0, 1900.0);
