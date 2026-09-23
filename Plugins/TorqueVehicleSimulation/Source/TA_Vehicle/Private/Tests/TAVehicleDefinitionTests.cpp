@@ -1376,4 +1376,194 @@ bool FTAVehicleDefinitionRejectsInvalidCoolingCalibrationTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionDerivedKinematicCacheTest,
+    "TorqueAtlas.Vehicle.Definition.DerivesSuspensionKinematicCaches",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionDerivedKinematicCacheTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Vehicle compiles with derived kinematic caches"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    const FTASuspensionRuntimeConfig& FrontRightCache =
+        Config.FourWheelRuntime.FrontAxle.RightSuspension;
+
+    const FTASuspensionRuntimeConfig& FrontLeftCache =
+        Config.FourWheelRuntime.FrontAxle.LeftSuspension;
+
+    const FTASuspensionRuntimeConfig& RearRightCache =
+        Config.FourWheelRuntime.RearAxle.RightSuspension;
+
+    const FTASuspensionRuntimeConfig& RearLeftCache =
+        Config.FourWheelRuntime.RearAxle.LeftSuspension;
+
+    TestEqual(
+        TEXT("Front-right cache has 17 derived samples"),
+        FrontRightCache.KinematicSamples.Num(),
+        17);
+
+    TestEqual(
+        TEXT("Front-left cache has 17 derived samples"),
+        FrontLeftCache.KinematicSamples.Num(),
+        17);
+
+    TestEqual(
+        TEXT("Rear-right cache has 17 derived samples"),
+        RearRightCache.KinematicSamples.Num(),
+        17);
+
+    TestEqual(
+        TEXT("Rear-left cache has 17 derived samples"),
+        RearLeftCache.KinematicSamples.Num(),
+        17);
+
+    TestTrue(
+        TEXT("Front cache spans complete authored travel"),
+        FMath::IsNearlyEqual(
+            FrontRightCache.KinematicSamples[0].TravelM,
+            Config.FourWheelRuntime.FrontAxle
+                .RightGeometry.MinTravelM,
+            1.0e-12)
+        && FMath::IsNearlyEqual(
+            FrontRightCache.KinematicSamples.Last().TravelM,
+            Config.FourWheelRuntime.FrontAxle
+                .RightGeometry.MaxTravelM,
+            1.0e-12));
+
+    TestTrue(
+        TEXT("Rear cache spans complete authored travel"),
+        FMath::IsNearlyEqual(
+            RearRightCache.KinematicSamples[0].TravelM,
+            Config.FourWheelRuntime.RearAxle
+                .RightGeometry.MinTravelM,
+            1.0e-12)
+        && FMath::IsNearlyEqual(
+            RearRightCache.KinematicSamples.Last().TravelM,
+            Config.FourWheelRuntime.RearAxle
+                .RightGeometry.MaxTravelM,
+            1.0e-12));
+
+    const double FrontProbeTravelM =
+        0.5
+        * (FrontRightCache.KinematicSamples[8].TravelM
+            + FrontRightCache.KinematicSamples[9].TravelM);
+
+    FTASuspensionRuntimeState CachedFrontState;
+
+    TestTrue(
+        TEXT("Front derived cache interpolates"),
+        TASuspensionRuntime::EvaluateKinematicCache(
+            FrontRightCache,
+            FrontProbeTravelM,
+            CachedFrontState));
+
+    FTADoubleWishboneState DirectFrontState;
+    FTADoubleWishboneSolveInput DirectFrontInput;
+    DirectFrontInput.TravelM =
+        FrontProbeTravelM;
+
+    FTADoubleWishboneSolveOutput DirectFrontOutput;
+
+    TestTrue(
+        TEXT("Direct front geometry solves at cache probe"),
+        TADoubleWishboneSolver::Solve(
+            Config.FourWheelRuntime.FrontAxle.RightGeometry,
+            DirectFrontInput,
+            DirectFrontState,
+            DirectFrontOutput));
+
+    const FVector3d DirectFrontOffsetM =
+        DirectFrontOutput.WheelCenterLocalM
+        - Config.FourWheelRuntime.FrontAxle
+            .RightGeometry.Hardpoints.WheelCenterReference;
+
+    TestTrue(
+        TEXT("Interpolated front wheel-center offset remains close to direct solver"),
+        (CachedFrontState.WheelCenterOffsetM
+            - DirectFrontOffsetM).Length()
+            < 0.002);
+
+    TestTrue(
+        TEXT("Interpolated front camber remains close to direct solver"),
+        FMath::Abs(
+            CachedFrontState.CamberRad
+            - DirectFrontOutput.CamberRad)
+            < FMath::DegreesToRadians(0.25));
+
+    TestTrue(
+        TEXT("Interpolated front toe remains close to direct solver"),
+        FMath::Abs(
+            CachedFrontState.ToeRad
+            - DirectFrontOutput.ToeRad)
+            < FMath::DegreesToRadians(0.25));
+
+    const double RearProbeTravelM =
+        0.5
+        * (RearRightCache.KinematicSamples[8].TravelM
+            + RearRightCache.KinematicSamples[9].TravelM);
+
+    FTASuspensionRuntimeState CachedRearState;
+
+    TestTrue(
+        TEXT("Rear derived cache interpolates"),
+        TASuspensionRuntime::EvaluateKinematicCache(
+            RearRightCache,
+            RearProbeTravelM,
+            CachedRearState));
+
+    FTAMultiLinkRuntimeState DirectRearState;
+    FTAMultiLinkSolveInput DirectRearInput;
+    DirectRearInput.TravelM =
+        RearProbeTravelM;
+
+    FTAMultiLinkSolveOutput DirectRearOutput;
+
+    TestTrue(
+        TEXT("Direct rear geometry solves at cache probe"),
+        TAMultiLinkSolver::Solve(
+            Config.FourWheelRuntime.RearAxle.RightGeometry,
+            DirectRearInput,
+            DirectRearState,
+            DirectRearOutput));
+
+    const FVector3d DirectRearOffsetM =
+        DirectRearOutput.WheelCenterLocalM
+        - Config.FourWheelRuntime.RearAxle
+            .RightGeometry.WheelCenterReference;
+
+    TestTrue(
+        TEXT("Interpolated rear wheel-center offset remains close to direct solver"),
+        (CachedRearState.WheelCenterOffsetM
+            - DirectRearOffsetM).Length()
+            < 0.003);
+
+    TestTrue(
+        TEXT("Interpolated rear camber remains close to direct solver"),
+        FMath::Abs(
+            CachedRearState.CamberRad
+            - DirectRearOutput.CamberRad)
+            < FMath::DegreesToRadians(0.35));
+
+    TestTrue(
+        TEXT("Interpolated rear toe remains close to direct solver"),
+        FMath::Abs(
+            CachedRearState.ToeRad
+            - DirectRearOutput.ToeRad)
+            < FMath::DegreesToRadians(0.35));
+
+    return true;
+}
+
 #endif
