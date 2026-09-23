@@ -519,4 +519,256 @@ bool FTAVehicleResolvedSuspensionContactTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeHubDriveEfficiencyTest,
+    "TorqueAtlas.Vehicle.Runtime.HubDamageReducesDriveTorque",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeHubDriveEfficiencyTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState HealthyState;
+    FTAVehicleRuntimeState DamagedState;
+
+    TestTrue(
+        TEXT("Healthy runtime initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            HealthyState));
+
+    TestTrue(
+        TEXT("Damaged runtime initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            DamagedState));
+
+    DamagedState.WheelHubDamage[2].DriveEfficiency01 =
+        0.50;
+
+    FTAVehicleStepInput Input =
+        MakeStaticContactInput();
+
+    Input.Controls.Throttle01 =
+        1.0;
+
+    Input.Controls.ClutchEngagement01 =
+        1.0;
+
+    Input.Controls.SelectedGear =
+        1;
+
+    FTAVehicleStepOutput HealthyOutput;
+    FTAVehicleStepOutput DamagedOutput;
+
+    TestTrue(
+        TEXT("Healthy drive step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            HealthyState,
+            HealthyOutput));
+
+    TestTrue(
+        TEXT("Damaged drive step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            DamagedState,
+            DamagedOutput));
+
+    TestTrue(
+        TEXT("Healthy left driven wheel receives positive torque"),
+        HealthyOutput.LeftDrivenWheelTorqueNm > 0.0);
+
+    TestTrue(
+        TEXT("Damaged hub transmits half commanded left drive torque"),
+        FMath::IsNearlyEqual(
+            DamagedOutput.LeftDrivenWheelTorqueNm,
+            0.5 * HealthyOutput.LeftDrivenWheelTorqueNm,
+            1.0e-6));
+
+    TestTrue(
+        TEXT("Undamaged right hub retains its drive torque"),
+        FMath::IsNearlyEqual(
+            DamagedOutput.RightDrivenWheelTorqueNm,
+            HealthyOutput.RightDrivenWheelTorqueNm,
+            1.0e-6));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeHubBrakeEfficiencyTest,
+    "TorqueAtlas.Vehicle.Runtime.HubDamageReducesBrakeTorque",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeHubBrakeEfficiencyTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState HealthyState;
+    FTAVehicleRuntimeState DamagedState;
+
+    TestTrue(
+        TEXT("Healthy runtime initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            HealthyState));
+
+    TestTrue(
+        TEXT("Damaged runtime initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            DamagedState));
+
+    DamagedState.WheelHubDamage[0].BrakeEfficiency01 =
+        0.25;
+
+    HealthyState.Wheels[0].AngularSpeedRadPerSec =
+        30.0;
+
+    DamagedState.Wheels[0].AngularSpeedRadPerSec =
+        30.0;
+
+    FTAVehicleStepInput Input =
+        MakeStaticContactInput();
+
+    for (FTAWheelContactInput& Contact :
+         Input.WheelContacts)
+    {
+        Contact.VerticalLoadN =
+            0.0;
+    }
+
+    Input.Controls.Brake01 =
+        1.0;
+
+    Input.Controls.SelectedGear =
+        0;
+
+    Input.Controls.ClutchEngagement01 =
+        0.0;
+
+    FTAVehicleStepOutput HealthyOutput;
+    FTAVehicleStepOutput DamagedOutput;
+
+    TestTrue(
+        TEXT("Healthy braking step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            HealthyState,
+            HealthyOutput));
+
+    TestTrue(
+        TEXT("Damaged braking step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            DamagedState,
+            DamagedOutput));
+
+    TestTrue(
+        TEXT("Healthy hub slows wheel more strongly"),
+        HealthyState.Wheels[0].AngularSpeedRadPerSec
+            < DamagedState.Wheels[0].AngularSpeedRadPerSec);
+
+    TestTrue(
+        TEXT("Damaged brake still opposes rotation"),
+        DamagedState.Wheels[0].AngularSpeedRadPerSec
+            < 30.0);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeHubBearingDragTest,
+    "TorqueAtlas.Vehicle.Runtime.HubDamageAddsBearingDrag",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeHubBearingDragTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState HealthyState;
+    FTAVehicleRuntimeState DamagedState;
+
+    TestTrue(
+        TEXT("Healthy runtime initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            HealthyState));
+
+    TestTrue(
+        TEXT("Damaged runtime initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            DamagedState));
+
+    HealthyState.Wheels[0].AngularSpeedRadPerSec =
+        20.0;
+
+    DamagedState.Wheels[0].AngularSpeedRadPerSec =
+        20.0;
+
+    DamagedState.WheelHubDamage[0].BearingDragTorqueNm =
+        120.0;
+
+    FTAVehicleStepInput Input =
+        MakeStaticContactInput();
+
+    for (FTAWheelContactInput& Contact :
+         Input.WheelContacts)
+    {
+        Contact.VerticalLoadN =
+            0.0;
+    }
+
+    Input.Controls.SelectedGear =
+        0;
+
+    Input.Controls.ClutchEngagement01 =
+        0.0;
+
+    FTAVehicleStepOutput HealthyOutput;
+    FTAVehicleStepOutput DamagedOutput;
+
+    TestTrue(
+        TEXT("Healthy coast step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            HealthyState,
+            HealthyOutput));
+
+    TestTrue(
+        TEXT("Damaged coast step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            DamagedState,
+            DamagedOutput));
+
+    TestTrue(
+        TEXT("Bearing drag reduces damaged wheel speed"),
+        DamagedState.Wheels[0].AngularSpeedRadPerSec
+            < HealthyState.Wheels[0].AngularSpeedRadPerSec);
+
+    return true;
+}
+
 #endif
