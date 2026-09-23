@@ -64,6 +64,8 @@ FString FTATelemetryRingBuffer::ExportCsv() const
 
     Csv += TEXT(
         "tick,physics_config_hash,engine_rpm,gear,"
+        "electrical_damage,starter_efficiency,engine_control_efficiency,"
+        "fuel_delivery_damage,fuel_delivery_efficiency,"
         "vx_mps,vy_mps,vz_mps,"
         "wx_radps,wy_radps,wz_radps,"
         "fx_total_n,fy_total_n,"
@@ -139,6 +141,7 @@ FString FTATelemetryRingBuffer::ExportCsv() const
         Csv.Appendf(
             TEXT(
                 "%llu,%u,%.9g,%d,"
+                "%.9g,%.9g,%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,"
@@ -150,6 +153,11 @@ FString FTATelemetryRingBuffer::ExportCsv() const
             Sample->PhysicsConfigHash,
             Sample->EngineRPM,
             Sample->SelectedGear,
+            Sample->ElectricalDamage01,
+            Sample->StarterEfficiency01,
+            Sample->EngineControlEfficiency01,
+            Sample->FuelDeliveryDamage01,
+            Sample->FuelDeliveryEfficiency01,
             Sample->ChassisLinearVelocityWorldMps.X,
             Sample->ChassisLinearVelocityWorldMps.Y,
             Sample->ChassisLinearVelocityWorldMps.Z,
@@ -229,6 +237,21 @@ FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
     Sample.ClutchTemperatureC = State.Clutch.TemperatureC;
     Sample.CoolantTemperatureC = Output.EngineCoolantTemperatureC;
     Sample.CoolingEfficiency01 = Output.CoolingEfficiency01;
+
+    Sample.ElectricalDamage01 =
+        State.ElectricalDamage.Damage01;
+
+    Sample.StarterEfficiency01 =
+        State.ElectricalDamage.StarterEfficiency01;
+
+    Sample.EngineControlEfficiency01 =
+        State.ElectricalDamage.EngineControlEfficiency01;
+
+    Sample.FuelDeliveryDamage01 =
+        State.FuelDeliveryDamage.Damage01;
+
+    Sample.FuelDeliveryEfficiency01 =
+        State.FuelDeliveryDamage.DeliveryEfficiency01;
 
     Sample.ChassisLinearVelocityWorldMps =
         State.Chassis.LinearVelocityWorldMps;
