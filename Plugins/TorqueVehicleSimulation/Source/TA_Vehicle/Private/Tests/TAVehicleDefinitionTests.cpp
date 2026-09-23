@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "TAVehicleDefinition.h"
+#include "TACrashDamagePipeline.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
     FTAVehicleDefinitionCompileTest,
@@ -261,6 +262,227 @@ bool FTAVehicleDefinitionRuntimeIntegrationTest::RunTest(const FString& Paramete
         TEXT("Compiled asset uses finite radial tire compliance"),
         Output.FrontAxle.LeftContact.TireRadialDeflectionM > 0.0
         && Output.RearAxle.LeftContact.TireRadialDeflectionM > 0.0);
+
+    return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionStructureRuntimeTest,
+    "TorqueAtlas.Vehicle.Definition.CompiledStructureRunsCrashPipeline",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionStructureRuntimeTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    const FVector NodePositions[] =
+    {
+        FVector(1.50, 0.35, -0.03),
+        FVector(1.12, 0.35, -0.03),
+        FVector(1.55, 0.55,  0.20),
+        FVector(1.15, 0.55,  0.20),
+        FVector(1.55, 0.20,  0.40),
+        FVector(1.15, 0.20,  0.40),
+        FVector(1.35, 0.60,  0.55),
+        FVector(1.35, 0.10,  0.55)
+    };
+
+    for (const FVector& Position : NodePositions)
+    {
+        FTAStructureNodeAuthoringDefinition Node;
+        Node.PositionVehicleLocalM = Position;
+        Node.MassKg = 18.0;
+        Definition->Structure.Nodes.Add(Node);
+    }
+
+    FTAStructureConstraintAuthoringDefinition Constraint;
+    Constraint.NodeA = 0;
+    Constraint.NodeB = 1;
+    Constraint.Compliance = 1.0e-7;
+    Constraint.YieldStrain = 0.04;
+    Constraint.FractureStrain = 0.20;
+    Definition->Structure.Constraints.Add(Constraint);
+
+    Definition->Structure.ImpactTargetComponentIndex = 7;
+    Definition->Structure.ImpactDistributionRadiusM = 0.90;
+    Definition->Structure.DeformationImpulseFraction01 = 0.45;
+    Definition->Structure.MaxNodeDeltaVelocityMps = 8.0;
+
+    FTAStructureMountDamageAuthoringDefinition Mount;
+    Mount.TargetComponentIndex = 42;
+    Mount.NodeIndices = { 0 };
+    Mount.Weights = { 1.0 };
+    Mount.DisplacementThresholdsM = { 0.0005, 0.005, 0.015 };
+    Definition->Structure.MountDamageBindings.Add(Mount);
+
+    FTAVehicleDamageRouteAuthoringDefinition Route;
+    Route.TargetComponentIndex = 7;
+    Route.Consumer = ETAVehicleDamageConsumerAuthoringType::Radiator;
+    Route.ImpactEnergyScale = 1.0;
+    Route.FullCrushDisplacementM = 0.10;
+    Definition->Structure.DamageRoutes.Add(Route);
+
+    Definition->Structure
+        .FrontRightSuspensionBindings
+        .LowerInnerA.NodeIndices = { 0 };
+
+    Definition->Structure
+        .FrontRightSuspensionBindings
+        .LowerInnerA.Weights = { 1.0 };
+
+    Definition->Structure
+        .FrontRightSuspensionBindings
+        .LowerInnerB.NodeIndices = { 1 };
+
+    Definition->Structure
+        .FrontRightSuspensionBindings
+        .LowerInnerB.Weights = { 1.0 };
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Vehicle asset with structural data compiles"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Compiled vehicle reports structural runtime"),
+        Config.StructureRuntime.HasStructure());
+
+    TestEqual(
+        TEXT("All authored structure nodes compile"),
+        Config.StructureRuntime.InitialNodes.Num(),
+        8);
+
+    TestEqual(
+        TEXT("Authored constraint compiles"),
+        Config.StructureRuntime.Constraints.Num(),
+        1);
+
+    const FVector3d ExpectedNode0 =
+        FVector3d(NodePositions[0])
+        - FVector3d(Definition->Mass.CenterOfMassMeters);
+
+    TestTrue(
+        TEXT("Structure node positions compile into COM-local coordinates"),
+        Config.StructureRuntime.InitialNodes[0]
+            .ReferencePositionM.Equals(
+                ExpectedNode0,
+                1.0e-9));
+
+    TestTrue(
+        TEXT("Constraint rest length derives from undamaged authored geometry"),
+        FMath::IsNearlyEqual(
+            Config.StructureRuntime.Constraints[0].RestLengthM,
+            (FVector3d(NodePositions[1])
+                - FVector3d(NodePositions[0])).Length(),
+            1.0e-9));
+
+    FTAVehicleRuntimeState VehicleState;
+
+    TestTrue(
+        TEXT("Compiled vehicle physics initializes"),
+        TAVehicleSimulation::Initialize(
+            Config.VehicleRuntime,
+            VehicleState));
+
+    // Compact fixture-specific radiator threshold.
+    FTAVehicleRuntimeConfig CrashVehicleConfig =
+        Config.VehicleRuntime;
+
+    CrashVehicleConfig.Radiator.PunctureThresholdEnergyJ = 50.0;
+    CrashVehicleConfig.Radiator.FullLeakEnergyJ = 500.0;
+
+    TADamage::InitializeRadiatorState(
+        CrashVehicleConfig.Radiator,
+        VehicleState.Radiator);
+
+    TArray<FTAStructureNode> Nodes =
+        Config.StructureRuntime.InitialNodes;
+
+    TArray<FTADistanceConstraint> Constraints =
+        Config.StructureRuntime.Constraints;
+
+    FTACrashDamagePipelineConfig PipelineConfig;
+    PipelineConfig.CollisionCoupling.StructureImpact =
+        Config.StructureRuntime.ImpactDistribution;
+
+    PipelineConfig.StructureSolver =
+        Config.StructureRuntime.Solver;
+
+    PipelineConfig.StructureSolver.GravityMps2 =
+        FVector3d::ZeroVector;
+
+    PipelineConfig.DamageBridge =
+        Config.StructureRuntime.DamageBridge;
+
+    PipelineConfig.DamageRouting =
+        Config.StructureRuntime.DamageRouting;
+
+    FTAStructureDamageBridgeState BridgeState;
+
+    TestTrue(
+        TEXT("Compiled damage bridge initializes"),
+        TAStructureDamageBridge::InitializeState(
+            PipelineConfig.DamageBridge,
+            Constraints.Num(),
+            BridgeState));
+
+    FTAStructureImpactScratch Scratch;
+    Scratch.Initialize(32);
+
+    FTADamageEventQueue Queue;
+    Queue.Initialize(32);
+
+    FTACrashDamagePipelineInput Input;
+    Input.SimulationTick = 700;
+    Input.Substep = 0;
+    Input.StructureDeltaTimeSeconds = 1.0 / 120.0;
+    Input.Collision.ContactPointWorldM =
+        FVector3d(1.62, 0.70, -0.42);
+
+    Input.Collision.CollisionImpulseWorldNs =
+        FVector3d(-4200.0, -650.0, 120.0);
+
+    FTACrashDamagePipelineOutput Output;
+
+    TestTrue(
+        TEXT("Compiled structural content executes crash pipeline"),
+        TACrashDamagePipeline::ProcessImpact(
+            PipelineConfig,
+            CrashVehicleConfig,
+            Input,
+            VehicleState,
+            Nodes,
+            Constraints,
+            Scratch,
+            BridgeState,
+            Queue,
+            Output));
+
+    TestTrue(
+        TEXT("Compiled radiator route receives crash consequence"),
+        VehicleState.Radiator.bPunctured
+        || VehicleState.Radiator.AirflowEfficiency01 < 1.0);
+
+    FTADoubleWishboneDamageOffsets DamageOffsets;
+
+    TestTrue(
+        TEXT("Compiled front-right structural binding resolves after crash"),
+        TASuspensionDamageBinding::ResolveDoubleWishboneDamageOffsets(
+            MakeArrayView(Nodes),
+            Config.StructureRuntime.FrontRightSuspensionBindings,
+            DamageOffsets));
+
+    TestTrue(
+        TEXT("Compiled crash content physically moves a bound suspension pickup"),
+        DamageOffsets.LowerInnerA.Length() > 0.0005
+        || DamageOffsets.LowerInnerB.Length() > 0.0005);
 
     return true;
 }
