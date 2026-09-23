@@ -1112,6 +1112,12 @@ namespace
             return true;
         }
 
+        // Vehicle structure nodes are chassis-local internal deformation state.
+        // World gravity is already integrated by the rigid chassis and must not
+        // be applied a second time to relative structure coordinates.
+        Out.Solver.GravityMps2 =
+            FVector3d::ZeroVector;
+
         Out.Solver.ConstraintIterations =
             Authored.ConstraintIterations;
 
