@@ -452,6 +452,9 @@ namespace
         Out.ImpactDistribution.DeformationImpulseFraction01 =
             Authored.DeformationImpulseFraction01;
 
+        Out.ImpactDistribution.MaxDeformationEnergyFraction01 =
+            Authored.MaxDeformationEnergyFraction01;
+
         Out.ImpactDistribution.MaxNodeDeltaVelocityMps =
             Authored.MaxNodeDeltaVelocityMps;
 
@@ -974,6 +977,10 @@ namespace
         Hash = HashDouble(
             Hash,
             Structure.ImpactDistribution.DeformationImpulseFraction01);
+
+        Hash = HashDouble(
+            Hash,
+            Structure.ImpactDistribution.MaxDeformationEnergyFraction01);
 
         Hash = HashDouble(
             Hash,
