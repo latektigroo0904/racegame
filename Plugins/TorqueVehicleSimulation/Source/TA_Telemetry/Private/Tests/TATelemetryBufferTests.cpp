@@ -215,6 +215,7 @@ bool FTATelemetryFunctionalDamageCaptureTest::RunTest(
 
     State.Wheels.SetNum(4);
     State.WheelHubDamage.SetNum(4);
+    State.SuspensionDamage.SetNum(4);
 
     State.SteeringRackDamage.Damage01 =
         0.60;
@@ -236,6 +237,24 @@ bool FTATelemetryFunctionalDamageCaptureTest::RunTest(
 
     State.WheelHubDamage[1].BearingDragTorqueNm =
         52.0;
+
+    State.SuspensionDamage[0].SpringDamperDamage01 =
+        0.65;
+
+    State.SuspensionDamage[0].SpringEfficiency01 =
+        0.45;
+
+    State.SuspensionDamage[0].DampingEfficiency01 =
+        0.20;
+
+    State.SuspensionDamage[0].StopEfficiency01 =
+        0.85;
+
+    State.SuspensionDamage[0].AntiRollLinkDamage01 =
+        0.80;
+
+    State.SuspensionDamage[0].AntiRollLinkEfficiency01 =
+        0.15;
 
     FTAVehicleStepOutput Output;
 
@@ -293,6 +312,48 @@ bool FTATelemetryFunctionalDamageCaptureTest::RunTest(
             52.0,
             1.0e-9));
 
+    TestTrue(
+        TEXT("Front-left suspension damage severity maps"),
+        FMath::IsNearlyEqual(
+            Sample.SuspensionSpringDamperDamage01[0],
+            0.65,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-left spring efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.SuspensionSpringEfficiency01[0],
+            0.45,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-left damping efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.SuspensionDampingEfficiency01[0],
+            0.20,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-left stop efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.SuspensionStopEfficiency01[0],
+            0.85,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-left anti-roll link damage maps"),
+        FMath::IsNearlyEqual(
+            Sample.AntiRollLinkDamage01[0],
+            0.80,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-left anti-roll link efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.AntiRollLinkEfficiency01[0],
+            0.15,
+            1.0e-9));
+
     return true;
 }
 
@@ -318,6 +379,12 @@ bool FTATelemetryFunctionalDamageCsvTest::RunTest(
     Sample.WheelHubBrakeEfficiency01[1] = 0.4;
     Sample.WheelHubDriveEfficiency01[1] = 0.2;
     Sample.WheelHubBearingDragTorqueNm[1] = 50.0;
+    Sample.SuspensionSpringDamperDamage01[0] = 0.7;
+    Sample.SuspensionSpringEfficiency01[0] = 0.4;
+    Sample.SuspensionDampingEfficiency01[0] = 0.2;
+    Sample.SuspensionStopEfficiency01[0] = 0.9;
+    Sample.AntiRollLinkDamage01[0] = 1.0;
+    Sample.AntiRollLinkEfficiency01[0] = 0.0;
 
     TestTrue(
         TEXT("Damage sample pushes"),
@@ -341,6 +408,18 @@ bool FTATelemetryFunctionalDamageCsvTest::RunTest(
     TestTrue(
         TEXT("CSV exposes front-right hub drag channel"),
         Csv.Contains(TEXT("hubdrag_fr_nm")));
+
+    TestTrue(
+        TEXT("CSV exposes front-left spring health channel"),
+        Csv.Contains(TEXT("susspring_fl")));
+
+    TestTrue(
+        TEXT("CSV exposes front-left damping health channel"),
+        Csv.Contains(TEXT("susdamping_fl")));
+
+    TestTrue(
+        TEXT("CSV exposes front-left anti-roll link health channel"),
+        Csv.Contains(TEXT("arblink_fl")));
 
     return true;
 }
