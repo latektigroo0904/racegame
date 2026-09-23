@@ -387,6 +387,26 @@ bool FTACrashFunctionalDamageRoutingTest::RunTest(
     PipelineConfig.DamageBridge.MountBindings.Add(
         HubMount);
 
+    FTAStructureMountDamageBinding SuspensionMount;
+    SuspensionMount.TargetComponentIndex = 10;
+    SuspensionMount.NodeIndices = { 0 };
+    SuspensionMount.Weights = { 1.0 };
+    SuspensionMount.DisplacementThresholdsM =
+        { 0.0001 };
+
+    PipelineConfig.DamageBridge.MountBindings.Add(
+        SuspensionMount);
+
+    FTAStructureMountDamageBinding AntiRollMount;
+    AntiRollMount.TargetComponentIndex = 11;
+    AntiRollMount.NodeIndices = { 1 };
+    AntiRollMount.Weights = { 1.0 };
+    AntiRollMount.DisplacementThresholdsM =
+        { 0.0001 };
+
+    PipelineConfig.DamageBridge.MountBindings.Add(
+        AntiRollMount);
+
     FTAVehicleDamageRoute SteeringRoute;
     SteeringRoute.TargetComponentIndex = 8;
     SteeringRoute.Consumer =
@@ -416,6 +436,36 @@ bool FTACrashFunctionalDamageRoutingTest::RunTest(
 
     PipelineConfig.DamageRouting.Routes.Add(
         HubRoute);
+
+    FTAVehicleDamageRoute SuspensionRoute;
+    SuspensionRoute.TargetComponentIndex = 10;
+    SuspensionRoute.Consumer =
+        ETAVehicleDamageConsumerType::SuspensionCorner;
+    SuspensionRoute.bAcceptImpactEnergy = false;
+    SuspensionRoute.bAcceptStructuralDisplacement = true;
+    SuspensionRoute.bAcceptStructuralFracture = true;
+    SuspensionRoute.FullCrushDisplacementM = 0.010;
+    SuspensionRoute.WheelIndex = 0;
+    SuspensionRoute.MinimumSpringEfficiency01 = 0.20;
+    SuspensionRoute.MinimumDampingEfficiency01 = 0.0;
+    SuspensionRoute.MinimumStopEfficiency01 = 1.0;
+
+    PipelineConfig.DamageRouting.Routes.Add(
+        SuspensionRoute);
+
+    FTAVehicleDamageRoute AntiRollRoute;
+    AntiRollRoute.TargetComponentIndex = 11;
+    AntiRollRoute.Consumer =
+        ETAVehicleDamageConsumerType::AntiRollLink;
+    AntiRollRoute.bAcceptImpactEnergy = false;
+    AntiRollRoute.bAcceptStructuralDisplacement = true;
+    AntiRollRoute.bAcceptStructuralFracture = true;
+    AntiRollRoute.FullCrushDisplacementM = 0.010;
+    AntiRollRoute.WheelIndex = 1;
+    AntiRollRoute.MinimumAntiRollLinkEfficiency01 = 0.0;
+
+    PipelineConfig.DamageRouting.Routes.Add(
+        AntiRollRoute);
 
     FTAStructureDamageBridgeState BridgeState;
 
@@ -488,6 +538,31 @@ bool FTACrashFunctionalDamageRoutingTest::RunTest(
     TestTrue(
         TEXT("Typed hub route was applied"),
         CrashOutput.Routing.WheelHubSignalsApplied
+            >= 1);
+
+    TestTrue(
+        TEXT("Crash degrades front-left suspension spring support"),
+        VehicleState.SuspensionDamage[0].SpringEfficiency01
+            < 1.0);
+
+    TestTrue(
+        TEXT("Crash degrades front-left suspension damping"),
+        VehicleState.SuspensionDamage[0].DampingEfficiency01
+            < 1.0);
+
+    TestTrue(
+        TEXT("Crash degrades front-right anti-roll link"),
+        VehicleState.SuspensionDamage[1].AntiRollLinkEfficiency01
+            < 1.0);
+
+    TestTrue(
+        TEXT("Typed suspension-corner route was applied"),
+        CrashOutput.Routing.SuspensionCornerSignalsApplied
+            >= 1);
+
+    TestTrue(
+        TEXT("Typed anti-roll-link route was applied"),
+        CrashOutput.Routing.AntiRollLinkSignalsApplied
             >= 1);
 
     return true;
