@@ -42,6 +42,11 @@ struct TA_VEHICLE_API FTAFrontAxleSolveInput
 {
     double Steering01 = 0.0;
 
+    // Functional degradation only; structural geometry damage remains in
+    // LeftDamage/RightDamage.
+    double SteeringCommandAuthority01 = 1.0;
+    double SteeringRackFreePlayM = 0.0;
+
     FTARoadPlane LeftRoad;
     FTARoadPlane RightRoad;
 
