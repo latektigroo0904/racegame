@@ -47,6 +47,14 @@ bool TAFourWheelVehicleRuntime::Step(
     FrontInput.Steering01 =
         Input.Controls.Steering01;
 
+    FrontInput.SteeringCommandAuthority01 =
+        InOutState.Vehicle.SteeringRackDamage
+            .CommandAuthority01;
+
+    FrontInput.SteeringRackFreePlayM =
+        InOutState.Vehicle.SteeringRackDamage
+            .FreePlayM;
+
     FrontInput.LeftRoad =
         Input.FrontLeftRoad;
 
