@@ -165,6 +165,8 @@ bool TAVehicleSimulation::Step(
         return false;
     }
 
+    FTAChassisForceAccumulator ChassisForces;
+
     const double Throttle01 =
         FMath::Clamp(Input.Controls.Throttle01, 0.0, 1.0);
 
@@ -340,15 +342,56 @@ bool TAVehicleSimulation::Step(
 
         WheelState.LastTireOutput = TireOutput;
 
-        OutOutput.TotalLongitudinalForceN +=
+        const FTAWheelContactInput& Contact =
+            Input.WheelContacts[Index];
+
+        FVector3d ForwardWorld =
+            Contact.ForwardDirectionWorld.GetSafeNormal();
+
+        FVector3d RightWorld =
+            Contact.RightDirectionWorld.GetSafeNormal();
+
+        if (ForwardWorld.IsNearlyZero())
+        {
+            ForwardWorld = FVector3d(1.0, 0.0, 0.0);
+        }
+
+        if (RightWorld.IsNearlyZero())
+        {
+            RightWorld = FVector3d(0.0, 1.0, 0.0);
+        }
+
+        const double LongitudinalForceN =
             TireOutput.LongitudinalForceN
             + TireOutput.RollingResistanceForceN;
+
+        const FVector3d TireForceWorldN =
+            ForwardWorld * LongitudinalForceN
+            + RightWorld * TireOutput.LateralForceN;
+
+        TAChassisDynamics::AddForceAtWorldPoint(
+            InOutState.Chassis,
+            TireForceWorldN + Contact.SuspensionForceWorldN,
+            Contact.ContactPointWorldM,
+            ChassisForces);
+
+        OutOutput.TotalLongitudinalForceN +=
+            LongitudinalForceN;
 
         OutOutput.TotalLateralForceN +=
             TireOutput.LateralForceN;
 
         OutOutput.TotalAligningMomentNm +=
             TireOutput.AligningMomentNm;
+    }
+
+    if (!TAChassisDynamics::Integrate(
+            Config.Chassis,
+            ChassisForces,
+            DeltaTimeSeconds,
+            InOutState.Chassis))
+    {
+        return false;
     }
 
     OutOutput.ClutchSlipRadPerSec =
