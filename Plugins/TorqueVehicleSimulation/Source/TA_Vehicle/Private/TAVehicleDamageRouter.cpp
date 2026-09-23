@@ -442,6 +442,8 @@ bool TAVehicleDamageRouter::ValidateConfig(
             !FMath::IsFinite(Route.MinimumAntiRollLinkEfficiency01) ||
             Route.MinimumAntiRollLinkEfficiency01 < 0.0 ||
             Route.MinimumAntiRollLinkEfficiency01 > 1.0 ||
+            (Route.Consumer == ETAVehicleDamageConsumerType::SuspensionCorner &&
+             Route.MinimumSpringEfficiency01 <= 0.0) ||
             ((Route.Consumer == ETAVehicleDamageConsumerType::WheelHub ||
               Route.Consumer == ETAVehicleDamageConsumerType::SuspensionCorner ||
               Route.Consumer == ETAVehicleDamageConsumerType::AntiRollLink) &&
