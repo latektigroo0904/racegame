@@ -22,6 +22,12 @@ struct TA_TIRE_API FTATireRuntimeConfig
     double ReferencePressureKPa = 230.0;
     double ReferencePressureTemperatureC = 20.0;
 
+    double RadialStiffnessNPerM = 220000.0;
+    double RadialProgressiveStiffnessNPerM2 = 1200000.0;
+    double RadialDampingNsPerM = 2200.0;
+    double MaxRadialDeflectionM = 0.060;
+    double PressureRadialStiffnessExponent = 0.45;
+
     double NewTreadDepthMm = 7.5;
     double MinimumTreadDepthMm = 0.8;
 
@@ -64,10 +70,27 @@ struct TA_TIRE_API FTATireRuntimeState
     double InternalAirTemperatureC = 20.0;
 
     double PressureKPa = 230.0;
+
+    double RadialDeflectionM = 0.0;
+    double RadialDeflectionVelocityMps = 0.0;
+    bool bRadialStateInitialized = false;
+
     double TreadDepthMm = 7.5;
     double Wear01 = 0.0;
     double ThermalDegradation01 = 0.0;
     double Damage01 = 0.0;
+};
+
+struct TA_TIRE_API FTATireVerticalForceOutput
+{
+    double RequestedDeflectionM = 0.0;
+    double EffectiveDeflectionM = 0.0;
+    double DeflectionVelocityMps = 0.0;
+
+    double EffectiveRadialStiffnessNPerM = 0.0;
+    double NormalForceN = 0.0;
+
+    bool bBottomed = false;
 };
 
 struct TA_TIRE_API FTATireSolveInput
@@ -106,6 +129,16 @@ namespace TATireSolver
         double LongitudinalVelocityMps,
         double LateralVelocityMps,
         double ReferenceVelocityMps);
+
+    TA_TIRE_API FTATireVerticalForceOutput CalculateVerticalForce(
+        const FTATireRuntimeConfig& Config,
+        const FTATireRuntimeState& State,
+        double RequestedDeflectionM,
+        double DeflectionVelocityMps);
+
+    TA_TIRE_API void CommitVerticalState(
+        const FTATireVerticalForceOutput& Vertical,
+        FTATireRuntimeState& InOutState);
 
     TA_TIRE_API double CalculateHydroFraction01(
         const FTATireRuntimeConfig& Config,
