@@ -226,13 +226,24 @@ bool TAVehicleSimulation::Step(
             InOutState.Engine,
             Throttle01);
 
+    const double StarterTorqueNm =
+        TAPowertrainSolver::CalculateStarterTorqueNm(
+            Config.Engine,
+            InOutState.Engine,
+            Input.Controls.bStarterEngaged);
+
     InOutState.Engine.AngularSpeedRadPerSec =
         TAPowertrainSolver::IntegrateEngineAngularSpeed(
             Config.Engine,
             InOutState.Engine.AngularSpeedRadPerSec,
-            CombustionTorqueNm,
+            CombustionTorqueNm + StarterTorqueNm,
             ClutchTorqueNm,
             DeltaTimeSeconds);
+
+    TAPowertrainSolver::UpdateEngineRunState(
+        Config.Engine,
+        Input.Controls.bStarterEngaged,
+        InOutState.Engine);
 
     double DifferentialInputTorqueNm = 0.0;
 
