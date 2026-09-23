@@ -23,7 +23,7 @@ struct TA_TELEMETRY_API FTATelemetrySample
     double RightDrivenWheelTorqueNm = 0.0;
 };
 
-class TA_TELEMETRY_API FTATelemetryRingBuffer
+class TA_TELEMETRY_API FTACompactTelemetryRingBuffer
 {
 public:
     void Initialize(int32 InCapacity);
