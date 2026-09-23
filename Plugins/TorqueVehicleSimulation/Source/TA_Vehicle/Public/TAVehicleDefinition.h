@@ -4,6 +4,7 @@
 #include "Engine/DataAsset.h"
 #include "TACoreTypes.h"
 #include "TAVehicleRuntime.h"
+#include "TAVehicleStructureDefinition.h"
 #include "TAVehicleDefinition.generated.h"
 
 USTRUCT(BlueprintType)
@@ -330,6 +331,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Drivetrain")
     FTAPrototypeDrivetrainDefinition Drivetrain;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Structure")
+    FTAVehicleStructureAuthoringDefinition Structure;
 
     bool BuildCompiledConfig(FTAVehicleCompiledConfig& OutConfig, FTAValidationResult& OutValidation) const;
 };
