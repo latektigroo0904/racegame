@@ -1609,4 +1609,99 @@ bool FTAVehicleDefinitionStructureGravityOwnershipTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionVersionPolicyTest,
+    "TorqueAtlas.Vehicle.Definition.VersionPolicy",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionVersionPolicyTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Current =
+        NewObject<UTAVehicleDefinition>();
+
+    TestEqual(
+        TEXT("New asset defaults to current schema version"),
+        Current->Version.SchemaVersion,
+        TAVersion::CurrentSchemaVersion);
+
+    TestEqual(
+        TEXT("New asset defaults to current physics version"),
+        Current->Version.PhysicsVersion,
+        TAVersion::CurrentPhysicsVersion);
+
+    TestEqual(
+        TEXT("New asset defaults to current damage-model version"),
+        Current->Version.DamageModelVersion,
+        TAVersion::CurrentDamageModelVersion);
+
+    FTAVehicleCompiledConfig CurrentConfig;
+    FTAValidationResult CurrentValidation;
+
+    TestTrue(
+        TEXT("Current-version asset compiles"),
+        Current->BuildCompiledConfig(
+            CurrentConfig,
+            CurrentValidation));
+
+    UTAVehicleDefinition* Legacy =
+        NewObject<UTAVehicleDefinition>();
+
+    Legacy->Version.SchemaVersion =
+        1;
+
+    Legacy->Version.PhysicsVersion =
+        1;
+
+    Legacy->Version.DamageModelVersion =
+        1;
+
+    FTAVehicleCompiledConfig LegacyConfig;
+    FTAValidationResult LegacyValidation;
+
+    TestTrue(
+        TEXT("Legacy v1 asset remains loadable"),
+        Legacy->BuildCompiledConfig(
+            LegacyConfig,
+            LegacyValidation));
+
+    bool bHasLegacyWarning = false;
+
+    for (const FTAValidationMessage& Message :
+         LegacyValidation.Messages)
+    {
+        bHasLegacyWarning |=
+            Message.Code ==
+                TEXT("Vehicle.LegacyVersion")
+            && Message.Severity ==
+                ETAValidationSeverity::Warning;
+    }
+
+    TestTrue(
+        TEXT("Legacy asset emits explicit upgrade/review warning"),
+        bHasLegacyWarning);
+
+    UTAVehicleDefinition* Future =
+        NewObject<UTAVehicleDefinition>();
+
+    Future->Version.PhysicsVersion =
+        TAVersion::CurrentPhysicsVersion + 1;
+
+    FTAVehicleCompiledConfig FutureConfig;
+    FTAValidationResult FutureValidation;
+
+    TestFalse(
+        TEXT("Unsupported future-version asset is rejected"),
+        Future->BuildCompiledConfig(
+            FutureConfig,
+            FutureValidation));
+
+    TestTrue(
+        TEXT("Future-version rejection emits validation errors"),
+        FutureValidation.HasErrors());
+
+    return true;
+}
+
 #endif
