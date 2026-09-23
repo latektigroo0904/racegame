@@ -424,6 +424,9 @@ bool TAStructureImpactDistributor::DistributeImpactAsInternalDeformation(
             / MaxDeltaVelocityMps;
     }
 
+    OutOutput.VelocityLimitScale01 =
+        UniformScale;
+
     if (UniformScale < 1.0)
     {
         for (FVector3d& Impulse :
@@ -433,6 +436,57 @@ bool TAStructureImpactDistributor::DistributeImpactAsInternalDeformation(
                 UniformScale;
         }
     }
+
+    double ProspectiveEnergyJ = 0.0;
+
+    for (int32 ScratchIndex = 0;
+         ScratchIndex < InOutScratch.NodeIndices.Num();
+         ++ScratchIndex)
+    {
+        const int32 NodeIndex =
+            InOutScratch.NodeIndices[ScratchIndex];
+
+        const FTAStructureNode& Node =
+            InOutNodes[NodeIndex];
+
+        const double NodeMassKg =
+            GetNodeMassKg(Node);
+
+        const FVector3d DeltaVelocityMps =
+            InOutScratch.InternalImpulsesNs[ScratchIndex]
+            * FMath::Max(
+                0.0,
+                Node.InverseMassPerKg);
+
+        ProspectiveEnergyJ +=
+            0.5
+            * NodeMassKg
+            * DeltaVelocityMps.SquaredLength();
+    }
+
+    double EnergyScale = 1.0;
+
+    if (Input.MaxDeformationEnergyJ >= 0.0 &&
+        ProspectiveEnergyJ > Input.MaxDeformationEnergyJ &&
+        ProspectiveEnergyJ > UE_DOUBLE_SMALL_NUMBER)
+    {
+        EnergyScale =
+            FMath::Sqrt(
+                FMath::Max(
+                    0.0,
+                    Input.MaxDeformationEnergyJ)
+                / ProspectiveEnergyJ);
+
+        for (FVector3d& Impulse :
+             InOutScratch.InternalImpulsesNs)
+        {
+            Impulse *=
+                EnergyScale;
+        }
+    }
+
+    OutOutput.EnergyLimitScale01 =
+        EnergyScale;
 
     double InjectedEnergyJ = 0.0;
     double AppliedImpulseL1Ns = 0.0;
