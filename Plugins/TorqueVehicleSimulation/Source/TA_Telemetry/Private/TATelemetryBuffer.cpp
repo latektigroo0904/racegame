@@ -87,7 +87,8 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 ",load_%s_n,travel_%s_m,camber_%s_rad,toe_%s_rad,"
                 "slipratio_%s,slipangle_%s_rad,"
                 "tirefx_%s_n,tirefy_%s_n,"
-                "tiretemp_%s_c,tirepressure_%s_kpa,tirewear_%s,tiredeflection_%s_m"),
+                "tiretemp_%s_c,tirepressure_%s_kpa,"
+                "tirewear_%s,tiredeflection_%s_m"),
             WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
