@@ -3,9 +3,9 @@
 Updated: 2026-09-23
 
 ## Current phase
-**Four-wheel compliant vehicle runtime + first collision/structure coupling.**
+**Proof-of-Physics crash-to-handling closure + regression baseline tooling.**
 
-The TA-P01 proving-ground path now resolves all four wheel contacts from authored/compiled physics, includes finite tire radial compliance, solves axle anti-roll inside the tire/suspension equilibrium, and can apply collision impulses to chassis motion while injecting a momentum-neutral internal deformation mode into structural nodes.
+The TA-P01 source path now spans authored vehicle/structure content, four compliant wheel contacts, 6-DOF chassis motion, collision-to-structure coupling, persistent structural deformation, typed damage signals, radiator routing, structural pickup displacement injection and a source-level regression that continues through changed wheel alignment into changed tire force.
 
 The source remains **build-unverified** until Unreal Engine 5.8 UHT/UBT/C++ compilation and Automation execution are actually run.
 
@@ -13,363 +13,173 @@ The source remains **build-unverified** until Unreal Engine 5.8 UHT/UBT/C++ comp
 `latektigroo0904/racegame`
 
 ## Runtime modules
-```
-TA_Core
-TA_Surface
-TA_Tire
-TA_Powertrain
-TA_Structure
-TA_Damage
-TA_Vehicle
-TA_Telemetry
-```
+`TA_Core`, `TA_Surface`, `TA_Tire`, `TA_Powertrain`, `TA_Structure`, `TA_Damage`, `TA_Vehicle`, `TA_Telemetry`.
 
-## Canonical vehicle path
-
+## Canonical driving path
 ```
 UTAVehicleDefinition
-→ validation
-→ FTAVehicleCompiledConfig
-→ immutable vehicle + four-wheel runtime configs
+→ validation / FTAVehicleCompiledConfig
 → driver controls
-→ drivetrain / wheel dynamics
-→ front double-wishbone + shared rack
-→ rear true five-link
-→ tire/suspension/anti-roll equilibrium
-→ radial tire compliance
-→ longitudinal/lateral tire forces
-→ forces and moments at four physical contact patches
+→ drivetrain + wheel dynamics
+→ front double-wishbone/shared rack + rear five-link
+→ suspension/anti-roll/tire radial equilibrium
+→ tire forces at four physical contact patches
 → 6-DOF chassis integration
 ```
 
-## Canonical collision baseline
-
+## Canonical crash-to-handling path
 ```
-world collision impulse at contact point
-→ full external J applied once to chassis
-→ Δv + Δω
-→ contact/impulse transformed to chassis-local
-→ spatial structural node weighting
-→ remove rigid translation mode
-→ remove rigid rotation mode
-→ internal deformation velocity field
-→ structural XPBD/plasticity/fracture
-→ displaced mechanical/suspension mounts
-```
-
-## Implemented this session
-
-### Front axle
-- mirrored front-left geometry from canonical right side;
-- shared physical rack translation axis;
-- normalized steering → rack displacement;
-- both front corners solved from one rack state;
-- Ackermann delta;
-- bump-steer telemetry;
-- compliant tire contact;
-- coupled anti-roll equilibrium using iterative left/right reaction solve.
-
-### Rear axle
-- true five-link right-side geometry;
-- mirrored left-side geometry;
-- rigid upright distance preservation;
-- rear road-contact solve;
-- rear damper motion ratio;
-- rear anti-roll;
-- compliant tire contact;
-- structural displacement bindings for all five rear chassis pickups.
-
-### Four-wheel vehicle runtime
-- fixed wheel order FL/FR/RL/RR;
-- front axle resolved before tire solve;
-- rear axle resolved before tire solve;
-- four self-derived `FTAWheelContactInput` values;
-- four-wheel static-support source regression;
-- static-stability source regression;
-- acceleration source regression;
-- braking source regression;
-- steering → tire force → yaw source regression.
-
-### Tire vertical compliance
-Runtime tire state now includes:
-- radial deflection;
-- radial deflection velocity;
-- initialization state.
-
-Runtime tire config now includes:
-- radial stiffness;
-- progressive radial stiffness;
-- radial damping;
-- pressure stiffness exponent;
-- maximum radial deflection.
-
-Canonical high-fidelity contact solves approximately:
-```
-F_tire(travel, deflection, pressure, deflection velocity)
-=
-F_suspension(travel, damper, stops)
-+ F_anti-roll
+collision impulse at world contact
+→ chassis Δv + Δω (external impulse applied once)
+→ momentum-neutral structural deformation excitation
+→ structure solve / plasticity / fracture
+→ deterministic typed damage signals
+→ persistent structure state
+→ structural pickup bindings
+→ suspension hardpoint offsets
+→ camber/toe/load change
+→ tire-input change
+→ tire-force change
 ```
 
-Rigid-radius contact remains as lower-fidelity/test path.
+## Implemented baseline
 
-### Unsprung dynamics
-An isolated explicit generalized vertical solver now exists:
-- effective unsprung mass;
-- tire normal force;
-- suspension reaction force;
-- gravity projection;
-- chassis reference-frame acceleration;
-- semi-implicit travel integration;
-- bump/droop limit handling;
-- velocity ceiling.
+### Four-wheel vehicle
+- fixed FL/FR/RL/RR order;
+- front shared rack, mirrored double wishbone, Ackermann and bump steer;
+- rear true five-link and mirrored left side;
+- front/rear anti-roll coupled inside compliant tire/suspension equilibrium;
+- tire radial spring/damper/progressive/pressure-dependent compliance;
+- 6-DOF chassis force-at-point integration;
+- RWD prototype powertrain, clutch, open differential and wheel inertia;
+- engine thermal/radiator degradation chain.
 
-This solver is **not yet canonical**.
+### Structure and damage
+- spatial structural impact distribution;
+- rigid translation/rotation removal from internal deformation excitation;
+- chassis/structure collision coupling without duplicate rigid momentum;
+- authored structural nodes, constraints, mount bindings and damage routes compiled into runtime config;
+- `TAStructureDamageBridge` emits deterministic `StructuralFracture`, `StructuralDisplacement` and `ImpactEnergy` signals with duplicate-fracture suppression;
+- `TAVehicleDamageRouter` currently routes supported signals to radiator damage;
+- `TACompiledDamageRuntime` owns persistent structure/damage state and maps current structure displacement into front/rear suspension damage offsets.
 
-### Vehicle content compilation
-`FTAVehicleCompiledConfig` now carries:
-- metadata/mass/dimensions;
-- `FTAVehicleRuntimeConfig`;
-- `FTAFourWheelRuntimeConfig`;
-- `PhysicsConfigHash`.
-
-`UTAVehicleDefinition::BuildCompiledConfig` now compiles:
-- wheel/tire runtime;
-- RWD/FWD driven flags;
-- core drivetrain settings;
-- front hardpoints/spring/damper/anti-roll/rack;
-- rear five-link/spring/damper/anti-roll;
-- chassis mass/inertia.
-
-Hardpoints are transformed:
+### Crash-to-tire-force regression closure
+`TACompiledDamageRuntimeTests.cpp` now explicitly verifies:
 ```
-vehicle-reference local → COM-local
+front-corner crash
+→ persistent structural node displacement
+→ front-right lower-arm pickup offset
+→ changed camber/toe
+→ changed tire force at the same reference chassis state
 ```
+This is source-level coverage only until UE Automation runs.
 
-Validation now covers:
-- mass/inertia;
-- current four-wheel topology;
-- tire compliance parameters;
-- suspension travel;
-- drivetrain ratios;
-- front/rear geometric solver validity;
-- wheelbase/track vs physical wheel-center consistency.
+### Telemetry and regression envelopes
+Existing telemetry includes simulation/config identity, chassis state, powertrain, wheel loads, suspension travel/alignment, tire slip/force/temperature/pressure/wear and radial deflection. CSV export remains outside the physics step.
 
-### Physics config identity
-Handling-critical fields now participate in the prototype physics hash:
-- mass/COM/inertia;
-- tire force/compliance;
-- wheel/brake/drive flags;
-- drivetrain;
-- front geometry/suspension/rack/anti-roll;
-- rear geometry/suspension/anti-roll.
+New `TARegressionEnvelope` provides allocation-free scalar trace evaluation for:
+- sample count;
+- min/max;
+- full-trace mean;
+- trailing steady-state mean;
+- expected min/max/steady-state ranges;
+- deterministic pass/fail result.
 
-### Collision / structure
-Added:
-- `TAChassisDynamics::ApplyImpulseAtWorldPoint`;
-- `TAStructureImpactDistributor`;
-- `TACollisionStructureCoupling`.
+Automation source tests cover summary math, pass/fail envelopes and invalid-input rejection.
 
-Structural impact distribution:
-- spatial distance weighting;
-- configurable deformation fraction;
-- affected-node mass centroid;
-- rigid translation removal;
-- rigid rotation removal through point-mass inertia tensor;
-- uniform node-velocity limiting;
-- residual momentum telemetry;
-- deformation kinetic-energy telemetry.
+## Important assumptions
+1. TA-P01 remains the proving-ground vehicle; current four-wheel topology is intentionally constrained.
+2. Structural displacement is persistent mechanical geometry damage, not a cosmetic-only effect.
+3. Collision rigid impulse belongs to the chassis exactly once; structural excitation contains internal deformation modes only.
+4. The quasi-static compliant contact solver remains canonical until explicit unsprung dynamics demonstrates equal-or-better stability without normal-force double counting.
+5. Regression envelopes are diagnostics, not gameplay tuning authority; baseline ranges become trusted only after UE execution.
 
-### Telemetry
-Current trace channels include:
-- simulation tick;
-- physics config hash;
-- engine/gear;
-- chassis linear/angular velocity;
-- total tire force;
-- rack;
-- front steering angles;
-- bump steer;
-- Ackermann delta;
-- FL/FR/RL/RR vertical load;
-- suspension travel;
-- camber/toe;
-- slip ratio/angle;
-- tire force;
-- tire surface temperature;
-- pressure;
-- wear;
-- radial tire deflection.
+## Highest current risks
+1. First UE 5.8 build may expose UHT/include/API/compiler errors.
+2. Coupled compliant axle and five-link convergence have not been numerically executed in UE.
+3. The new crash-to-tire-force assertion threshold has not yet been measured under the real Automation runtime.
+4. Explicit unsprung dynamics is isolated and not canonical.
+5. Real collision manifolds/contact persistence are not yet integrated; crash tests use synthetic impulses.
+6. Damage routing is still narrow: radiator is signal-routed, while suspension geometry currently consumes persistent structure displacement directly.
+7. Steering rack, wheel/hub, fluid and electrical damage consumers remain incomplete.
+8. Aero and brake thermal dynamics remain incomplete.
+9. Tire/powertrain authoring still contains prototype defaults that should become versioned content.
 
-CSV export exists outside the physics step.
-
-## Documentation added / current
-- `23-FRONT-AXLE-STEERING-V01.md`
-- `24-REAR-MULTILINK-GEOMETRY-V01.md`
-- `25-TIRE-VERTICAL-COMPLIANCE-V01.md`
-- `26-UNSPRUNG-VERTICAL-DYNAMICS-V01.md`
-- `27-VEHICLE-CONTENT-COMPILATION-V01.md`
-- `28-COLLISION-STRUCTURE-COUPLING-V01.md`
-
-## Important design corrections this session
-1. Anti-roll load is no longer post-applied after compliant tire solve; it participates in axle equilibrium.
-2. Internal coupled-solver probes work on copied state; only final state commits.
-3. Tire normal load and radial tire deflection now remain causally linked.
-4. Prototype static load tuning is no longer hiding axle weight bias inconsistent with the current symmetric COM seed.
-5. Authored suspension geometry is compiled into runtime instead of existing only in tests.
-6. Collision structural deformation no longer duplicates chassis rigid linear/angular momentum.
-7. A telemetry CSV guard regression introduced during editing was detected and repaired before checkpoint.
-
-## New/expanded tests written
-Source Automation coverage now additionally includes:
-- front mirror/shared rack;
-- rack mapping;
-- Ackermann;
-- compliant anti-roll load/deflection coupling;
-- rear five-link reference/bump/droop/mirror/damage;
-- rear structural pickup bindings;
-- four-wheel self-support;
-- static stability;
-- acceleration;
-- braking;
-- steering/yaw;
-- tire radial compliance;
-- pressure-dependent radial stiffness;
-- tire bottoming;
-- unsprung force directions;
-- unsprung chassis-relative acceleration;
-- unsprung travel-limit handling;
-- vehicle asset → compiled config;
-- physics hash sensitivity;
-- invalid suspension asset rejection;
-- COM-local hardpoint transform;
-- compiled asset → canonical four-wheel step;
-- telemetry CSV/config hash/radial deflection;
-- structural impact spatial distribution;
-- zero residual structural rigid linear momentum;
-- zero residual structural rigid angular momentum;
-- impact velocity limiting;
-- chassis center/off-center impulse;
-- collision chassis/structure non-double-counting.
-
-**All tests are written but have not been executed in Unreal.**
-
-## Still build-unverified
+## Build-verification status
+Still unverified:
 - UnrealHeaderTool;
 - UnrealBuildTool;
-- MSVC/Clang C++ compile;
+- MSVC/Clang compile;
 - Editor module load;
-- Automation tests;
-- actual runtime convergence;
-- profiling budgets;
-- replay determinism;
-- cross-machine determinism;
+- all `TorqueAtlas.*` Automation tests;
+- runtime convergence/profiling;
+- replay/cross-machine determinism;
 - driving feel/calibration.
 
 No build/test-pass claim may be made before those operations actually run.
 
-## Highest current technical risks
-1. First UE 5.8 build can expose UHT/include/API/compiler errors.
-2. Coupled compliant axle solve has not yet been numerically executed under UE Automation.
-3. Rear five-link iterative projection needs convergence profiling across full travel/damage envelope.
-4. Explicit unsprung dynamics is not yet integrated with chassis/contact without force double-counting.
-5. Structural impact distributor seeds deformation but real collision manifolds/contact geometry do not yet exist.
-6. Structural fracture/displacement events are not yet converted into the typed damage graph.
-7. Structural nodes/constraints/damage bindings are not yet authored/compiled from `UTAVehicleDefinition`.
-8. Tire/powertrain authoring still leaves some runtime coefficients at shared prototype defaults.
-9. Aero and brake thermal dynamics remain incomplete.
-
 ## Immediate next work — no user input required
 
-### 1. Structural result → typed damage signal bridge
-Implement deterministic extraction of:
-- newly fractured constraints;
-- mount displacement threshold crossings;
-- structural impact/deformation energy.
+### 1. Finish regression envelope integration
+Connect `TARegressionEnvelope` to telemetry traces/scenario metadata:
+- scenario ID;
+- physics config hash;
+- metric name;
+- expected range set;
+- extracted min/max/steady-state;
+- machine-readable pass/fail report.
 
-Emit:
-- `StructuralFracture`;
-- `StructuralDisplacement`;
-- `ImpactEnergy`.
+First scenarios: static settle, 0→speed acceleration, braking, constant-steer yaw, asymmetric-road load transfer, synthetic front-corner crash.
 
-Do not emit duplicate events every frame for already-known fractures.
-
-### 2. Mechanical damage routing
-Bind structural/collision signals to:
-- front/rear suspension mounts;
-- steering rack;
-- radiator support;
-- wheel/hub;
+### 2. Damage consumer expansion
+Add typed consumers/bindings for:
+- steering rack displacement/damage;
+- wheel/hub damage;
+- suspension component failure severity;
+- radiator support (already baseline-routed);
 - future fluid/electrical systems.
 
-First concrete regression:
-```
-front-corner impact
-→ internal structural deformation
-→ lower-arm pickup displacement
-→ changed front camber/toe
-→ altered tire force
-```
+Avoid duplicating the direct structure→hardpoint geometry path; typed events should represent discrete/threshold effects while continuous structural displacement remains geometry truth.
 
-### 3. Structural content schema
-Add authored:
-- structural nodes;
-- distance constraints;
-- node masses;
-- yield/fracture parameters;
-- named mount bindings;
-- damage component bindings.
+### 3. Experimental dynamic unsprung corner
+Integrate one isolated proving-ground corner with `TAUnsprungVerticalDynamics` and enforce:
+- tire radial force acts on unsprung mass;
+- suspension reaction acts on chassis;
+- no direct duplicate tire-normal force on chassis;
+- compare transient response against quasi-static canonical solver.
 
-Compile them into allocation-ready structure state/config.
+### 4. Complete authored tire/powertrain coefficients
+Move remaining handling-critical prototype defaults into `UTAVehicleDefinition` and include them in config identity/hash where relevant.
 
-### 4. Experimental dynamic unsprung corner
-Use `TAUnsprungVerticalDynamics` on one isolated proving-ground corner:
-- tire radial force on unsprung mass;
-- suspension force opposite;
-- chassis receives suspension reaction only;
-- no direct tire-normal double application to chassis.
-
-Compare against the current quasi-static equilibrium reference.
-
-### 5. Regression envelope tooling
-Add:
-- expected ranges;
-- pass/fail comparison;
-- config hash;
-- scenario ID;
-- min/max/steady-state extraction from telemetry CSV/ring buffer.
-
-### 6. Complete authored tire/powertrain fields
-Move remaining handling-critical prototype defaults from C++ runtime defaults into versioned content definitions.
-
-### 7. First UE 5.8 build gate
-When a usable UE 5.8 build environment is available:
+### 5. First UE 5.8 build gate
+When a usable UE 5.8 environment exists:
 1. generate project files;
 2. compile Development Editor;
 3. repair UHT/UBT/compiler issues;
 4. launch Editor;
-5. run all `TorqueAtlas.*` Automation tests;
-6. record exact UE/toolchain/commit/hash;
-7. profile front/rear geometry, four-wheel contact, structure impact and telemetry;
-8. create the first trusted regression baseline.
+5. run all `TorqueAtlas.*` tests;
+6. record exact UE/toolchain/commit/config hash;
+7. profile geometry/contact/structure/telemetry;
+8. capture first trusted regression envelopes.
 
 ## Exact continuation point
-Resume with **structural fracture/displacement → deterministic `FTADamageSignal` extraction**.
+Resume with **telemetry → scenario regression report integration** around `TARegressionEnvelope`.
 
-After that, connect those signals to the existing suspension-pickup and radiator/mechanical damage paths so one synthetic crash can demonstrate:
-
+Then add the first scenario-level baseline schema so a future UE run can emit a compact record such as:
 ```
-collision impulse
-→ chassis motion
-→ internal structural deformation
-→ fracture / mount displacement event
-→ changed suspension geometry
-→ changed wheel alignment
-→ changed tire force
-→ degraded vehicle behavior
+scenario_id
+physics_config_hash
+metric
+observed_min
+observed_max
+observed_steady_state
+expected_ranges
+pass_fail
 ```
 
-Do not expand world size, car roster, career/economy or production art until this full Proof-of-Physics crash-to-handling chain is demonstrated.
+After that, proceed to typed steering/wheel-hub damage consumers and the isolated dynamic-unsprung experiment.
+
+Do not expand world size, car roster, career/economy or production art until the Proof-of-Physics chain has been compiled, executed and captured as a trusted regression baseline.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
