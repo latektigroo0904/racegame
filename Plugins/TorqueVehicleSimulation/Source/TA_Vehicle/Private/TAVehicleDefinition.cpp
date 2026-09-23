@@ -1237,6 +1237,12 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     FourWheel.RearAxle.AntiRollBar.MaxTransferForceN =
         RearSuspension.AntiRollMaxTransferForceN;
 
+    CompileStructureRuntime(
+        Structure,
+        CenterOfMassVehicleLocalM,
+        OutConfig.StructureRuntime,
+        OutValidation);
+
     if (!TADoubleWishboneSolver::ValidateConfig(
             FourWheel.FrontAxle.RightGeometry))
     {
@@ -1456,6 +1462,10 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     Hash = HashDouble(
         Hash,
         FourWheel.RearAxle.AntiRollBar.MaxTransferForceN);
+
+    Hash = HashStructureRuntime(
+        Hash,
+        OutConfig.StructureRuntime);
 
     OutConfig.PhysicsConfigHash =
         Hash;
