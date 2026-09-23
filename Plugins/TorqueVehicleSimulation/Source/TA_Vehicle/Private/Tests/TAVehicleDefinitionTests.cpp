@@ -1954,4 +1954,160 @@ bool FTAVehicleDefinitionRejectsInvalidSuspensionRouteWheelTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionBrakeThermalAuthoringTest,
+    "TorqueAtlas.Vehicle.Definition.CompilesBrakeThermalCalibration",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionBrakeThermalAuthoringTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    Definition->Wheel.BrakeThermalMassJPerC =
+        42000.0;
+
+    Definition->Wheel.BrakeCoolingWPerC =
+        95.0;
+
+    Definition->Wheel.BrakeHeatFraction01 =
+        0.90;
+
+    Definition->Wheel.BrakeFadeStartTemperatureC =
+        475.0;
+
+    Definition->Wheel.BrakeFadeEndTemperatureC =
+        775.0;
+
+    Definition->Wheel.MinimumBrakeFadeTorqueFactor01 =
+        0.30;
+
+    Definition->Wheel.BrakeWearEnergyCapacityJ =
+        5.0e8;
+
+    Definition->Wheel.BrakeWearTorqueLossAtEnd01 =
+        0.35;
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Brake thermal calibration compiles"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    const FTABrakeThermalConfig& Brake =
+        Config.VehicleRuntime.Wheels[0].BrakeThermal;
+
+    TestTrue(
+        TEXT("Brake thermal mass reaches runtime"),
+        FMath::IsNearlyEqual(
+            Brake.ThermalMassJPerC,
+            42000.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Brake cooling reaches runtime"),
+        FMath::IsNearlyEqual(
+            Brake.CoolingWPerC,
+            95.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Brake fade range reaches runtime"),
+        FMath::IsNearlyEqual(
+            Brake.FadeStartTemperatureC,
+            475.0,
+            1.0e-9)
+        && FMath::IsNearlyEqual(
+            Brake.FadeEndTemperatureC,
+            775.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Brake wear torque loss reaches runtime"),
+        FMath::IsNearlyEqual(
+            Brake.WearTorqueLossAtEnd01,
+            0.35,
+            1.0e-12));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionBrakeThermalHashTest,
+    "TorqueAtlas.Vehicle.Definition.BrakeThermalChangesPhysicsHash",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionBrakeThermalHashTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAVehicleCompiledConfig Baseline;
+    FTAValidationResult BaselineValidation;
+
+    TestTrue(
+        TEXT("Baseline vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            Baseline,
+            BaselineValidation));
+
+    Definition->Wheel.BrakeFadeStartTemperatureC +=
+        25.0;
+
+    FTAVehicleCompiledConfig Modified;
+    FTAValidationResult ModifiedValidation;
+
+    TestTrue(
+        TEXT("Brake-modified vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            Modified,
+            ModifiedValidation));
+
+    TestTrue(
+        TEXT("Brake thermal calibration changes physics hash"),
+        Modified.PhysicsConfigHash
+            != Baseline.PhysicsConfigHash);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionRejectsInvalidBrakeThermalTest,
+    "TorqueAtlas.Vehicle.Definition.RejectsInvalidBrakeThermalCalibration",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionRejectsInvalidBrakeThermalTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    Definition->Wheel.BrakeFadeStartTemperatureC =
+        700.0;
+
+    Definition->Wheel.BrakeFadeEndTemperatureC =
+        600.0;
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestFalse(
+        TEXT("Reversed brake fade range is rejected"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Invalid brake calibration emits validation errors"),
+        Validation.HasErrors());
+
+    return true;
+}
+
 #endif
