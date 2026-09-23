@@ -397,6 +397,12 @@ namespace
     {
         switch (Consumer)
         {
+        case ETAVehicleDamageConsumerAuthoringType::SteeringRack:
+            return ETAVehicleDamageConsumerType::SteeringRack;
+
+        case ETAVehicleDamageConsumerAuthoringType::WheelHub:
+            return ETAVehicleDamageConsumerType::WheelHub;
+
         case ETAVehicleDamageConsumerAuthoringType::Radiator:
         default:
             return ETAVehicleDamageConsumerType::Radiator;
@@ -632,8 +638,29 @@ namespace
             Route.ImpactEnergyScale =
                 Source.ImpactEnergyScale;
 
+            Route.FullDamageEnergyJ =
+                Source.FullDamageEnergyJ;
+
             Route.FullCrushDisplacementM =
                 Source.FullCrushDisplacementM;
+
+            Route.WheelIndex =
+                Source.WheelIndex;
+
+            Route.MinimumSteeringAuthority01 =
+                Source.MinimumSteeringAuthority01;
+
+            Route.MaximumSteeringFreePlayM =
+                Source.MaximumSteeringFreePlayM;
+
+            Route.MinimumBrakeEfficiency01 =
+                Source.MinimumBrakeEfficiency01;
+
+            Route.MinimumDriveEfficiency01 =
+                Source.MinimumDriveEfficiency01;
+
+            Route.MaximumBearingDragTorqueNm =
+                Source.MaximumBearingDragTorqueNm;
 
             Out.DamageRouting.Routes.Add(
                 Route);
@@ -1052,7 +1079,35 @@ namespace
 
             Hash = HashDouble(
                 Hash,
+                Route.FullDamageEnergyJ);
+
+            Hash = HashDouble(
+                Hash,
                 Route.FullCrushDisplacementM);
+
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(Route.WheelIndex));
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumSteeringAuthority01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MaximumSteeringFreePlayM);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumBrakeEfficiency01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumDriveEfficiency01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MaximumBearingDragTorqueNm);
         }
 
         return Hash;
