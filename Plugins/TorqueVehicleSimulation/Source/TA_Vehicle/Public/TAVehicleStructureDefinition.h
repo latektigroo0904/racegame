@@ -177,6 +177,18 @@ struct TA_VEHICLE_API FTAVehicleStructureAuthoringDefinition
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Solver", meta=(ClampMin="0.0"))
     double MaxPlasticRestChangeFractionPerStep = 0.03;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Impact", meta=(ClampMin="0.001", Units="m"))
+    double ImpactDistributionRadiusM = 0.75;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Impact", meta=(ClampMin="0.01"))
+    double ImpactDistanceFalloffExponent = 2.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Impact", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double DeformationImpulseFraction01 = 0.35;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Impact", meta=(ClampMin="0.0", Units="m/s"))
+    double MaxNodeDeltaVelocityMps = 35.0;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Structure|Damage")
     int32 ImpactTargetComponentIndex = INDEX_NONE;
 
