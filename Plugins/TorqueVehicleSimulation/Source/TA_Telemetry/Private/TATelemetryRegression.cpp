@@ -430,7 +430,11 @@ namespace
                 Result += TEXT("\\\\");
                 break;
             case TEXT('"'):
-                Result += TEXT("\\"");
+                Result.AppendChar(
+                    TEXT('\\'));
+
+                Result.AppendChar(
+                    TEXT('"'));
                 break;
             case TEXT('\n'):
                 Result += TEXT("\\n");
