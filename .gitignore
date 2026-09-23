@@ -1,0 +1,34 @@
+# Unreal generated
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+
+# Project generated
+*.VC.db
+*.VC.opendb
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.tmp
+*.user
+*.userprefs
+
+# Build/package output
+Build/Receipts/
+StagedBuilds/
+Packaging/
+
+# IDE/editor
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Crash/log artifacts
+*.log
+*.dmp
+
+# Keep source/config/docs/content metadata in Git
