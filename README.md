@@ -10,28 +10,43 @@ Working title: **Torque Atlas**.
 
 ## Current status
 
-The project is now in an **integrated native vehicle-motion prototype** phase.
+Torque Atlas is now in an **integrated front-suspension/contact physics prototype** phase.
 
-The repository contains a UE 5.8-targeted project skeleton plus first native implementations for:
-- surface and wet/ice state;
-- tire forces and per-wheel aquaplaning;
-- engine/clutch/gearbox/final-drive/open-differential physics;
-- starter/stall state;
-- cooling/engine thermal derate;
-- wheel rotational dynamics and braking;
-- suspension cache + spring/damper forces;
-- structural XPBD-style deformation/fracture baseline;
-- functional radiator damage;
-- 6-DOF chassis integration;
-- tire/suspension forces applied at physical wheel contact points;
-- telemetry ring buffer;
-- Unreal Automation test source.
+The native simulation can already represent:
 
-**Important:** source has not yet been compiled or executed against an installed Unreal Engine 5.8 toolchain, so build/test success is not claimed.
+```
+engine
+→ clutch
+→ gearbox/final drive
+→ differential
+→ wheel inertia
+→ tire slip/force
+→ force at physical contact point
+→ 6-DOF chassis motion
+```
+
+For the high-fidelity front corner, the contact path can now also derive:
+
+```
+chassis pose
+→ 3D double-wishbone geometry
+→ road contact
+→ suspension travel
+→ damper motion ratio
+→ normal load
+→ contact-patch velocity
+→ tire force
+```
+
+Structural deformation can be bound directly to suspension pickup displacement, so crash deformation can alter camber, toe, motion ratio and tire behavior without a generic suspension-health multiplier.
+
+Tire state now includes temperature, pressure, wear, tread depth and permanent thermal degradation.
+
+**Important:** the source has not yet been compiled or executed against an installed Unreal Engine 5.8 toolchain. Build/test success is therefore not claimed.
 
 ## Runtime modules
 
-`Plugins/TorqueVehicleSimulation` currently contains/enables:
+`Plugins/TorqueVehicleSimulation`:
 
 ```
 TA_Core
@@ -44,32 +59,53 @@ TA_Vehicle
 TA_Telemetry
 ```
 
-## Current native simulation path
+## Current major physics systems
 
-```
-driver controls
-→ engine
-→ clutch
-→ gearbox
-→ final drive
-→ open differential
-→ wheel inertia
-→ tire slip/force
-→ force at wheel contact point
-→ chassis force/torque
-→ 6-DOF chassis motion
-```
+### Vehicle/chassis
+- fixed-step native runtime;
+- 6-DOF chassis;
+- force-at-point torque generation;
+- wheel rotational inertia;
+- braking;
+- drivetrain coupling.
 
-Damage path:
+### Front suspension/contact
+- 3D double-wishbone constraint solver;
+- rack/tie-rod geometry;
+- camber/toe reconstruction;
+- structural pickup offsets;
+- damper geometry/motion ratio;
+- road-plane contact/travel solve;
+- self-derived vertical load;
+- contact velocity from chassis motion;
+- anti-roll load transfer.
 
-```
-radiator impact
-→ puncture/leak
-→ coolant loss
-→ cooling loss
-→ temperature rise
-→ engine torque derate/damage
-```
+### Tires
+- combined longitudinal/lateral force;
+- load sensitivity;
+- camber contribution;
+- aligning moment;
+- rolling resistance;
+- per-wheel aquaplaning;
+- surface/carcass heat;
+- pressure change;
+- temperature/pressure grip;
+- wear and tread loss;
+- thermal degradation.
+
+### Damage
+- structural nodes/constraints;
+- plasticity/fracture baseline;
+- reference-vs-current node displacement;
+- weighted suspension-pickup bindings;
+- radiator puncture/leak;
+- coolant loss;
+- engine overheating/derate.
+
+### Telemetry
+- fixed-capacity ring buffer;
+- vehicle/tire/thermal channels;
+- reserved profiling channels.
 
 ## Canonical documentation
 
@@ -93,30 +129,33 @@ radiator impact
 - [Integrated Vehicle Runtime](docs/17-INTEGRATED-VEHICLE-RUNTIME-V01.md)
 - [Chassis Dynamics](docs/18-CHASSIS-DYNAMICS-V01.md)
 - [Telemetry](docs/19-TELEMETRY-V01.md)
+- [Double-Wishbone Geometry v0.2](docs/20-DOUBLE-WISHBONE-GEOMETRY-V02.md)
+- [Suspension/Road Contact Pipeline](docs/21-CONTACT-LOAD-PIPELINE-V01.md)
+- [Tire Thermal/Wear](docs/22-TIRE-THERMAL-WEAR-V01.md)
 - [Architecture Decisions](docs/DECISIONS.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Current Checkpoint](docs/CHECKPOINT.md)
 
 ## Immediate engineering order
 
-1. implement TA-P01 double-wishbone hardpoint schema;
-2. solve suspension travel and vertical contact load from geometry;
-3. derive wheel contact velocity from chassis motion;
-4. connect damaged structural pickup positions to suspension geometry;
-5. remove externally supplied contact load/velocity from the canonical vehicle fixture;
-6. add telemetry export/regression comparison;
-7. compile and execute against Unreal Engine 5.8 when a suitable build environment is available;
-8. prove the vehicle can support its own weight, accelerate, brake, corner, crash and continue damaged.
+1. mirrored front-left suspension definition;
+2. driver steering input → steering-rack displacement;
+3. complete front-axle left/right contact + anti-roll solve;
+4. true rear multi-link geometry/contact solver;
+5. full four-wheel self-support/static-settle fixture;
+6. tire vertical compliance and unsprung mass;
+7. structural collision impulse distribution;
+8. first actual Unreal Engine 5.8 compile/test run when the toolchain is available.
 
 ## Correctness rules
 
 - no global vehicle HP drives physics;
-- no per-car constants buried in solver branches;
-- no mutable UObject access in high-frequency solver loops;
-- fixed-step simulation;
+- no arbitrary damaged-camber/toe multiplier when geometry exists;
+- no per-car handling branches in solver code;
+- no mutable UObject reads in high-frequency native solving;
 - physical forces act at physical locations;
-- structural displacement changes geometry where possible;
-- telemetry observes but does not change physics;
+- high-fidelity load/speed should derive from chassis/contact state;
+- telemetry observes but never changes physics;
 - calibration seeds remain provisional until validated;
 - never claim build/test success before actual execution.
 
