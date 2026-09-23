@@ -116,6 +116,94 @@ double TATireSolver::CalculateSlipAngleRad(
     return FMath::Atan2(-LateralVelocityMps, Denominator);
 }
 
+FTATireVerticalForceOutput TATireSolver::CalculateVerticalForce(
+    const FTATireRuntimeConfig& Config,
+    const FTATireRuntimeState& State,
+    const double RequestedDeflectionM,
+    const double DeflectionVelocityMps)
+{
+    FTATireVerticalForceOutput Output;
+
+    Output.RequestedDeflectionM =
+        FMath::Max(0.0, RequestedDeflectionM);
+
+    const double MaxDeflectionM =
+        FMath::Max(
+            0.001,
+            Config.MaxRadialDeflectionM);
+
+    Output.EffectiveDeflectionM =
+        FMath::Min(
+            Output.RequestedDeflectionM,
+            MaxDeflectionM);
+
+    Output.DeflectionVelocityMps =
+        DeflectionVelocityMps;
+
+    Output.bBottomed =
+        Output.RequestedDeflectionM
+        >= MaxDeflectionM;
+
+    const double PressureRatio =
+        FMath::Clamp(
+            State.PressureKPa
+            / FMath::Max(
+                1.0,
+                Config.ReferencePressureKPa),
+            0.25,
+            2.0);
+
+    Output.EffectiveRadialStiffnessNPerM =
+        FMath::Max(
+            0.0,
+            Config.RadialStiffnessNPerM)
+        * FMath::Pow(
+            PressureRatio,
+            FMath::Max(
+                0.0,
+                Config.PressureRadialStiffnessExponent));
+
+    const double LinearForceN =
+        Output.EffectiveRadialStiffnessNPerM
+        * Output.EffectiveDeflectionM;
+
+    const double ProgressiveForceN =
+        FMath::Max(
+            0.0,
+            Config.RadialProgressiveStiffnessNPerM2)
+        * FMath::Square(
+            Output.EffectiveDeflectionM);
+
+    const double DampingForceN =
+        FMath::Max(
+            0.0,
+            Config.RadialDampingNsPerM)
+        * Output.DeflectionVelocityMps;
+
+    Output.NormalForceN =
+        FMath::Max(
+            0.0,
+            LinearForceN
+            + ProgressiveForceN
+            + DampingForceN);
+
+    return Output;
+}
+
+void TATireSolver::CommitVerticalState(
+    const FTATireVerticalForceOutput& Vertical,
+    FTATireRuntimeState& InOutState)
+{
+    InOutState.RadialDeflectionM =
+        Vertical.EffectiveDeflectionM;
+
+    InOutState.RadialDeflectionVelocityMps =
+        Vertical.DeflectionVelocityMps;
+
+    InOutState.bRadialStateInitialized =
+        true;
+}
+
 double TATireSolver::CalculateHydroFraction01(
     const FTATireRuntimeConfig& Config,
     const FTATireRuntimeState& State,
