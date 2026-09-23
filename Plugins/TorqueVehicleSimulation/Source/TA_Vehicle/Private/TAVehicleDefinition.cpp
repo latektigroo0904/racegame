@@ -263,6 +263,213 @@ namespace
         return Hash;
     }
 
+    bool BuildFrontKinematicSamples(
+        const FTADoubleWishboneSolverConfig& Geometry,
+        TArray<FTASuspensionKinematicSample>& OutSamples)
+    {
+        constexpr int32 SampleCount = 17;
+
+        if (!TADoubleWishboneSolver::ValidateConfig(
+                Geometry))
+        {
+            return false;
+        }
+
+        TArray<FTADoubleWishboneSolveOutput> Solved;
+        Solved.SetNum(SampleCount);
+
+        OutSamples.SetNum(SampleCount);
+
+        FTADoubleWishboneState State;
+
+        const double TravelRangeM =
+            Geometry.MaxTravelM
+            - Geometry.MinTravelM;
+
+        for (int32 Index = 0;
+             Index < SampleCount;
+             ++Index)
+        {
+            const double Alpha =
+                static_cast<double>(Index)
+                / static_cast<double>(SampleCount - 1);
+
+            FTADoubleWishboneSolveInput Input;
+            Input.TravelM =
+                FMath::Lerp(
+                    Geometry.MinTravelM,
+                    Geometry.MaxTravelM,
+                    Alpha);
+
+            if (!TADoubleWishboneSolver::Solve(
+                    Geometry,
+                    Input,
+                    State,
+                    Solved[Index]))
+            {
+                OutSamples.Reset();
+                return false;
+            }
+
+            FTASuspensionKinematicSample& Sample =
+                OutSamples[Index];
+
+            Sample.TravelM =
+                Input.TravelM;
+
+            Sample.WheelCenterOffsetM =
+                Solved[Index].WheelCenterLocalM
+                - Geometry.Hardpoints
+                    .WheelCenterReference;
+
+            Sample.CamberRad =
+                Solved[Index].CamberRad;
+
+            Sample.ToeRad =
+                Solved[Index].ToeRad;
+        }
+
+        for (int32 Index = 0;
+             Index < SampleCount;
+             ++Index)
+        {
+            const int32 LowerIndex =
+                FMath::Max(
+                    0,
+                    Index - 1);
+
+            const int32 UpperIndex =
+                FMath::Min(
+                    SampleCount - 1,
+                    Index + 1);
+
+            const double TravelDeltaM =
+                OutSamples[UpperIndex].TravelM
+                - OutSamples[LowerIndex].TravelM;
+
+            const double DamperDeltaM =
+                Solved[UpperIndex].DamperLengthM
+                - Solved[LowerIndex].DamperLengthM;
+
+            OutSamples[Index].MotionRatio =
+                FMath::Clamp(
+                    FMath::Abs(
+                        DamperDeltaM
+                        / FMath::Max(
+                            1.0e-9,
+                            FMath::Abs(
+                                TravelDeltaM))),
+                    0.05,
+                    3.0);
+        }
+
+        return
+            TravelRangeM > 0.0;
+    }
+
+    bool BuildRearKinematicSamples(
+        const FTAMultiLinkSolverConfig& Geometry,
+        TArray<FTASuspensionKinematicSample>& OutSamples)
+    {
+        constexpr int32 SampleCount = 17;
+
+        if (!TAMultiLinkSolver::ValidateConfig(
+                Geometry))
+        {
+            return false;
+        }
+
+        TArray<FTAMultiLinkSolveOutput> Solved;
+        Solved.SetNum(SampleCount);
+
+        OutSamples.SetNum(SampleCount);
+
+        FTAMultiLinkRuntimeState State;
+
+        const double TravelRangeM =
+            Geometry.MaxTravelM
+            - Geometry.MinTravelM;
+
+        for (int32 Index = 0;
+             Index < SampleCount;
+             ++Index)
+        {
+            const double Alpha =
+                static_cast<double>(Index)
+                / static_cast<double>(SampleCount - 1);
+
+            FTAMultiLinkSolveInput Input;
+            Input.TravelM =
+                FMath::Lerp(
+                    Geometry.MinTravelM,
+                    Geometry.MaxTravelM,
+                    Alpha);
+
+            if (!TAMultiLinkSolver::Solve(
+                    Geometry,
+                    Input,
+                    State,
+                    Solved[Index]))
+            {
+                OutSamples.Reset();
+                return false;
+            }
+
+            FTASuspensionKinematicSample& Sample =
+                OutSamples[Index];
+
+            Sample.TravelM =
+                Input.TravelM;
+
+            Sample.WheelCenterOffsetM =
+                Solved[Index].WheelCenterLocalM
+                - Geometry.WheelCenterReference;
+
+            Sample.CamberRad =
+                Solved[Index].CamberRad;
+
+            Sample.ToeRad =
+                Solved[Index].ToeRad;
+        }
+
+        for (int32 Index = 0;
+             Index < SampleCount;
+             ++Index)
+        {
+            const int32 LowerIndex =
+                FMath::Max(
+                    0,
+                    Index - 1);
+
+            const int32 UpperIndex =
+                FMath::Min(
+                    SampleCount - 1,
+                    Index + 1);
+
+            const double TravelDeltaM =
+                OutSamples[UpperIndex].TravelM
+                - OutSamples[LowerIndex].TravelM;
+
+            const double DamperDeltaM =
+                Solved[UpperIndex].DamperLengthM
+                - Solved[LowerIndex].DamperLengthM;
+
+            OutSamples[Index].MotionRatio =
+                FMath::Clamp(
+                    FMath::Abs(
+                        DamperDeltaM
+                        / FMath::Max(
+                            1.0e-9,
+                            FMath::Abs(
+                                TravelDeltaM))),
+                    0.05,
+                    3.0);
+        }
+
+        return
+            TravelRangeM > 0.0;
+    }
+
     uint32 HashSuspensionConfig(
         uint32 Hash,
         const FTASuspensionRuntimeConfig& Suspension)
@@ -275,6 +482,36 @@ namespace
         Hash = HashDouble(Hash, Suspension.DroopStopTravelM);
         Hash = HashDouble(Hash, Suspension.BumpStopRateNPerM);
         Hash = HashDouble(Hash, Suspension.DroopStopRateNPerM);
+
+        Hash = HashCombineFast(
+            Hash,
+            GetTypeHash(
+                Suspension.KinematicSamples.Num()));
+
+        for (const FTASuspensionKinematicSample& Sample :
+             Suspension.KinematicSamples)
+        {
+            Hash = HashDouble(
+                Hash,
+                Sample.TravelM);
+
+            Hash = HashVector(
+                Hash,
+                Sample.WheelCenterOffsetM);
+
+            Hash = HashDouble(
+                Hash,
+                Sample.CamberRad);
+
+            Hash = HashDouble(
+                Hash,
+                Sample.ToeRad);
+
+            Hash = HashDouble(
+                Hash,
+                Sample.MotionRatio);
+        }
+
         return Hash;
     }
 
@@ -2291,6 +2528,30 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     FourWheel.FrontAxle.RightSuspension =
         FourWheel.FrontAxle.LeftSuspension;
 
+    const FTADoubleWishboneSolverConfig FrontLeftGeometryForCache =
+        TADoubleWishboneSolver::MirrorAcrossCenterline(
+            FrontGeometry);
+
+    const bool bFrontKinematicCacheBuilt =
+        BuildFrontKinematicSamples(
+            FrontLeftGeometryForCache,
+            FourWheel.FrontAxle.LeftSuspension
+                .KinematicSamples)
+        && BuildFrontKinematicSamples(
+            FrontGeometry,
+            FourWheel.FrontAxle.RightSuspension
+                .KinematicSamples);
+
+    if (!bFrontKinematicCacheBuilt)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.FrontKinematicCacheBuildFailed"),
+            TEXT(
+                "Failed to derive front suspension kinematic cache from authored hardpoints."));
+    }
+
     FourWheel.FrontAxle.AntiRollBar.CouplingRateNPerM =
         FrontSuspension.AntiRollCouplingRateNPerM;
 
@@ -2381,6 +2642,30 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
 
     FourWheel.RearAxle.RightSuspension =
         FourWheel.RearAxle.LeftSuspension;
+
+    const FTAMultiLinkSolverConfig RearLeftGeometryForCache =
+        TAMultiLinkSolver::MirrorAcrossCenterline(
+            RearGeometry);
+
+    const bool bRearKinematicCacheBuilt =
+        BuildRearKinematicSamples(
+            RearLeftGeometryForCache,
+            FourWheel.RearAxle.LeftSuspension
+                .KinematicSamples)
+        && BuildRearKinematicSamples(
+            RearGeometry,
+            FourWheel.RearAxle.RightSuspension
+                .KinematicSamples);
+
+    if (!bRearKinematicCacheBuilt)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.RearKinematicCacheBuildFailed"),
+            TEXT(
+                "Failed to derive rear suspension kinematic cache from authored hardpoints."));
+    }
 
     FourWheel.RearAxle.AntiRollBar.CouplingRateNPerM =
         RearSuspension.AntiRollCouplingRateNPerM;
