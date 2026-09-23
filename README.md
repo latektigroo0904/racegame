@@ -10,24 +10,28 @@ Working title: **Torque Atlas**.
 
 ## Current status
 
-The project is now in an **early Unreal/C++ physics prototype foundation** phase.
+The project is now in an **integrated native vehicle-motion prototype** phase.
 
 The repository contains a UE 5.8-targeted project skeleton plus first native implementations for:
-- core simulation/versioning;
-- vehicle definitions and compiled runtime configuration;
-- road/surface state;
-- tire forces and aquaplaning;
-- engine/clutch/gearbox/final-drive/differential helpers;
-- structural compliant constraints, plasticity and fracture;
-- typed functional damage events;
-- radiator puncture/leak/cooling degradation;
-- Unreal Automation test sources.
+- surface and wet/ice state;
+- tire forces and per-wheel aquaplaning;
+- engine/clutch/gearbox/final-drive/open-differential physics;
+- starter/stall state;
+- cooling/engine thermal derate;
+- wheel rotational dynamics and braking;
+- suspension cache + spring/damper forces;
+- structural XPBD-style deformation/fracture baseline;
+- functional radiator damage;
+- 6-DOF chassis integration;
+- tire/suspension forces applied at physical wheel contact points;
+- telemetry ring buffer;
+- Unreal Automation test source.
 
-**Important:** the source has not yet been compiled against an installed Unreal Engine 5.8 toolchain, so build success is not claimed.
+**Important:** source has not yet been compiled or executed against an installed Unreal Engine 5.8 toolchain, so build/test success is not claimed.
 
 ## Runtime modules
 
-`Plugins/TorqueVehicleSimulation` currently enables:
+`Plugins/TorqueVehicleSimulation` currently contains/enables:
 
 ```
 TA_Core
@@ -37,6 +41,34 @@ TA_Powertrain
 TA_Structure
 TA_Damage
 TA_Vehicle
+TA_Telemetry
+```
+
+## Current native simulation path
+
+```
+driver controls
+→ engine
+→ clutch
+→ gearbox
+→ final drive
+→ open differential
+→ wheel inertia
+→ tire slip/force
+→ force at wheel contact point
+→ chassis force/torque
+→ 6-DOF chassis motion
+```
+
+Damage path:
+
+```
+radiator impact
+→ puncture/leak
+→ coolant loss
+→ cooling loss
+→ temperature rise
+→ engine torque derate/damage
 ```
 
 ## Canonical documentation
@@ -58,30 +90,35 @@ TA_Vehicle
 - [Proof-of-Physics Test Matrix](docs/14-PROOF-OF-PHYSICS-TEST-MATRIX.md)
 - [Unreal/C++ Skeleton](docs/15-UNREAL-CPP-SKELETON.md)
 - [Functional Damage Graph](docs/16-DAMAGE-GRAPH-V01.md)
+- [Integrated Vehicle Runtime](docs/17-INTEGRATED-VEHICLE-RUNTIME-V01.md)
+- [Chassis Dynamics](docs/18-CHASSIS-DYNAMICS-V01.md)
+- [Telemetry](docs/19-TELEMETRY-V01.md)
 - [Architecture Decisions](docs/DECISIONS.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Current Checkpoint](docs/CHECKPOINT.md)
 
 ## Immediate engineering order
 
-1. build the integrated `TA_Vehicle` fixed-step runtime;
-2. add wheel rotational dynamics and brake torque;
-3. add suspension runtime geometry and damaged pickup coupling;
-4. finish engine torque-map / idle / starter / turbo / over-rev state;
-5. connect structure → radiator → cooling → engine thermal consequences;
-6. add telemetry;
-7. compile and run the full test set against Unreal 5.8 when a suitable build environment is available;
-8. prove one complete vehicle before scaling world/content.
+1. implement TA-P01 double-wishbone hardpoint schema;
+2. solve suspension travel and vertical contact load from geometry;
+3. derive wheel contact velocity from chassis motion;
+4. connect damaged structural pickup positions to suspension geometry;
+5. remove externally supplied contact load/velocity from the canonical vehicle fixture;
+6. add telemetry export/regression comparison;
+7. compile and execute against Unreal Engine 5.8 when a suitable build environment is available;
+8. prove the vehicle can support its own weight, accelerate, brake, corner, crash and continue damaged.
 
 ## Correctness rules
 
 - no global vehicle HP drives physics;
-- no per-car constants buried in solver code;
+- no per-car constants buried in solver branches;
 - no mutable UObject access in high-frequency solver loops;
-- use fixed-step simulation;
-- structural displacement should alter geometry directly where possible;
-- all calibration seeds remain provisional until validated;
-- never claim a build/test pass before it has actually run.
+- fixed-step simulation;
+- physical forces act at physical locations;
+- structural displacement changes geometry where possible;
+- telemetry observes but does not change physics;
+- calibration seeds remain provisional until validated;
+- never claim build/test success before actual execution.
 
 ## Core development rule
 
