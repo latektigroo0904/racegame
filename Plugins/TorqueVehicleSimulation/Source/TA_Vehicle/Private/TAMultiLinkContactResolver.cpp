@@ -164,6 +164,7 @@ namespace
         const FTATireRuntimeConfig& TireConfig,
         const FTASuspensionRuntimeState& PreviousSuspensionState,
         const FTATireRuntimeState& TireState,
+        const double AdditionalSuspensionReactionN,
         const FTAMultiLinkDamageOffsets& DamageOffsets,
         const FVector3d& RoadPointWorldM,
         const FVector3d& RoadNormalWorld,
@@ -220,6 +221,12 @@ namespace
             TASuspensionRuntime::CalculateForce(
                 SuspensionConfig,
                 OutEvaluation.SuspensionState);
+
+        OutEvaluation.SuspensionForce.TotalForceN =
+            FMath::Max(
+                0.0,
+                OutEvaluation.SuspensionForce.TotalForceN
+                + AdditionalSuspensionReactionN);
 
         const double RequestedDeflectionM =
             FMath::Max(
@@ -554,6 +561,7 @@ bool TAMultiLinkContactResolver::ResolveCompliantRoadContact(
     const FTAMultiLinkSolverConfig& GeometryConfig,
     const FTASuspensionRuntimeConfig& SuspensionConfig,
     const FTATireRuntimeConfig& TireConfig,
+    const double AdditionalSuspensionReactionN,
     const FTAMultiLinkDamageOffsets& DamageOffsets,
     const FTARoadPlane& Road,
     const double DeltaTimeSeconds,
@@ -605,6 +613,7 @@ bool TAMultiLinkContactResolver::ResolveCompliantRoadContact(
             TireConfig,
             InOutSuspensionState,
             InOutTireState,
+            AdditionalSuspensionReactionN,
             DamageOffsets,
             Road.PointWorldM,
             RoadNormal,
@@ -618,6 +627,7 @@ bool TAMultiLinkContactResolver::ResolveCompliantRoadContact(
             TireConfig,
             InOutSuspensionState,
             InOutTireState,
+            AdditionalSuspensionReactionN,
             DamageOffsets,
             Road.PointWorldM,
             RoadNormal,
