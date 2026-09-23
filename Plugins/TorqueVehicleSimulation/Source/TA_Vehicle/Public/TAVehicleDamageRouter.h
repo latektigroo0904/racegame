@@ -11,7 +11,9 @@ enum class ETAVehicleDamageConsumerType : uint8
     SteeringRack,
     WheelHub,
     SuspensionCorner,
-    AntiRollLink
+    AntiRollLink,
+    ElectricalBus,
+    FuelDelivery
 };
 
 struct TA_VEHICLE_API FTAVehicleDamageRoute
@@ -50,6 +52,13 @@ struct TA_VEHICLE_API FTAVehicleDamageRoute
 
     // Anti-roll drop-link/bar-link degradation.
     double MinimumAntiRollLinkEfficiency01 = 0.0;
+
+    // Electrical-bus functional degradation.
+    double MinimumStarterEfficiency01 = 0.0;
+    double MinimumEngineControlEfficiency01 = 0.0;
+
+    // Fuel-delivery functional degradation.
+    double MinimumFuelDeliveryEfficiency01 = 0.0;
 };
 
 struct TA_VEHICLE_API FTAVehicleDamageRoutingConfig
@@ -68,6 +77,8 @@ struct TA_VEHICLE_API FTAVehicleDamageRoutingOutput
     int32 WheelHubSignalsApplied = 0;
     int32 SuspensionCornerSignalsApplied = 0;
     int32 AntiRollLinkSignalsApplied = 0;
+    int32 ElectricalBusSignalsApplied = 0;
+    int32 FuelDeliverySignalsApplied = 0;
 };
 
 namespace TAVehicleDamageRouter
