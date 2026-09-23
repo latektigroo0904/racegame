@@ -97,6 +97,10 @@ bool TAVehicleSimulation::Initialize(
 
         OutState.Wheels[Index].TireState.TreadDepthMm =
             Config.Tires[Index].NewTreadDepthMm;
+
+        TABrakeThermal::InitializeState(
+            Config.Wheels[Index].BrakeThermal,
+            OutState.Wheels[Index].BrakeThermal);
     }
 
     return true;
@@ -373,11 +377,26 @@ bool TAVehicleSimulation::Step(
         FTAWheelRuntimeConfig EffectiveWheelConfig =
             Config.Wheels[Index];
 
+        const double BrakeThermalWearFactor01 =
+            TABrakeThermal::CalculateAvailableTorqueFactor01(
+                Config.Wheels[Index].BrakeThermal,
+                WheelState.BrakeThermal);
+
         EffectiveWheelConfig.MaxBrakeTorqueNm *=
             FMath::Clamp(
                 HubDamage.BrakeEfficiency01,
                 0.0,
-                1.0);
+                1.0)
+            * BrakeThermalWearFactor01;
+
+        const double BeforeBrakeAngularSpeedRadPerSec =
+            WheelState.AngularSpeedRadPerSec;
+
+        const double AppliedBrakeTorqueNm =
+            Brake01
+            * FMath::Max(
+                0.0,
+                EffectiveWheelConfig.MaxBrakeTorqueNm);
 
         WheelState.AngularSpeedRadPerSec =
             IntegrateWheelAngularSpeed(
@@ -387,6 +406,26 @@ bool TAVehicleSimulation::Step(
                 TireReactionTorqueNm,
                 Brake01,
                 DeltaTimeSeconds);
+
+        const double AverageAbsBrakeAngularSpeedRadPerSec =
+            0.5
+            * (FMath::Abs(
+                    BeforeBrakeAngularSpeedRadPerSec)
+                + FMath::Abs(
+                    WheelState.AngularSpeedRadPerSec));
+
+        FTABrakeThermalOutput BrakeThermalOutput;
+
+        if (!TABrakeThermal::Update(
+                Config.Wheels[Index].BrakeThermal,
+                AppliedBrakeTorqueNm,
+                AverageAbsBrakeAngularSpeedRadPerSec,
+                DeltaTimeSeconds,
+                WheelState.BrakeThermal,
+                BrakeThermalOutput))
+        {
+            return false;
+        }
 
         WheelState.LastTireOutput = TireOutput;
 
