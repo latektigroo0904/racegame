@@ -432,6 +432,12 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
         Sample.AntiRollLinkEfficiency01[0] =
             1.0 - 0.25 * static_cast<double>(Index);
 
+        Sample.BrakeTemperatureC[0] =
+            100.0 + 100.0 * static_cast<double>(Index);
+
+        Sample.BrakeThermalTorqueFactor01[0] =
+            1.0 - 0.10 * static_cast<double>(Index);
+
         Buffer.Push(Sample);
     }
 
@@ -529,6 +535,36 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
     Config.Envelopes.Add(
         AntiRollEfficiency);
 
+    FTATelemetryMetricEnvelope BrakeTemperature;
+    BrakeTemperature.Metric =
+        ETATelemetryMetric::BrakeTemperatureC;
+    BrakeTemperature.Statistic =
+        ETATelemetryStatistic::Maximum;
+    BrakeTemperature.WheelIndex =
+        0;
+    BrakeTemperature.MinimumAllowed =
+        399.0;
+    BrakeTemperature.MaximumAllowed =
+        401.0;
+
+    Config.Envelopes.Add(
+        BrakeTemperature);
+
+    FTATelemetryMetricEnvelope BrakeFade;
+    BrakeFade.Metric =
+        ETATelemetryMetric::BrakeThermalTorqueFactor01;
+    BrakeFade.Statistic =
+        ETATelemetryStatistic::Minimum;
+    BrakeFade.WheelIndex =
+        0;
+    BrakeFade.MinimumAllowed =
+        0.69;
+    BrakeFade.MaximumAllowed =
+        0.71;
+
+    Config.Envelopes.Add(
+        BrakeFade);
+
     FTATelemetryRegressionResult Result;
 
     TestTrue(
@@ -543,9 +579,9 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
         Result.bPassed);
 
     TestEqual(
-        TEXT("All six functional damage envelopes pass"),
+        TEXT("All eight functional/thermal envelopes pass"),
         Result.PassedEnvelopeCount,
-        6);
+        8);
 
     return true;
 }
