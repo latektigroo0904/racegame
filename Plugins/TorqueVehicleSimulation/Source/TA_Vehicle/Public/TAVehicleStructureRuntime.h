@@ -9,6 +9,7 @@
 struct TA_VEHICLE_API FTAVehicleStructureCompiledConfig
 {
     FTAStructureSolverConfig Solver;
+    FTAStructureImpactConfig ImpactDistribution;
 
     TArray<FTAStructureNode> InitialNodes;
     TArray<FTADistanceConstraint> Constraints;
