@@ -120,4 +120,71 @@ bool FTAPowertrainSolverSmokeTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAEngineStarterStateTest,
+    "TorqueAtlas.Powertrain.Engine.StallAndStarterState",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAEngineStarterStateTest::RunTest(const FString& Parameters)
+{
+    FTAEngineRuntimeConfig Config;
+    FTAEngineRuntimeState State;
+
+    State.AngularSpeedRadPerSec = 0.0;
+    State.RunState = ETAEngineRunState::Running;
+
+    TAPowertrainSolver::UpdateEngineRunState(
+        Config,
+        false,
+        State);
+
+    TestTrue(
+        TEXT("Running engine below stall threshold becomes stalled"),
+        State.RunState == ETAEngineRunState::Stalled);
+
+    const double NoStarterTorque =
+        TAPowertrainSolver::CalculateStarterTorqueNm(
+            Config,
+            State,
+            false);
+
+    TestTrue(
+        TEXT("Stalled engine receives no starter torque when starter is disengaged"),
+        FMath::IsNearlyZero(NoStarterTorque));
+
+    const double StarterTorque =
+        TAPowertrainSolver::CalculateStarterTorqueNm(
+            Config,
+            State,
+            true);
+
+    TestTrue(
+        TEXT("Stalled engine receives positive starter torque"),
+        StarterTorque > 0.0);
+
+    TAPowertrainSolver::UpdateEngineRunState(
+        Config,
+        true,
+        State);
+
+    TestTrue(
+        TEXT("Starter engagement moves stalled engine to cranking"),
+        State.RunState == ETAEngineRunState::Cranking);
+
+    State.AngularSpeedRadPerSec =
+        Config.CombustionStartRPM * (2.0 * UE_DOUBLE_PI) / 60.0;
+
+    TAPowertrainSolver::UpdateEngineRunState(
+        Config,
+        true,
+        State);
+
+    TestTrue(
+        TEXT("Cranking engine above combustion start speed becomes running"),
+        State.RunState == ETAEngineRunState::Running);
+
+    return true;
+}
+
 #endif
