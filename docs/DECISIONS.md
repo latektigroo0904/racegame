@@ -171,3 +171,48 @@
 **Decision:** left/right suspension travel difference creates bounded equal/opposite normal-load adjustments at an axle.  
 **Reason:** independent corner springs alone do not provide the required roll-stiffness/load-transfer behavior.
 
+## ADR-037 — One physical steering rack drives both front tie rods
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** left/right front hardpoint positions mirror across the vehicle centerline, but the steering rack translation axis remains one shared chassis-local physical axis.  
+**Reason:** one rack translates both inner tie-rod points together; mirroring the rack axis would make the front wheels steer in opposing directions.
+
+## ADR-038 — Rear suspension is a true five-link rigid-upright mechanism
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** TA-P01 rear kinematics use five independent chassis-to-upright link constraints plus one wheel-travel coordinate rather than reusing the front double-wishbone abstraction.  
+**Reason:** individual rear link geometry and damage must produce their own toe/camber effects.
+
+## ADR-039 — Canonical proving-ground runtime resolves all four wheel contacts
+**Status:** accepted 2026-09-23  
+**Decision:** the high-fidelity prototype route is FL/FR front wishbone + RL/RR rear multi-link, resolved before every vehicle step and fed directly into the tire/powertrain/chassis solver.  
+**Reason:** static support, acceleration, braking and steering must come from one vehicle-wide physical chain rather than manually supplied wheel loads.
+
+## ADR-040 — High-fidelity tire contact includes radial compliance
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** the canonical four-wheel path uses a pressure-dependent radial tire spring/damper with progressive stiffness and bottoming detection. Rigid-radius contact remains only as an LOD/test path.  
+**Reason:** an infinitely stiff tire cannot reproduce transient load, curb response or future wheel-hop behavior.
+
+## ADR-041 — Anti-roll reaction participates in tire/suspension equilibrium
+**Status:** accepted 2026-09-23  
+**Decision:** compliant left/right axle contact is solved iteratively with anti-roll reaction included in each corner’s vertical force equilibrium.  
+**Reason:** applying anti-roll load after solving tire deflection creates an inconsistent normal load that is not represented by the tire’s actual deformation.
+
+## ADR-042 — Vehicle assets compile complete runtime-ready physics
+**Status:** accepted 2026-09-23  
+**Decision:** authored vehicle data is validated and compiled into one immutable package containing both `FTAVehicleRuntimeConfig` and `FTAFourWheelRuntimeConfig`. Authored hardpoints are transformed into COM-local coordinates during compilation.  
+**Reason:** solver truth must come from versioned content rather than test-only constants or mutable UObject reads.
+
+## ADR-043 — PhysicsConfigHash includes handling-critical compiled fields
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** the vehicle configuration hash includes effective tire, wheel, drivetrain, suspension, steering, geometry, mass and inertia fields used by the prototype runtime.  
+**Reason:** regression traces, replay diagnostics and multiplayer configuration checks need an identity for the physics actually simulated.
+
+## ADR-044 — Collision external momentum and structural deformation modes are separated
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** the full external collision impulse is applied once to chassis rigid-body motion. Structural nodes receive a spatially weighted deformation excitation from which rigid translation and rigid rotation modes are removed.  
+**Reason:** the structure must deform without adding the same collision linear/angular momentum a second time.
+
+## ADR-045 — Unsprung dynamics is staged behind the quasi-static compliant-contact baseline
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** explicit unsprung vertical mass/travel integration exists first as an isolated tested primitive. The canonical contact path remains tire/suspension equilibrium until the dynamic model is validated and coupled without force double-counting.  
+**Reason:** wheel-hop dynamics add another state and force path; introducing them only after a stable compliant-contact baseline reduces numerical risk.
+
