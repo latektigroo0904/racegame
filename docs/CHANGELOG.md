@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-09-23 — Chassis, suspension runtime and telemetry session
+
+Added:
+- `docs/18-CHASSIS-DYNAMICS-V01.md`;
+- `docs/19-TELEMETRY-V01.md`;
+- native 6-DOF chassis state/integrator;
+- force-at-point and torque accumulation;
+- body-axis inertia and gyroscopic term;
+- quaternion orientation integration;
+- chassis regression tests for centered force, off-center force and pure torque;
+- wheel contact world positions/directions in integrated vehicle input;
+- tire + suspension reaction forces applied at physical contact points;
+- integrated tests for tire-force-driven chassis motion and asymmetric-grip yaw;
+- fixed-capacity telemetry ring buffer;
+- vehicle telemetry capture for engine, clutch, coolant, chassis and four-wheel tire channels;
+- telemetry wraparound/reset Automation test.
+
+Also refined:
+- integrated engine starter/stall state;
+- suspension static preload/reference ride-height support;
+- radiator → cooling → engine thermal derate integration.
+
+Verification:
+- Unreal 5.8 documentation was checked for `TVector::GetClampedToMaxSize`, quaternion axis-angle construction, normalization and inverse vector rotation APIs used by the prototype.
+
+Current limitation:
+- no real UE 5.8 UHT/UBT/C++ build or Automation execution has yet been performed;
+- vertical contact load is still externally supplied to the tire solver;
+- damaged-hardpoint geometric suspension solve remains incomplete;
+- collision/manifold-to-structure impulse transfer is not connected.
+
 ## 2026-09-23 — Integrated vehicle runtime session
 
 Added:
