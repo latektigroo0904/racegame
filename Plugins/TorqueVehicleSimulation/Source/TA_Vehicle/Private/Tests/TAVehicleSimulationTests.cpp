@@ -291,4 +291,97 @@ bool FTAVehicleRuntimeCoolingDamageTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeTireForceMovesChassisTest,
+    "TorqueAtlas.Vehicle.Runtime.TireForceMovesChassis",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeTireForceMovesChassisTest::RunTest(const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config = MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState State;
+    TestTrue(
+        TEXT("Runtime initializes"),
+        TAVehicleSimulation::Initialize(Config, State));
+
+    FTAVehicleStepInput Input = MakeStaticContactInput();
+    Input.Controls.SelectedGear = 0;
+    Input.Controls.ClutchEngagement01 = 0.0;
+
+    const double GroundSpeedMps = 15.0;
+
+    for (int32 Index = 0; Index < 4; ++Index)
+    {
+        Input.WheelContacts[Index].LongitudinalVelocityMps = GroundSpeedMps;
+        State.Wheels[Index].AngularSpeedRadPerSec =
+            20.0 / Config.Wheels[Index].RadiusM;
+    }
+
+    FTAVehicleStepOutput Output;
+
+    TestTrue(
+        TEXT("Vehicle step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Positive tire slip produces forward chassis acceleration"),
+        State.Chassis.LinearVelocityWorldMps.X > 0.0);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeAsymmetricGripYawTest,
+    "TorqueAtlas.Vehicle.Runtime.AsymmetricGripCreatesYaw",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeAsymmetricGripYawTest::RunTest(const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig Config = MakePrototypeRuntimeConfig();
+
+    FTAVehicleRuntimeState State;
+    TestTrue(
+        TEXT("Runtime initializes"),
+        TAVehicleSimulation::Initialize(Config, State));
+
+    FTAVehicleStepInput Input = MakeStaticContactInput();
+    Input.Controls.SelectedGear = 0;
+    Input.Controls.ClutchEngagement01 = 0.0;
+
+    for (int32 Index = 0; Index < 4; ++Index)
+    {
+        Input.WheelContacts[Index].LongitudinalVelocityMps = 15.0;
+        State.Wheels[Index].AngularSpeedRadPerSec =
+            15.0 / Config.Wheels[Index].RadiusM;
+    }
+
+    // Add substantial positive slip only at rear-left.
+    State.Wheels[2].AngularSpeedRadPerSec =
+        24.0 / Config.Wheels[2].RadiusM;
+
+    FTAVehicleStepOutput Output;
+
+    TestTrue(
+        TEXT("Vehicle step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            Input,
+            1.0 / 240.0,
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Asymmetric longitudinal tire force creates yaw response"),
+        FMath::Abs(State.Chassis.AngularVelocityWorldRadPerSec.Z) > 0.0);
+
+    return true;
+}
+
 #endif
