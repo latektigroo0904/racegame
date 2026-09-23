@@ -530,4 +530,250 @@ bool FTAVehicleDefinitionRejectsSpatiallyWrongBindingTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionFunctionalDamageRoutesTest,
+    "TorqueAtlas.Vehicle.Definition.CompilesFunctionalDamageRoutes",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionFunctionalDamageRoutesTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(1.20, 0.30, -0.30);
+    Node.MassKg =
+        15.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleDamageRouteAuthoringDefinition SteeringRoute;
+    SteeringRoute.TargetComponentIndex =
+        8;
+    SteeringRoute.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::SteeringRack;
+    SteeringRoute.FullDamageEnergyJ =
+        9000.0;
+    SteeringRoute.MinimumSteeringAuthority01 =
+        0.30;
+    SteeringRoute.MaximumSteeringFreePlayM =
+        0.008;
+
+    Definition->Structure.DamageRoutes.Add(
+        SteeringRoute);
+
+    FTAVehicleDamageRouteAuthoringDefinition HubRoute;
+    HubRoute.TargetComponentIndex =
+        9;
+    HubRoute.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::WheelHub;
+    HubRoute.WheelIndex =
+        1;
+    HubRoute.FullDamageEnergyJ =
+        11000.0;
+    HubRoute.MinimumBrakeEfficiency01 =
+        0.25;
+    HubRoute.MinimumDriveEfficiency01 =
+        0.10;
+    HubRoute.MaximumBearingDragTorqueNm =
+        65.0;
+
+    Definition->Structure.DamageRoutes.Add(
+        HubRoute);
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Functional damage routes compile"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestFalse(
+        TEXT("Functional damage route asset has no validation errors"),
+        Validation.HasErrors());
+
+    TestEqual(
+        TEXT("Two damage routes compile"),
+        Config.StructureRuntime.DamageRouting.Routes.Num(),
+        2);
+
+    const FTAVehicleDamageRoute& CompiledSteering =
+        Config.StructureRuntime.DamageRouting.Routes[0];
+
+    TestTrue(
+        TEXT("Steering consumer type is preserved"),
+        CompiledSteering.Consumer
+            == ETAVehicleDamageConsumerType::SteeringRack);
+
+    TestTrue(
+        TEXT("Steering authority floor is preserved"),
+        FMath::IsNearlyEqual(
+            CompiledSteering.MinimumSteeringAuthority01,
+            0.30,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Steering free-play maximum is preserved"),
+        FMath::IsNearlyEqual(
+            CompiledSteering.MaximumSteeringFreePlayM,
+            0.008,
+            1.0e-9));
+
+    const FTAVehicleDamageRoute& CompiledHub =
+        Config.StructureRuntime.DamageRouting.Routes[1];
+
+    TestTrue(
+        TEXT("Wheel-hub consumer type is preserved"),
+        CompiledHub.Consumer
+            == ETAVehicleDamageConsumerType::WheelHub);
+
+    TestEqual(
+        TEXT("Wheel-hub target wheel is preserved"),
+        CompiledHub.WheelIndex,
+        1);
+
+    TestTrue(
+        TEXT("Wheel-hub bearing drag calibration is preserved"),
+        FMath::IsNearlyEqual(
+            CompiledHub.MaximumBearingDragTorqueNm,
+            65.0,
+            1.0e-9));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionDamageRouteHashSensitivityTest,
+    "TorqueAtlas.Vehicle.Definition.DamageRouteChangesPhysicsHash",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionDamageRouteHashSensitivityTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(1.20, 0.30, -0.30);
+    Node.MassKg =
+        15.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleDamageRouteAuthoringDefinition Route;
+    Route.TargetComponentIndex =
+        8;
+    Route.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::SteeringRack;
+    Route.bAcceptStructuralFracture =
+        false;
+    Route.MaximumSteeringFreePlayM =
+        0.005;
+
+    Definition->Structure.DamageRoutes.Add(
+        Route);
+
+    FTAVehicleCompiledConfig Baseline;
+    FTAValidationResult BaselineValidation;
+
+    TestTrue(
+        TEXT("Baseline damage route compiles"),
+        Definition->BuildCompiledConfig(
+            Baseline,
+            BaselineValidation));
+
+    Definition->Structure.DamageRoutes[0]
+        .bAcceptStructuralFracture =
+        true;
+
+    FTAVehicleCompiledConfig FlagModified;
+    FTAValidationResult FlagValidation;
+
+    TestTrue(
+        TEXT("Modified signal acceptance route compiles"),
+        Definition->BuildCompiledConfig(
+            FlagModified,
+            FlagValidation));
+
+    TestTrue(
+        TEXT("Changing accepted signal types changes physics hash"),
+        FlagModified.PhysicsConfigHash
+            != Baseline.PhysicsConfigHash);
+
+    Definition->Structure.DamageRoutes[0]
+        .MaximumSteeringFreePlayM =
+        0.012;
+
+    FTAVehicleCompiledConfig ParameterModified;
+    FTAValidationResult ParameterValidation;
+
+    TestTrue(
+        TEXT("Modified steering damage calibration compiles"),
+        Definition->BuildCompiledConfig(
+            ParameterModified,
+            ParameterValidation));
+
+    TestTrue(
+        TEXT("Changing functional damage calibration changes physics hash"),
+        ParameterModified.PhysicsConfigHash
+            != FlagModified.PhysicsConfigHash);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionRejectsInvalidHubRouteWheelTest,
+    "TorqueAtlas.Vehicle.Definition.RejectsInvalidHubRouteWheel",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionRejectsInvalidHubRouteWheelTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(1.20, 0.30, -0.30);
+    Node.MassKg =
+        15.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleDamageRouteAuthoringDefinition Route;
+    Route.TargetComponentIndex =
+        9;
+    Route.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::WheelHub;
+    Route.WheelIndex =
+        4;
+
+    Definition->Structure.DamageRoutes.Add(
+        Route);
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestFalse(
+        TEXT("Out-of-range wheel-hub route fails asset compilation"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Invalid wheel-hub route emits validation errors"),
+        Validation.HasErrors());
+
+    return true;
+}
+
 #endif
