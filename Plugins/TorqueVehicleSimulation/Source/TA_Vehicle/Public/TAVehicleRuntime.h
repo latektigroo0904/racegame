@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "TACoreTypes.h"
 #include "TAFourWheelVehicleRuntime.h"
+#include "TAFourWheelVehicleRuntime.h"
 
 struct TA_VEHICLE_API FTAVehicleCompiledConfig
 {
