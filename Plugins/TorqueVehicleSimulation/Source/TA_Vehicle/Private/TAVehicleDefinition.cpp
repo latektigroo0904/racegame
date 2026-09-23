@@ -1774,6 +1774,28 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
         OutConfig.StructureRuntime,
         OutValidation);
 
+    for (const FTAVehicleDamageRoute& Route :
+         OutConfig.StructureRuntime.DamageRouting.Routes)
+    {
+        if (Route.Consumer ==
+                ETAVehicleDamageConsumerType::WheelHub &&
+            (Route.WheelIndex < 0 ||
+             Route.WheelIndex >= WheelCount))
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.InvalidWheelHubDamageRoute"),
+                FString::Printf(
+                    TEXT(
+                        "Wheel-hub damage route for target component %d uses wheel index %d, "
+                        "but the compiled vehicle has %d wheels."),
+                    Route.TargetComponentIndex,
+                    Route.WheelIndex,
+                    WheelCount));
+        }
+    }
+
     ValidateStructureBindingLocations(
         OutConfig.StructureRuntime,
         FrontGeometry,
