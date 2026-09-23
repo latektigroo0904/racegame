@@ -487,4 +487,47 @@ bool FTAVehicleDefinitionStructureRuntimeTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionRejectsSpatiallyWrongBindingTest,
+    "TorqueAtlas.Vehicle.Definition.RejectsSpatiallyWrongStructureBinding",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionRejectsSpatiallyWrongBindingTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(-2.0, -2.0, 2.0);
+    Node.MassKg = 20.0;
+
+    Definition->Structure.Nodes.Add(Node);
+
+    Definition->Structure
+        .FrontRightSuspensionBindings
+        .LowerInnerA.NodeIndices = { 0 };
+
+    Definition->Structure
+        .FrontRightSuspensionBindings
+        .LowerInnerA.Weights = { 1.0 };
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestFalse(
+        TEXT("Far-away structural binding fails vehicle compilation"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Spatially invalid structural binding emits errors"),
+        Validation.HasErrors());
+
+    return true;
+}
+
 #endif
