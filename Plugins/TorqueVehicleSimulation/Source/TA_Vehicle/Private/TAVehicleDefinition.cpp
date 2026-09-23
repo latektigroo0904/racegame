@@ -225,6 +225,556 @@ namespace
 
         return Hash;
     }
+    void CompileDisplacementBinding(
+        const FTAStructureDisplacementBindingAuthoringDefinition& Authored,
+        FTAStructureDisplacementBinding& Out)
+    {
+        Out.NodeIndices =
+            Authored.NodeIndices;
+
+        Out.Weights =
+            Authored.Weights;
+    }
+
+    bool HasBindingData(
+        const FTAStructureDisplacementBindingAuthoringDefinition& Binding)
+    {
+        return
+            Binding.NodeIndices.Num() > 0
+            || Binding.Weights.Num() > 0;
+    }
+
+    bool HasAnyStructureBindingData(
+        const FTAVehicleStructureAuthoringDefinition& Structure)
+    {
+        const FTADoubleWishboneStructuralBindingsAuthoringDefinition* FrontBindings[2] =
+        {
+            &Structure.FrontLeftSuspensionBindings,
+            &Structure.FrontRightSuspensionBindings
+        };
+
+        for (const FTADoubleWishboneStructuralBindingsAuthoringDefinition* Front :
+             FrontBindings)
+        {
+            if (HasBindingData(Front->UpperInnerA) ||
+                HasBindingData(Front->UpperInnerB) ||
+                HasBindingData(Front->LowerInnerA) ||
+                HasBindingData(Front->LowerInnerB) ||
+                HasBindingData(Front->TieRodInner) ||
+                HasBindingData(Front->DamperChassis))
+            {
+                return true;
+            }
+        }
+
+        const FTAMultiLinkStructuralBindingsAuthoringDefinition* RearBindings[2] =
+        {
+            &Structure.RearLeftSuspensionBindings,
+            &Structure.RearRightSuspensionBindings
+        };
+
+        for (const FTAMultiLinkStructuralBindingsAuthoringDefinition* Rear :
+             RearBindings)
+        {
+            if (HasBindingData(Rear->Link0) ||
+                HasBindingData(Rear->Link1) ||
+                HasBindingData(Rear->Link2) ||
+                HasBindingData(Rear->Link3) ||
+                HasBindingData(Rear->Link4) ||
+                HasBindingData(Rear->DamperChassis))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void CompileFrontStructuralBindings(
+        const FTADoubleWishboneStructuralBindingsAuthoringDefinition& Authored,
+        FTADoubleWishboneStructuralBindings& Out)
+    {
+        CompileDisplacementBinding(
+            Authored.UpperInnerA,
+            Out.UpperInnerA);
+
+        CompileDisplacementBinding(
+            Authored.UpperInnerB,
+            Out.UpperInnerB);
+
+        CompileDisplacementBinding(
+            Authored.LowerInnerA,
+            Out.LowerInnerA);
+
+        CompileDisplacementBinding(
+            Authored.LowerInnerB,
+            Out.LowerInnerB);
+
+        CompileDisplacementBinding(
+            Authored.TieRodInner,
+            Out.TieRodInner);
+
+        CompileDisplacementBinding(
+            Authored.DamperChassis,
+            Out.DamperChassis);
+    }
+
+    void CompileRearStructuralBindings(
+        const FTAMultiLinkStructuralBindingsAuthoringDefinition& Authored,
+        FTAMultiLinkStructuralBindings& Out)
+    {
+        const FTAStructureDisplacementBindingAuthoringDefinition* AuthoredLinks[TARearMultiLinkCount] =
+        {
+            &Authored.Link0,
+            &Authored.Link1,
+            &Authored.Link2,
+            &Authored.Link3,
+            &Authored.Link4
+        };
+
+        for (int32 Index = 0;
+             Index < TARearMultiLinkCount;
+             ++Index)
+        {
+            CompileDisplacementBinding(
+                *AuthoredLinks[Index],
+                Out.ChassisPickups[Index]);
+        }
+
+        CompileDisplacementBinding(
+            Authored.DamperChassis,
+            Out.DamperChassis);
+    }
+
+    bool ValidateFrontStructuralBindings(
+        const FTADoubleWishboneStructuralBindings& Bindings,
+        const int32 NodeCount)
+    {
+        return
+            TASuspensionDamageBinding::ValidateBinding(
+                Bindings.UpperInnerA,
+                NodeCount)
+            && TASuspensionDamageBinding::ValidateBinding(
+                Bindings.UpperInnerB,
+                NodeCount)
+            && TASuspensionDamageBinding::ValidateBinding(
+                Bindings.LowerInnerA,
+                NodeCount)
+            && TASuspensionDamageBinding::ValidateBinding(
+                Bindings.LowerInnerB,
+                NodeCount)
+            && TASuspensionDamageBinding::ValidateBinding(
+                Bindings.TieRodInner,
+                NodeCount)
+            && TASuspensionDamageBinding::ValidateBinding(
+                Bindings.DamperChassis,
+                NodeCount);
+    }
+
+    bool ValidateRearStructuralBindings(
+        const FTAMultiLinkStructuralBindings& Bindings,
+        const int32 NodeCount)
+    {
+        for (int32 Index = 0;
+             Index < TARearMultiLinkCount;
+             ++Index)
+        {
+            if (!TASuspensionDamageBinding::ValidateBinding(
+                    Bindings.ChassisPickups[Index],
+                    NodeCount))
+            {
+                return false;
+            }
+        }
+
+        return TASuspensionDamageBinding::ValidateBinding(
+            Bindings.DamperChassis,
+            NodeCount);
+    }
+
+    ETAVehicleDamageConsumerType CompileDamageConsumer(
+        const ETAVehicleDamageConsumerAuthoringType Consumer)
+    {
+        switch (Consumer)
+        {
+        case ETAVehicleDamageConsumerAuthoringType::Radiator:
+        default:
+            return ETAVehicleDamageConsumerType::Radiator;
+        }
+    }
+
+    bool CompileStructureRuntime(
+        const FTAVehicleStructureAuthoringDefinition& Authored,
+        const FVector3d& CenterOfMassVehicleLocalM,
+        FTAVehicleStructureCompiledConfig& Out,
+        FTAValidationResult& OutValidation)
+    {
+        Out =
+            FTAVehicleStructureCompiledConfig{};
+
+        const bool bHasDependentData =
+            Authored.Constraints.Num() > 0
+            || Authored.MountDamageBindings.Num() > 0
+            || Authored.DamageRoutes.Num() > 0
+            || HasAnyStructureBindingData(Authored);
+
+        if (Authored.Nodes.Num() == 0)
+        {
+            if (bHasDependentData)
+            {
+                AddValidation(
+                    OutValidation,
+                    ETAValidationSeverity::Error,
+                    TEXT("Vehicle.StructureMissingNodes"),
+                    TEXT("Structural constraints, routes or bindings require authored structural nodes."));
+
+                return false;
+            }
+
+            return true;
+        }
+
+        Out.Solver.ConstraintIterations =
+            Authored.ConstraintIterations;
+
+        Out.Solver.MaxPositionCorrectionM =
+            Authored.MaxPositionCorrectionM;
+
+        Out.Solver.MaxPlasticRestChangeFractionPerStep =
+            Authored.MaxPlasticRestChangeFractionPerStep;
+
+        Out.InitialNodes.SetNum(
+            Authored.Nodes.Num());
+
+        for (int32 NodeIndex = 0;
+             NodeIndex < Authored.Nodes.Num();
+             ++NodeIndex)
+        {
+            const FTAStructureNodeAuthoringDefinition& Source =
+                Authored.Nodes[NodeIndex];
+
+            if (Source.MassKg <= 0.0)
+            {
+                AddValidation(
+                    OutValidation,
+                    ETAValidationSeverity::Error,
+                    TEXT("Vehicle.StructureInvalidNodeMass"),
+                    FString::Printf(
+                        TEXT("Structural node %d has non-positive mass."),
+                        NodeIndex));
+
+                continue;
+            }
+
+            FTAStructureNode& Node =
+                Out.InitialNodes[NodeIndex];
+
+            Node.PositionM =
+                ToComLocal(
+                    Source.PositionVehicleLocalM,
+                    CenterOfMassVehicleLocalM);
+
+            Node.ReferencePositionM =
+                Node.PositionM;
+
+            Node.PreviousPositionM =
+                Node.PositionM;
+
+            Node.VelocityMps =
+                FVector3d::ZeroVector;
+
+            Node.bPinned =
+                Source.bPinned;
+
+            Node.InverseMassPerKg =
+                Source.bPinned
+                ? 0.0
+                : 1.0 / Source.MassKg;
+        }
+
+        Out.Constraints.SetNum(
+            Authored.Constraints.Num());
+
+        Out.DamageBridge.ConstraintTargetComponentIndices.SetNum(
+            Authored.Constraints.Num());
+
+        for (int32 ConstraintIndex = 0;
+             ConstraintIndex < Authored.Constraints.Num();
+             ++ConstraintIndex)
+        {
+            const FTAStructureConstraintAuthoringDefinition& Source =
+                Authored.Constraints[ConstraintIndex];
+
+            if (!Out.InitialNodes.IsValidIndex(Source.NodeA) ||
+                !Out.InitialNodes.IsValidIndex(Source.NodeB) ||
+                Source.NodeA == Source.NodeB)
+            {
+                AddValidation(
+                    OutValidation,
+                    ETAValidationSeverity::Error,
+                    TEXT("Vehicle.StructureInvalidConstraintNodes"),
+                    FString::Printf(
+                        TEXT("Structural constraint %d references invalid or identical nodes."),
+                        ConstraintIndex));
+
+                continue;
+            }
+
+            FTADistanceConstraint& Constraint =
+                Out.Constraints[ConstraintIndex];
+
+            Constraint.NodeA =
+                Source.NodeA;
+
+            Constraint.NodeB =
+                Source.NodeB;
+
+            Constraint.RestLengthM =
+                (Out.InitialNodes[Source.NodeB].PositionM
+                    - Out.InitialNodes[Source.NodeA].PositionM).Length();
+
+            if (Constraint.RestLengthM <= UE_DOUBLE_SMALL_NUMBER)
+            {
+                AddValidation(
+                    OutValidation,
+                    ETAValidationSeverity::Error,
+                    TEXT("Vehicle.StructureZeroLengthConstraint"),
+                    FString::Printf(
+                        TEXT("Structural constraint %d has zero rest length."),
+                        ConstraintIndex));
+            }
+
+            Constraint.Compliance =
+                FMath::Max(
+                    0.0,
+                    Source.Compliance);
+
+            Constraint.YieldStrain =
+                FMath::Max(
+                    0.0,
+                    Source.YieldStrain);
+
+            Constraint.FractureStrain =
+                FMath::Max(
+                    Constraint.YieldStrain,
+                    Source.FractureStrain);
+
+            Constraint.PlasticFlowRate01 =
+                FMath::Clamp(
+                    Source.PlasticFlowRate01,
+                    0.0,
+                    1.0);
+
+            Out.DamageBridge.ConstraintTargetComponentIndices[ConstraintIndex] =
+                Source.TargetComponentIndex;
+        }
+
+        Out.DamageBridge.ImpactTargetComponentIndex =
+            Authored.ImpactTargetComponentIndex;
+
+        for (const FTAStructureMountDamageAuthoringDefinition& Source :
+             Authored.MountDamageBindings)
+        {
+            FTAStructureMountDamageBinding Binding;
+
+            Binding.TargetComponentIndex =
+                Source.TargetComponentIndex;
+
+            Binding.NodeIndices =
+                Source.NodeIndices;
+
+            Binding.Weights =
+                Source.Weights;
+
+            Binding.DisplacementThresholdsM =
+                Source.DisplacementThresholdsM;
+
+            Out.DamageBridge.MountBindings.Add(
+                MoveTemp(Binding));
+        }
+
+        for (const FTAVehicleDamageRouteAuthoringDefinition& Source :
+             Authored.DamageRoutes)
+        {
+            FTAVehicleDamageRoute Route;
+
+            Route.TargetComponentIndex =
+                Source.TargetComponentIndex;
+
+            Route.Consumer =
+                CompileDamageConsumer(
+                    Source.Consumer);
+
+            Route.bAcceptImpactEnergy =
+                Source.bAcceptImpactEnergy;
+
+            Route.bAcceptStructuralDisplacement =
+                Source.bAcceptStructuralDisplacement;
+
+            Route.bAcceptStructuralFracture =
+                Source.bAcceptStructuralFracture;
+
+            Route.ImpactEnergyScale =
+                Source.ImpactEnergyScale;
+
+            Route.FullCrushDisplacementM =
+                Source.FullCrushDisplacementM;
+
+            Out.DamageRouting.Routes.Add(
+                Route);
+        }
+
+        CompileFrontStructuralBindings(
+            Authored.FrontLeftSuspensionBindings,
+            Out.FrontLeftSuspensionBindings);
+
+        CompileFrontStructuralBindings(
+            Authored.FrontRightSuspensionBindings,
+            Out.FrontRightSuspensionBindings);
+
+        CompileRearStructuralBindings(
+            Authored.RearLeftSuspensionBindings,
+            Out.RearLeftSuspensionBindings);
+
+        CompileRearStructuralBindings(
+            Authored.RearRightSuspensionBindings,
+            Out.RearRightSuspensionBindings);
+
+        const int32 NodeCount =
+            Out.InitialNodes.Num();
+
+        const bool bBindingsValid =
+            ValidateFrontStructuralBindings(
+                Out.FrontLeftSuspensionBindings,
+                NodeCount)
+            && ValidateFrontStructuralBindings(
+                Out.FrontRightSuspensionBindings,
+                NodeCount)
+            && ValidateRearStructuralBindings(
+                Out.RearLeftSuspensionBindings,
+                NodeCount)
+            && ValidateRearStructuralBindings(
+                Out.RearRightSuspensionBindings,
+                NodeCount);
+
+        if (!bBindingsValid)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.StructureInvalidSuspensionBinding"),
+                TEXT("One or more structural suspension bindings are invalid."));
+        }
+
+        if (!TAStructureDamageBridge::ValidateConfig(
+                Out.DamageBridge,
+                Out.InitialNodes.Num(),
+                Out.Constraints.Num()))
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.StructureInvalidDamageBridge"),
+                TEXT("Structural damage-event bindings are invalid."));
+        }
+
+        if (!TAVehicleDamageRouter::ValidateConfig(
+                Out.DamageRouting))
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.StructureInvalidDamageRouting"),
+                TEXT("Vehicle damage routing contains invalid or duplicate component targets."));
+        }
+
+        return !OutValidation.HasErrors();
+    }
+
+    uint32 HashStructureRuntime(
+        uint32 Hash,
+        const FTAVehicleStructureCompiledConfig& Structure)
+    {
+        Hash = HashCombineFast(
+            Hash,
+            GetTypeHash(Structure.InitialNodes.Num()));
+
+        Hash = HashCombineFast(
+            Hash,
+            GetTypeHash(Structure.Constraints.Num()));
+
+        for (const FTAStructureNode& Node :
+             Structure.InitialNodes)
+        {
+            Hash = HashVector(
+                Hash,
+                Node.ReferencePositionM);
+
+            Hash = HashDouble(
+                Hash,
+                Node.InverseMassPerKg);
+
+            Hash = HashBool(
+                Hash,
+                Node.bPinned);
+        }
+
+        for (const FTADistanceConstraint& Constraint :
+             Structure.Constraints)
+        {
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(Constraint.NodeA));
+
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(Constraint.NodeB));
+
+            Hash = HashDouble(
+                Hash,
+                Constraint.RestLengthM);
+
+            Hash = HashDouble(
+                Hash,
+                Constraint.Compliance);
+
+            Hash = HashDouble(
+                Hash,
+                Constraint.YieldStrain);
+
+            Hash = HashDouble(
+                Hash,
+                Constraint.FractureStrain);
+
+            Hash = HashDouble(
+                Hash,
+                Constraint.PlasticFlowRate01);
+        }
+
+        for (const FTAVehicleDamageRoute& Route :
+             Structure.DamageRouting.Routes)
+        {
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(Route.TargetComponentIndex));
+
+            Hash = HashCombineFast(
+                Hash,
+                GetTypeHash(
+                    static_cast<uint8>(Route.Consumer)));
+
+            Hash = HashDouble(
+                Hash,
+                Route.ImpactEnergyScale);
+
+            Hash = HashDouble(
+                Hash,
+                Route.FullCrushDisplacementM);
+        }
+
+        return Hash;
+    }
+
 }
 
 FTARearSuspensionDefinition::FTARearSuspensionDefinition()
