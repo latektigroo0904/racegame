@@ -9,8 +9,12 @@ namespace
         {
         case ETATelemetryMetric::WheelVerticalLoadN:
         case ETATelemetryMetric::SuspensionTravelM:
+        case ETATelemetryMetric::WheelCamberRad:
+        case ETATelemetryMetric::WheelToeRad:
         case ETATelemetryMetric::TireRadialDeflectionM:
         case ETATelemetryMetric::WheelSlipRatio:
+        case ETATelemetryMetric::TireLongitudinalForceN:
+        case ETATelemetryMetric::TireLateralForceN:
         case ETATelemetryMetric::TireSurfaceTemperatureC:
             return true;
 
@@ -80,6 +84,21 @@ namespace
                 Sample.TotalLateralForceN;
             break;
 
+        case ETATelemetryMetric::CoolingEfficiency01:
+            OutValue =
+                Sample.CoolingEfficiency01;
+            break;
+
+        case ETATelemetryMetric::CoolantTemperatureC:
+            OutValue =
+                Sample.CoolantTemperatureC;
+            break;
+
+        case ETATelemetryMetric::SteeringRackDisplacementM:
+            OutValue =
+                Sample.SteeringRackDisplacementM;
+            break;
+
         case ETATelemetryMetric::WheelVerticalLoadN:
             OutValue =
                 Sample.WheelVerticalLoadN[WheelIndex];
@@ -90,6 +109,16 @@ namespace
                 Sample.SuspensionTravelM[WheelIndex];
             break;
 
+        case ETATelemetryMetric::WheelCamberRad:
+            OutValue =
+                Sample.WheelCamberRad[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::WheelToeRad:
+            OutValue =
+                Sample.WheelToeRad[WheelIndex];
+            break;
+
         case ETATelemetryMetric::TireRadialDeflectionM:
             OutValue =
                 Sample.TireRadialDeflectionM[WheelIndex];
@@ -98,6 +127,16 @@ namespace
         case ETATelemetryMetric::WheelSlipRatio:
             OutValue =
                 Sample.WheelSlipRatio[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::TireLongitudinalForceN:
+            OutValue =
+                Sample.TireLongitudinalForceN[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::TireLateralForceN:
+            OutValue =
+                Sample.TireLateralForceN[WheelIndex];
             break;
 
         case ETATelemetryMetric::TireSurfaceTemperatureC:
@@ -275,14 +314,28 @@ namespace
             return TEXT("TotalLongitudinalForceN");
         case ETATelemetryMetric::TotalLateralForceN:
             return TEXT("TotalLateralForceN");
+        case ETATelemetryMetric::CoolingEfficiency01:
+            return TEXT("CoolingEfficiency01");
+        case ETATelemetryMetric::CoolantTemperatureC:
+            return TEXT("CoolantTemperatureC");
+        case ETATelemetryMetric::SteeringRackDisplacementM:
+            return TEXT("SteeringRackDisplacementM");
         case ETATelemetryMetric::WheelVerticalLoadN:
             return TEXT("WheelVerticalLoadN");
         case ETATelemetryMetric::SuspensionTravelM:
             return TEXT("SuspensionTravelM");
+        case ETATelemetryMetric::WheelCamberRad:
+            return TEXT("WheelCamberRad");
+        case ETATelemetryMetric::WheelToeRad:
+            return TEXT("WheelToeRad");
         case ETATelemetryMetric::TireRadialDeflectionM:
             return TEXT("TireRadialDeflectionM");
         case ETATelemetryMetric::WheelSlipRatio:
             return TEXT("WheelSlipRatio");
+        case ETATelemetryMetric::TireLongitudinalForceN:
+            return TEXT("TireLongitudinalForceN");
+        case ETATelemetryMetric::TireLateralForceN:
+            return TEXT("TireLateralForceN");
         case ETATelemetryMetric::TireSurfaceTemperatureC:
             return TEXT("TireSurfaceTemperatureC");
         default:
