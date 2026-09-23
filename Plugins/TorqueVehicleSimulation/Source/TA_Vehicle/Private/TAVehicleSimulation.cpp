@@ -76,6 +76,14 @@ bool TAVehicleSimulation::Initialize(
     OutState.Engine.AngularSpeedRadPerSec = IdleRadPerSec;
     OutState.Engine.RunState = ETAEngineRunState::Running;
 
+    TAPowertrainSolver::InitializeEngineThermalState(
+        Config.EngineThermal,
+        OutState.EngineThermal);
+
+    TADamage::InitializeRadiatorState(
+        Config.Radiator,
+        OutState.Radiator);
+
     OutState.Clutch.TemperatureC = Config.Clutch.AmbientTemperatureC;
     OutState.Clutch.ThermalCapacityFactor = 1.0;
     OutState.Clutch.WearCapacityFactor = 1.0;
@@ -206,6 +214,11 @@ bool TAVehicleSimulation::Step(
                 InOutState.Engine.AngularSpeedRadPerSec,
                 GearboxInputTargetSpeed);
     }
+
+    TADamage::UpdateRadiatorFluidLoss(
+        Config.Radiator,
+        DeltaTimeSeconds,
+        InOutState.Radiator);
 
     const double CombustionTorqueNm =
         TAPowertrainSolver::CalculateCombustionTorqueNm(
@@ -342,6 +355,27 @@ bool TAVehicleSimulation::Step(
         InOutState.Engine.AngularSpeedRadPerSec
         * 60.0
         / (2.0 * UE_DOUBLE_PI);
+
+    TAPowertrainSolver::UpdateEngineThermalState(
+        Config.EngineThermal,
+        Throttle01,
+        OutOutput.EngineRPM,
+        InOutState.Radiator.CoolingEfficiency01,
+        DeltaTimeSeconds,
+        InOutState.EngineThermal,
+        InOutState.Engine);
+
+    OutOutput.EngineCoolantTemperatureC =
+        InOutState.EngineThermal.CoolantTemperatureC;
+
+    OutOutput.EngineThermalTorqueFactor =
+        InOutState.Engine.ThermalTorqueFactor;
+
+    OutOutput.CoolingEfficiency01 =
+        InOutState.Radiator.CoolingEfficiency01;
+
+    OutOutput.CoolantMassKg =
+        InOutState.Radiator.CoolantMassKg;
 
     ++InOutState.SimulationTick;
     return true;
