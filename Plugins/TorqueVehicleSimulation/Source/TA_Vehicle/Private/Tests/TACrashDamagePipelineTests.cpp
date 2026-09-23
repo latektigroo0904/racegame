@@ -321,4 +321,176 @@ bool FTACrashToAlignmentAndRadiatorTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTACrashFunctionalDamageRoutingTest,
+    "TorqueAtlas.Crash.EndToEnd.FunctionalSteeringAndHubDamage",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTACrashFunctionalDamageRoutingTest::RunTest(
+    const FString& Parameters)
+{
+    FTAVehicleRuntimeConfig VehicleConfig;
+    VehicleConfig.Chassis.MassKg = 1420.0;
+    VehicleConfig.Chassis.PrincipalInertiaBodyKgm2 =
+        FVector3d(650.0, 1800.0, 1900.0);
+
+    VehicleConfig.Wheels.SetNum(4);
+    VehicleConfig.Tires.SetNum(4);
+
+    for (int32 Index = 0;
+         Index < 4;
+         ++Index)
+    {
+        VehicleConfig.Wheels[Index].RadiusM =
+            VehicleConfig.Tires[Index].UnloadedRadiusM;
+    }
+
+    VehicleConfig.Wheels[2].bDriven = true;
+    VehicleConfig.Wheels[3].bDriven = true;
+
+    FTAVehicleRuntimeState VehicleState;
+
+    TestTrue(
+        TEXT("Vehicle runtime initializes functional damage state"),
+        TAVehicleSimulation::Initialize(
+            VehicleConfig,
+            VehicleState));
+
+    TArray<FTAStructureNode> Nodes =
+        MakeCrashStructureNodes();
+
+    TArray<FTADistanceConstraint> Constraints;
+
+    FTACrashDamagePipelineConfig PipelineConfig =
+        MakeCrashPipelineConfig();
+
+    // Keep the existing radiator impact route, then add two displacement-routed
+    // mechanical consumers driven by structural mount movement.
+    FTAStructureMountDamageBinding SteeringMount;
+    SteeringMount.TargetComponentIndex = 8;
+    SteeringMount.NodeIndices = { 0 };
+    SteeringMount.Weights = { 1.0 };
+    SteeringMount.DisplacementThresholdsM =
+        { 0.0001 };
+
+    PipelineConfig.DamageBridge.MountBindings.Add(
+        SteeringMount);
+
+    FTAStructureMountDamageBinding HubMount;
+    HubMount.TargetComponentIndex = 9;
+    HubMount.NodeIndices = { 1 };
+    HubMount.Weights = { 1.0 };
+    HubMount.DisplacementThresholdsM =
+        { 0.0001 };
+
+    PipelineConfig.DamageBridge.MountBindings.Add(
+        HubMount);
+
+    FTAVehicleDamageRoute SteeringRoute;
+    SteeringRoute.TargetComponentIndex = 8;
+    SteeringRoute.Consumer =
+        ETAVehicleDamageConsumerType::SteeringRack;
+    SteeringRoute.bAcceptImpactEnergy = false;
+    SteeringRoute.bAcceptStructuralDisplacement = true;
+    SteeringRoute.bAcceptStructuralFracture = true;
+    SteeringRoute.FullCrushDisplacementM = 0.010;
+    SteeringRoute.MinimumSteeringAuthority01 = 0.25;
+    SteeringRoute.MaximumSteeringFreePlayM = 0.012;
+
+    PipelineConfig.DamageRouting.Routes.Add(
+        SteeringRoute);
+
+    FTAVehicleDamageRoute HubRoute;
+    HubRoute.TargetComponentIndex = 9;
+    HubRoute.Consumer =
+        ETAVehicleDamageConsumerType::WheelHub;
+    HubRoute.bAcceptImpactEnergy = false;
+    HubRoute.bAcceptStructuralDisplacement = true;
+    HubRoute.bAcceptStructuralFracture = true;
+    HubRoute.FullCrushDisplacementM = 0.010;
+    HubRoute.WheelIndex = 1;
+    HubRoute.MinimumBrakeEfficiency01 = 0.20;
+    HubRoute.MinimumDriveEfficiency01 = 0.0;
+    HubRoute.MaximumBearingDragTorqueNm = 80.0;
+
+    PipelineConfig.DamageRouting.Routes.Add(
+        HubRoute);
+
+    FTAStructureDamageBridgeState BridgeState;
+
+    TestTrue(
+        TEXT("Expanded damage bridge initializes"),
+        TAStructureDamageBridge::InitializeState(
+            PipelineConfig.DamageBridge,
+            Constraints.Num(),
+            BridgeState));
+
+    FTAStructureImpactScratch Scratch;
+    Scratch.Initialize(32);
+
+    FTADamageEventQueue Queue;
+    Queue.Initialize(64);
+
+    FTACrashDamagePipelineInput CrashInput;
+    CrashInput.SimulationTick = 900;
+    CrashInput.Substep = 0;
+    CrashInput.StructureDeltaTimeSeconds =
+        1.0 / 120.0;
+
+    CrashInput.Collision.ContactPointWorldM =
+        FVector3d(1.62, 0.70, -0.42);
+
+    CrashInput.Collision.CollisionImpulseWorldNs =
+        FVector3d(-4200.0, -650.0, 120.0);
+
+    FTACrashDamagePipelineOutput CrashOutput;
+
+    TestTrue(
+        TEXT("Crash pipeline routes mechanical damage consumers"),
+        TACrashDamagePipeline::ProcessImpact(
+            PipelineConfig,
+            VehicleConfig,
+            CrashInput,
+            VehicleState,
+            Nodes,
+            Constraints,
+            Scratch,
+            BridgeState,
+            Queue,
+            CrashOutput));
+
+    TestTrue(
+        TEXT("Crash degrades steering rack command authority"),
+        VehicleState.SteeringRackDamage.CommandAuthority01
+            < 1.0);
+
+    TestTrue(
+        TEXT("Crash creates steering rack free-play"),
+        VehicleState.SteeringRackDamage.FreePlayM
+            > 0.0);
+
+    TestTrue(
+        TEXT("Crash degrades front-right hub brake efficiency"),
+        VehicleState.WheelHubDamage[1].BrakeEfficiency01
+            < 1.0);
+
+    TestTrue(
+        TEXT("Crash creates front-right hub bearing drag"),
+        VehicleState.WheelHubDamage[1].BearingDragTorqueNm
+            > 0.0);
+
+    TestTrue(
+        TEXT("Typed steering route was applied"),
+        CrashOutput.DamageRouting.SteeringRackSignalsApplied
+            >= 1);
+
+    TestTrue(
+        TEXT("Typed hub route was applied"),
+        CrashOutput.DamageRouting.WheelHubSignalsApplied
+            >= 1);
+
+    return true;
+}
+
 #endif
