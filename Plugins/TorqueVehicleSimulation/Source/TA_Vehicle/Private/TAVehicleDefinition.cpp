@@ -1,5 +1,18 @@
 #include "TAVehicleDefinition.h"
 
+FTAPrototypeDrivetrainDefinition::FTAPrototypeDrivetrainDefinition()
+{
+    ForwardGearRatios =
+    {
+        3.45,
+        2.15,
+        1.52,
+        1.16,
+        0.92,
+        0.76
+    };
+}
+
 FTARearSuspensionDefinition::FTARearSuspensionDefinition()
 {
     Link0.ChassisPickup = FVector(-1.15, 0.35, -0.18);
