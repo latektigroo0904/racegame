@@ -126,3 +126,18 @@
 **Decision:** reference ride height is not zero spring force; spring force includes authored static compression/preload plus dynamic travel through motion ratio.  
 **Reason:** a stationary vehicle must be statically supported at its reference ride height.
 
+## ADR-028 — Native chassis solver owns 6-DOF reference motion
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** vehicle translation and rotation are integrated in a pure native chassis solver using explicit force/torque accumulation, body principal inertia and quaternion orientation.  
+**Reason:** tire, suspension and aero forces must have a deterministic engine-agnostic motion target before any Unreal rigid-body wrapper is chosen.
+
+## ADR-029 — Tire and suspension forces are applied at physical world points
+**Status:** accepted 2026-09-23  
+**Decision:** each wheel contact supplies contact position and basis directions; tire and suspension reaction forces are applied at that point to generate both chassis force and torque.  
+**Reason:** asymmetric grip and load must create pitch/roll/yaw through lever arms, not scripted yaw multipliers.
+
+## ADR-030 — Telemetry observes but never drives physics
+**Status:** accepted 2026-09-23  
+**Decision:** `TA_Telemetry` depends on public vehicle state and captures samples into a fixed-capacity ring buffer; the vehicle solver does not depend on telemetry.  
+**Reason:** logging/regression instrumentation must not become part of simulation truth or introduce solver-side allocations.
+
