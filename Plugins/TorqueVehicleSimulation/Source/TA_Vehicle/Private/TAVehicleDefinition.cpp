@@ -1075,6 +1075,12 @@ namespace
         case ETAVehicleDamageConsumerAuthoringType::WheelHub:
             return ETAVehicleDamageConsumerType::WheelHub;
 
+        case ETAVehicleDamageConsumerAuthoringType::SuspensionCorner:
+            return ETAVehicleDamageConsumerType::SuspensionCorner;
+
+        case ETAVehicleDamageConsumerAuthoringType::AntiRollLink:
+            return ETAVehicleDamageConsumerType::AntiRollLink;
+
         case ETAVehicleDamageConsumerAuthoringType::Radiator:
         default:
             return ETAVehicleDamageConsumerType::Radiator;
@@ -1339,6 +1345,18 @@ namespace
 
             Route.MaximumBearingDragTorqueNm =
                 Source.MaximumBearingDragTorqueNm;
+
+            Route.MinimumSpringEfficiency01 =
+                Source.MinimumSpringEfficiency01;
+
+            Route.MinimumDampingEfficiency01 =
+                Source.MinimumDampingEfficiency01;
+
+            Route.MinimumStopEfficiency01 =
+                Source.MinimumStopEfficiency01;
+
+            Route.MinimumAntiRollLinkEfficiency01 =
+                Source.MinimumAntiRollLinkEfficiency01;
 
             Out.DamageRouting.Routes.Add(
                 Route);
@@ -1963,6 +1981,22 @@ namespace
             Hash = HashDouble(
                 Hash,
                 Route.MaximumBearingDragTorqueNm);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumSpringEfficiency01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumDampingEfficiency01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumStopEfficiency01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumAntiRollLinkEfficiency01);
         }
 
         Hash = HashFrontStructuralBindings(
@@ -2749,18 +2783,25 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     for (const FTAVehicleDamageRoute& Route :
          OutConfig.StructureRuntime.DamageRouting.Routes)
     {
-        if (Route.Consumer ==
-                ETAVehicleDamageConsumerType::WheelHub &&
+        const bool bWheelScopedConsumer =
+            Route.Consumer ==
+                ETAVehicleDamageConsumerType::WheelHub
+            || Route.Consumer ==
+                ETAVehicleDamageConsumerType::SuspensionCorner
+            || Route.Consumer ==
+                ETAVehicleDamageConsumerType::AntiRollLink;
+
+        if (bWheelScopedConsumer &&
             (Route.WheelIndex < 0 ||
              Route.WheelIndex >= WheelCount))
         {
             AddValidation(
                 OutValidation,
                 ETAValidationSeverity::Error,
-                TEXT("Vehicle.InvalidWheelHubDamageRoute"),
+                TEXT("Vehicle.InvalidWheelScopedDamageRoute"),
                 FString::Printf(
                     TEXT(
-                        "Wheel-hub damage route for target component %d uses wheel index %d, "
+                        "Wheel-scoped damage route for target component %d uses wheel index %d, "
                         "but the compiled vehicle has %d wheels."),
                     Route.TargetComponentIndex,
                     Route.WheelIndex,
