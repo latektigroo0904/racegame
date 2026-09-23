@@ -46,6 +46,7 @@ struct TA_VEHICLE_API FTASuspensionRuntimeState
     FVector3d StructuralPickupOffsetM = FVector3d::ZeroVector;
 
     bool bKinematicCacheValid = true;
+    bool bTravelInitialized = false;
 };
 
 struct TA_VEHICLE_API FTASuspensionForceOutput
