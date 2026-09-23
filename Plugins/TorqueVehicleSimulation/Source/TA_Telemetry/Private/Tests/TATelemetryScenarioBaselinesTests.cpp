@@ -1,0 +1,163 @@
+#if WITH_DEV_AUTOMATION_TESTS
+
+#include "Misc/AutomationTest.h"
+#include "TATelemetryScenarioBaselines.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTATelemetryScenarioBaselineSetTest,
+    "TorqueAtlas.Telemetry.Scenarios.BuildAllProvisional",
+    EAutomationTestFlags::EditorContext |
+    EAutomationTestFlags::EngineFilter)
+
+bool FTATelemetryScenarioBaselineSetTest::RunTest(
+    const FString& Parameters)
+{
+    constexpr uint32 PhysicsHash =
+        0xA1B2C3D4u;
+
+    TArray<FTATelemetryScenarioBaseline> Baselines;
+
+    TATelemetryScenarioBaselines::BuildAllProvisional(
+        PhysicsHash,
+        Baselines);
+
+    TestEqual(
+        TEXT("Six first proving-ground scenarios exist"),
+        Baselines.Num(),
+        6);
+
+    TSet<FName> ScenarioIds;
+
+    for (const FTATelemetryScenarioBaseline& Baseline :
+         Baselines)
+    {
+        TestTrue(
+            TEXT("Each provisional baseline validates"),
+            TATelemetryScenarioBaselines::ValidateBaseline(
+                Baseline));
+
+        TestFalse(
+            TEXT("Provisional baseline is never marked trusted"),
+            Baseline.bTrustedBaseline);
+
+        TestEqual(
+            TEXT("Expected physics hash propagates into scenario"),
+            Baseline.Regression.ExpectedPhysicsConfigHash,
+            PhysicsHash);
+
+        TestTrue(
+            TEXT("Scenario contains at least one metric envelope"),
+            Baseline.Regression.Envelopes.Num() > 0);
+
+        TestFalse(
+            TEXT("Scenario ID is unique"),
+            ScenarioIds.Contains(
+                Baseline.ScenarioId));
+
+        ScenarioIds.Add(
+            Baseline.ScenarioId);
+    }
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTATelemetryScenarioTrustedHashRuleTest,
+    "TorqueAtlas.Telemetry.Scenarios.TrustedRequiresHash",
+    EAutomationTestFlags::EditorContext |
+    EAutomationTestFlags::EngineFilter)
+
+bool FTATelemetryScenarioTrustedHashRuleTest::RunTest(
+    const FString& Parameters)
+{
+    FTATelemetryScenarioBaseline Baseline;
+
+    TestTrue(
+        TEXT("Provisional static-settle baseline builds without required hash"),
+        TATelemetryScenarioBaselines::BuildProvisional(
+            ETARegressionScenarioKind::StaticSettle,
+            0u,
+            Baseline));
+
+    Baseline.bTrustedBaseline =
+        true;
+
+    TestFalse(
+        TEXT("Trusted baseline without physics hash is rejected"),
+        TATelemetryScenarioBaselines::ValidateBaseline(
+            Baseline));
+
+    Baseline.Regression.ExpectedPhysicsConfigHash =
+        123u;
+
+    TestTrue(
+        TEXT("Trusted baseline with explicit physics hash validates structurally"),
+        TATelemetryScenarioBaselines::ValidateBaseline(
+            Baseline));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTATelemetryScenarioCrashCoverageTest,
+    "TorqueAtlas.Telemetry.Scenarios.CrashIncludesDamageHandlingMetrics",
+    EAutomationTestFlags::EditorContext |
+    EAutomationTestFlags::EngineFilter)
+
+bool FTATelemetryScenarioCrashCoverageTest::RunTest(
+    const FString& Parameters)
+{
+    FTATelemetryScenarioBaseline Baseline;
+
+    TestTrue(
+        TEXT("Synthetic crash baseline builds"),
+        TATelemetryScenarioBaselines::BuildProvisional(
+            ETARegressionScenarioKind::SyntheticFrontCornerCrash,
+            4321u,
+            Baseline));
+
+    bool bHasToe = false;
+    bool bHasCamber = false;
+    bool bHasTireForce = false;
+    bool bHasCooling = false;
+
+    for (const FTATelemetryMetricEnvelope& Envelope :
+         Baseline.Regression.Envelopes)
+    {
+        bHasToe |=
+            Envelope.Metric ==
+                ETATelemetryMetric::WheelToeRad;
+
+        bHasCamber |=
+            Envelope.Metric ==
+                ETATelemetryMetric::WheelCamberRad;
+
+        bHasTireForce |=
+            Envelope.Metric ==
+                ETATelemetryMetric::TireLateralForceN;
+
+        bHasCooling |=
+            Envelope.Metric ==
+                ETATelemetryMetric::CoolingEfficiency01;
+    }
+
+    TestTrue(
+        TEXT("Crash scenario watches wheel toe"),
+        bHasToe);
+
+    TestTrue(
+        TEXT("Crash scenario watches wheel camber"),
+        bHasCamber);
+
+    TestTrue(
+        TEXT("Crash scenario watches tire force"),
+        bHasTireForce);
+
+    TestTrue(
+        TEXT("Crash scenario watches cooling consequence"),
+        bHasCooling);
+
+    return true;
+}
+
+#endif
