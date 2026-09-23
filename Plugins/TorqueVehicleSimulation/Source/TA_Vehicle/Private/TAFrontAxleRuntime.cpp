@@ -213,3 +213,133 @@ bool TAFrontAxleRuntime::Resolve(
     OutOutput.bSolved = true;
     return true;
 }
+
+
+bool TAFrontAxleRuntime::ResolveWithTireCompliance(
+    const FTAChassisState& Chassis,
+    const FTAFrontAxleRuntimeConfig& Config,
+    const FTAFrontAxleSolveInput& Input,
+    const FTATireRuntimeConfig& LeftTireConfig,
+    const FTATireRuntimeConfig& RightTireConfig,
+    const double DeltaTimeSeconds,
+    FTAFrontAxleRuntimeState& InOutState,
+    FTATireRuntimeState& InOutLeftTireState,
+    FTATireRuntimeState& InOutRightTireState,
+    FTAFrontAxleSolveOutput& OutOutput)
+{
+    OutOutput = FTAFrontAxleSolveOutput{};
+
+    if (DeltaTimeSeconds <= 0.0 ||
+        !TADoubleWishboneSolver::ValidateConfig(Config.RightGeometry))
+    {
+        return false;
+    }
+
+    const FTADoubleWishboneSolverConfig LeftGeometry =
+        TADoubleWishboneSolver::MirrorAcrossCenterline(
+            Config.RightGeometry);
+
+    if (!TADoubleWishboneSolver::ValidateConfig(LeftGeometry))
+    {
+        return false;
+    }
+
+    const double RackDisplacementM =
+        CalculateRackDisplacementM(
+            Config.SteeringRack,
+            Input.Steering01);
+
+    if (!TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
+            Chassis,
+            LeftGeometry,
+            Config.LeftSuspension,
+            LeftTireConfig,
+            RackDisplacementM,
+            Input.LeftDamage,
+            Input.LeftRoad,
+            DeltaTimeSeconds,
+            InOutState.LeftGeometry,
+            InOutState.LeftSuspension,
+            InOutLeftTireState,
+            OutOutput.LeftContact))
+    {
+        return false;
+    }
+
+    if (!TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
+            Chassis,
+            Config.RightGeometry,
+            Config.RightSuspension,
+            RightTireConfig,
+            RackDisplacementM,
+            Input.RightDamage,
+            Input.RightRoad,
+            DeltaTimeSeconds,
+            InOutState.RightGeometry,
+            InOutState.RightSuspension,
+            InOutRightTireState,
+            OutOutput.RightContact))
+    {
+        return false;
+    }
+
+    TAWheelContactResolver::ApplyAntiRollBarToPair(
+        Config.AntiRollBar,
+        OutOutput.LeftContact,
+        OutOutput.RightContact);
+
+    OutOutput.LeftVehicleContact =
+        TAWheelContactResolver::BuildVehicleWheelContactInput(
+            OutOutput.LeftContact);
+
+    OutOutput.RightVehicleContact =
+        TAWheelContactResolver::BuildVehicleWheelContactInput(
+            OutOutput.RightContact);
+
+    OutOutput.RackDisplacementM =
+        RackDisplacementM;
+
+    OutOutput.LeftSteeringAngleRad =
+        OutOutput.LeftContact.Geometry.ToeRad;
+
+    OutOutput.RightSteeringAngleRad =
+        OutOutput.RightContact.Geometry.ToeRad;
+
+    if (!CalculateBumpSteer(
+            LeftGeometry,
+            Input.LeftDamage,
+            OutOutput.LeftContact.TravelM,
+            OutOutput.LeftBumpSteerRad) ||
+        !CalculateBumpSteer(
+            Config.RightGeometry,
+            Input.RightDamage,
+            OutOutput.RightContact.TravelM,
+            OutOutput.RightBumpSteerRad))
+    {
+        return false;
+    }
+
+    const double AverageSteeringAngleRad =
+        0.5
+        * (OutOutput.LeftSteeringAngleRad
+            + OutOutput.RightSteeringAngleRad);
+
+    if (FMath::Abs(AverageSteeringAngleRad) > 1.0e-7)
+    {
+        if (AverageSteeringAngleRad > 0.0)
+        {
+            OutOutput.AckermannDeltaRad =
+                FMath::Abs(OutOutput.RightSteeringAngleRad)
+                - FMath::Abs(OutOutput.LeftSteeringAngleRad);
+        }
+        else
+        {
+            OutOutput.AckermannDeltaRad =
+                FMath::Abs(OutOutput.LeftSteeringAngleRad)
+                - FMath::Abs(OutOutput.RightSteeringAngleRad);
+        }
+    }
+
+    OutOutput.bSolved = true;
+    return true;
+}
