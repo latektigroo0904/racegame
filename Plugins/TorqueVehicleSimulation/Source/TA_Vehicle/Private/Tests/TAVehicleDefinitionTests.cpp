@@ -1566,4 +1566,47 @@ bool FTAVehicleDefinitionDerivedKinematicCacheTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionStructureGravityOwnershipTest,
+    "TorqueAtlas.Vehicle.Definition.StructureDoesNotDoubleCountGravity",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionStructureGravityOwnershipTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(0.0, 0.0, 0.0);
+    Node.MassKg =
+        10.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Vehicle with internal structure compiles"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Vehicle-attached structure uses zero local gravity"),
+        Config.StructureRuntime.Solver.GravityMps2
+            .IsNearlyZero(1.0e-12));
+
+    TestTrue(
+        TEXT("Rigid chassis retains world gravity"),
+        Config.VehicleRuntime.Chassis.GravityWorldMps2.Z
+            < -9.0);
+
+    return true;
+}
+
 #endif
