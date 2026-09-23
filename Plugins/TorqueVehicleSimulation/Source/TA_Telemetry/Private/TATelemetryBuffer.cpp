@@ -87,10 +87,18 @@ FString FTATelemetryRingBuffer::ExportCsv() const
             TEXT(
                 ",load_%s_n,travel_%s_m,camber_%s_rad,toe_%s_rad,"
                 "hubdamage_%s,hubbrake_%s,hubdrive_%s,hubdrag_%s_nm,"
+                "susdamage_%s,susspring_%s,susdamping_%s,susstop_%s,"
+                "arblinkdamage_%s,arblink_%s,"
                 "slipratio_%s,slipangle_%s_rad,"
                 "tirefx_%s_n,tirefy_%s_n,"
                 "tiretemp_%s_c,tirepressure_%s_kpa,"
                 "tirewear_%s,tiredeflection_%s_m"),
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
@@ -164,6 +172,8 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                     ",%.9g,%.9g,%.9g,%.9g,"
                     "%.9g,%.9g,%.9g,%.9g,"
                     "%.9g,%.9g,%.9g,%.9g,"
+                    "%.9g,%.9g,"
+                    "%.9g,%.9g,%.9g,%.9g,"
                     "%.9g,%.9g,%.9g,%.9g"),
                 Sample->WheelVerticalLoadN[Wheel],
                 Sample->SuspensionTravelM[Wheel],
@@ -173,6 +183,12 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 Sample->WheelHubBrakeEfficiency01[Wheel],
                 Sample->WheelHubDriveEfficiency01[Wheel],
                 Sample->WheelHubBearingDragTorqueNm[Wheel],
+                Sample->SuspensionSpringDamperDamage01[Wheel],
+                Sample->SuspensionSpringEfficiency01[Wheel],
+                Sample->SuspensionDampingEfficiency01[Wheel],
+                Sample->SuspensionStopEfficiency01[Wheel],
+                Sample->AntiRollLinkDamage01[Wheel],
+                Sample->AntiRollLinkEfficiency01[Wheel],
                 Sample->WheelSlipRatio[Wheel],
                 Sample->WheelSlipAngleRad[Wheel],
                 Sample->TireLongitudinalForceN[Wheel],
@@ -278,6 +294,30 @@ FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
 
             Sample.WheelHubBearingDragTorqueNm[Index] =
                 Hub.BearingDragTorqueNm;
+        }
+
+        if (State.SuspensionDamage.IsValidIndex(Index))
+        {
+            const FTASuspensionFunctionalDamageState& Suspension =
+                State.SuspensionDamage[Index];
+
+            Sample.SuspensionSpringDamperDamage01[Index] =
+                Suspension.SpringDamperDamage01;
+
+            Sample.SuspensionSpringEfficiency01[Index] =
+                Suspension.SpringEfficiency01;
+
+            Sample.SuspensionDampingEfficiency01[Index] =
+                Suspension.DampingEfficiency01;
+
+            Sample.SuspensionStopEfficiency01[Index] =
+                Suspension.StopEfficiency01;
+
+            Sample.AntiRollLinkDamage01[Index] =
+                Suspension.AntiRollLinkDamage01;
+
+            Sample.AntiRollLinkEfficiency01[Index] =
+                Suspension.AntiRollLinkEfficiency01;
         }
     }
 
