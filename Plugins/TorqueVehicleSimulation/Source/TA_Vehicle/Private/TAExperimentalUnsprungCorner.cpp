@@ -45,6 +45,76 @@ namespace
             && FMath::IsFinite(Value.Z);
     }
 
+    bool IsFiniteDamage(
+        const FTADoubleWishboneDamageOffsets& Damage)
+    {
+        return
+            IsFiniteVector(Damage.UpperInnerA)
+            && IsFiniteVector(Damage.UpperInnerB)
+            && IsFiniteVector(Damage.LowerInnerA)
+            && IsFiniteVector(Damage.LowerInnerB)
+            && IsFiniteVector(Damage.TieRodInner)
+            && IsFiniteVector(Damage.DamperChassis);
+    }
+
+    bool IsFiniteSuspensionConfig(
+        const FTASuspensionRuntimeConfig& Config)
+    {
+        return
+            FMath::IsFinite(Config.SpringRateNPerM)
+            && Config.SpringRateNPerM >= 0.0
+            && FMath::IsFinite(Config.StaticSpringCompressionM)
+            && Config.StaticSpringCompressionM >= 0.0
+            && FMath::IsFinite(Config.BumpDampingNsPerM)
+            && Config.BumpDampingNsPerM >= 0.0
+            && FMath::IsFinite(Config.ReboundDampingNsPerM)
+            && Config.ReboundDampingNsPerM >= 0.0
+            && FMath::IsFinite(Config.BumpStopTravelM)
+            && FMath::IsFinite(Config.DroopStopTravelM)
+            && Config.BumpStopTravelM > Config.DroopStopTravelM
+            && FMath::IsFinite(Config.BumpStopRateNPerM)
+            && Config.BumpStopRateNPerM >= 0.0
+            && FMath::IsFinite(Config.DroopStopRateNPerM)
+            && Config.DroopStopRateNPerM >= 0.0;
+    }
+
+    bool IsFiniteTireVerticalConfig(
+        const FTATireRuntimeConfig& Config)
+    {
+        return
+            FMath::IsFinite(Config.UnloadedRadiusM)
+            && Config.UnloadedRadiusM > UE_DOUBLE_SMALL_NUMBER
+            && FMath::IsFinite(Config.ReferencePressureKPa)
+            && Config.ReferencePressureKPa > UE_DOUBLE_SMALL_NUMBER
+            && FMath::IsFinite(Config.RadialStiffnessNPerM)
+            && Config.RadialStiffnessNPerM > 0.0
+            && FMath::IsFinite(Config.RadialProgressiveStiffnessNPerM2)
+            && Config.RadialProgressiveStiffnessNPerM2 >= 0.0
+            && FMath::IsFinite(Config.RadialDampingNsPerM)
+            && Config.RadialDampingNsPerM >= 0.0
+            && FMath::IsFinite(Config.MaxRadialDeflectionM)
+            && Config.MaxRadialDeflectionM > 0.0
+            && FMath::IsFinite(Config.PressureRadialStiffnessExponent)
+            && Config.PressureRadialStiffnessExponent >= 0.0;
+    }
+
+    bool ValidateInput(
+        const FTAExperimentalUnsprungCornerInput& Input)
+    {
+        return
+            IsFiniteVector(Input.Chassis.PositionWorldM)
+            && IsFiniteVector(Input.Chassis.LinearVelocityWorldMps)
+            && IsFiniteVector(Input.Chassis.AngularVelocityWorldRadPerSec)
+            && IsFiniteVector(Input.Road.PointWorldM)
+            && IsFiniteVector(Input.Road.NormalWorld)
+            && !Input.Road.NormalWorld.IsNearlyZero()
+            && FMath::IsFinite(Input.RackDisplacementM)
+            && FMath::IsFinite(Input.AdditionalSuspensionReactionN)
+            && IsFiniteDamage(Input.Damage)
+            && IsFiniteVector(
+                Input.ChassisLinearAccelerationWorldMps2);
+    }
+
     double EstimateMotionRatio(
         const FTADoubleWishboneSolverConfig& GeometryConfig,
         const double RackDisplacementM,
@@ -331,6 +401,28 @@ namespace
         OutOutput.ChassisSuspensionReactionN =
             Evaluation.SuspensionReactionN;
 
+        OutOutput.GeneralizedTireForceN =
+            Evaluation.TireNormalForceN
+            * Evaluation.RoadToTravelProjection01;
+
+        OutOutput.GeneralizedGravityForceN =
+            Config.Unsprung.EffectiveMassKg
+            * FVector3d::DotProduct(
+                Config.GravityWorldMps2,
+                Evaluation.TravelAxisWorld);
+
+        OutOutput.GeneralizedChassisInertialForceN =
+            -Config.Unsprung.EffectiveMassKg
+            * FVector3d::DotProduct(
+                Input.ChassisLinearAccelerationWorldMps2,
+                Evaluation.TravelAxisWorld);
+
+        OutOutput.GeneralizedForceBalanceN =
+            OutOutput.GeneralizedTireForceN
+            - Evaluation.SuspensionReactionN
+            + OutOutput.GeneralizedGravityForceN
+            + OutOutput.GeneralizedChassisInertialForceN;
+
         OutOutput.RequestedTireDeflectionM =
             Evaluation.RequestedTireDeflectionM;
 
@@ -431,13 +523,26 @@ namespace
 bool TAExperimentalUnsprungCorner::ValidateConfig(
     const FTAExperimentalUnsprungCornerConfig& Config)
 {
+    constexpr double TravelLimitToleranceM =
+        1.0e-6;
+
     return
         TADoubleWishboneSolver::ValidateConfig(
             Config.Geometry)
         && TAUnsprungVerticalDynamics::ValidateConfig(
             Config.Unsprung)
-        && Config.Tire.UnloadedRadiusM
-            > UE_DOUBLE_SMALL_NUMBER
+        && IsFiniteSuspensionConfig(
+            Config.Suspension)
+        && IsFiniteTireVerticalConfig(
+            Config.Tire)
+        && FMath::Abs(
+            Config.Unsprung.MinTravelM
+            - Config.Geometry.MinTravelM)
+            <= TravelLimitToleranceM
+        && FMath::Abs(
+            Config.Unsprung.MaxTravelM
+            - Config.Geometry.MaxTravelM)
+            <= TravelLimitToleranceM
         && Config.InternalSubsteps >= 1
         && Config.InternalSubsteps <= 16
         && IsFiniteVector(
@@ -458,6 +563,7 @@ bool TAExperimentalUnsprungCorner::InitializeFromQuasiStatic(
         FTAExperimentalUnsprungCornerOutput{};
 
     if (!ValidateConfig(Config)
+        || !ValidateInput(Input)
         || DeltaTimeSeconds <= 0.0)
     {
         return false;
@@ -539,10 +645,9 @@ bool TAExperimentalUnsprungCorner::Step(
         FTAExperimentalUnsprungCornerOutput{};
 
     if (!ValidateConfig(Config)
+        || !ValidateInput(Input)
         || !InOutState.bInitialized
-        || DeltaTimeSeconds <= 0.0
-        || !IsFiniteVector(
-            Input.ChassisLinearAccelerationWorldMps2))
+        || DeltaTimeSeconds <= 0.0)
     {
         return false;
     }
