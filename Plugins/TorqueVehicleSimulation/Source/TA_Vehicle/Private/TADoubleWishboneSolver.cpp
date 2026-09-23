@@ -235,6 +235,8 @@ bool TADoubleWishboneSolver::ValidateConfig(
         H.LowerInnerA,
         H.LowerInnerB,
         H.TieRodInner,
+        H.DamperChassis,
+        H.DamperLowerArmReference,
         H.UpperBallJointReference,
         H.LowerBallJointReference,
         H.TieRodOuterReference,
@@ -254,6 +256,7 @@ bool TADoubleWishboneSolver::ValidateConfig(
 
     if (Distance(H.UpperInnerA, H.UpperInnerB) <= 0.01 ||
         Distance(H.LowerInnerA, H.LowerInnerB) <= 0.01 ||
+        Distance(H.DamperChassis, H.DamperLowerArmReference) <= 0.01 ||
         Distance(H.UpperBallJointReference, H.LowerBallJointReference) <= 0.01 ||
         Distance(H.UpperBallJointReference, H.TieRodOuterReference) <= 0.01 ||
         Distance(H.LowerBallJointReference, H.TieRodOuterReference) <= 0.01 ||
@@ -581,6 +584,55 @@ bool TADoubleWishboneSolver::Solve(
             SideSign * WheelUp.Y,
             WheelUp.Z);
 
+    FVector3d RefLowerPrimary;
+    FVector3d RefLowerSecondary;
+    FVector3d RefLowerTertiary;
+
+    FVector3d CurLowerPrimary;
+    FVector3d CurLowerSecondary;
+    FVector3d CurLowerTertiary;
+
+    if (!BuildBasis(
+            H.LowerInnerB,
+            H.LowerInnerA,
+            H.LowerBallJointReference,
+            RefLowerPrimary,
+            RefLowerSecondary,
+            RefLowerTertiary) ||
+        !BuildBasis(
+            LowerInnerB,
+            LowerInnerA,
+            Points[LIndex],
+            CurLowerPrimary,
+            CurLowerSecondary,
+            CurLowerTertiary))
+    {
+        InOutState.bHasValidPreviousSolution = false;
+        return false;
+    }
+
+    const FVector3d DamperReferenceOffset =
+        H.DamperLowerArmReference - H.LowerInnerA;
+
+    const FVector3d DamperLowerArmLocalM =
+        LowerInnerA
+        + MapReferenceVector(
+            DamperReferenceOffset,
+            RefLowerPrimary,
+            RefLowerSecondary,
+            RefLowerTertiary,
+            CurLowerPrimary,
+            CurLowerSecondary,
+            CurLowerTertiary);
+
+    const FVector3d DamperChassisRuntime =
+        H.DamperChassis + Input.Damage.DamperChassis;
+
+    const double DamperLengthM =
+        Distance(
+            DamperLowerArmLocalM,
+            DamperChassisRuntime);
+
     InOutState.UpperBallJoint = Points[UIndex];
     InOutState.LowerBallJoint = Points[LIndex];
     InOutState.TieRodOuter = Points[TIndex];
@@ -597,6 +649,13 @@ bool TADoubleWishboneSolver::Solve(
     OutOutput.WheelForwardLocal = WheelForward;
     OutOutput.WheelRightLocal = WheelRight;
     OutOutput.WheelUpLocal = WheelUp;
+
+    OutOutput.DamperLowerArmLocalM =
+        DamperLowerArmLocalM;
+
+    OutOutput.DamperLengthM =
+        DamperLengthM;
+
     OutOutput.CamberRad = CamberRad;
     OutOutput.ToeRad = ToeRad;
 
