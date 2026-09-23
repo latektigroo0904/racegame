@@ -29,6 +29,13 @@ struct TA_VEHICLE_API FTAWheelContactInput
     // Reaction from spring/damper/anti-roll/contact stack, supplied by suspension runtime.
     FVector3d SuspensionForceWorldN = FVector3d::ZeroVector;
 
+    // Optional chassis-side force application point. If false, legacy/canonical
+    // contact behavior applies suspension reaction at ContactPointWorldM.
+    bool bHasSuspensionForceApplicationPoint = false;
+
+    FVector3d SuspensionForceApplicationPointWorldM =
+        FVector3d::ZeroVector;
+
     FTASurfaceSample Surface;
 };
 
