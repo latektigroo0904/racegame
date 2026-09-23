@@ -255,6 +255,72 @@ bool FTACrashToAlignmentAndRadiatorTest::RunTest(
         AlignmentChangeRad
             > FMath::DegreesToRadians(0.10));
 
+    FTATireRuntimeConfig TireConfig;
+    FTATireRuntimeState TireState;
+    TireState.PressureKPa =
+        TireConfig.ReferencePressureKPa;
+    TireState.TreadDepthMm =
+        TireConfig.NewTreadDepthMm;
+
+    const FVector3d ChassisVelocityMps(15.0, 0.0, 0.0);
+
+    FTATireSolveInput ReferenceTireInput;
+    ReferenceTireInput.VerticalLoadN = 3500.0;
+    ReferenceTireInput.LongitudinalVelocityMps =
+        FVector3d::DotProduct(
+            ChassisVelocityMps,
+            ReferenceOutput.WheelForwardLocal);
+    ReferenceTireInput.LateralVelocityMps =
+        FVector3d::DotProduct(
+            ChassisVelocityMps,
+            ReferenceOutput.WheelRightLocal);
+    ReferenceTireInput.WheelAngularSpeedRadPerSec =
+        15.0 / TireConfig.UnloadedRadiusM;
+    ReferenceTireInput.CamberRad =
+        ReferenceOutput.CamberRad;
+    ReferenceTireInput.Surface.Material =
+        ETASurfaceMaterial::FreshAsphalt;
+
+    FTATireSolveInput DamagedTireInput =
+        ReferenceTireInput;
+
+    DamagedTireInput.LongitudinalVelocityMps =
+        FVector3d::DotProduct(
+            ChassisVelocityMps,
+            DamagedOutput.WheelForwardLocal);
+
+    DamagedTireInput.LateralVelocityMps =
+        FVector3d::DotProduct(
+            ChassisVelocityMps,
+            DamagedOutput.WheelRightLocal);
+
+    DamagedTireInput.CamberRad =
+        DamagedOutput.CamberRad;
+
+    const FTATireSolveOutput ReferenceTireOutput =
+        TATireSolver::Solve(
+            TireConfig,
+            TireState,
+            ReferenceTireInput);
+
+    const FTATireSolveOutput DamagedTireOutput =
+        TATireSolver::Solve(
+            TireConfig,
+            TireState,
+            DamagedTireInput);
+
+    const double TireForceChangeN =
+        FMath::Abs(
+            DamagedTireOutput.LongitudinalForceN
+            - ReferenceTireOutput.LongitudinalForceN)
+        + FMath::Abs(
+            DamagedTireOutput.LateralForceN
+            - ReferenceTireOutput.LateralForceN);
+
+    TestTrue(
+        TEXT("Crash-damaged alignment changes tire force for the same chassis motion"),
+        TireForceChangeN > 1.0);
+
     return true;
 }
 
