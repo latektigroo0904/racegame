@@ -12,7 +12,10 @@ public class TA_Vehicle : ModuleRules
                 "Core",
                 "CoreUObject",
                 "Engine",
-                "TA_Core"
+                "TA_Core",
+                "TA_Surface",
+                "TA_Tire",
+                "TA_Powertrain"
             }
         );
     }
