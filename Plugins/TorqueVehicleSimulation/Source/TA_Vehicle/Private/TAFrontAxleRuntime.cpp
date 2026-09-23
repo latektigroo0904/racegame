@@ -230,7 +230,8 @@ bool TAFrontAxleRuntime::ResolveWithTireCompliance(
     OutOutput = FTAFrontAxleSolveOutput{};
 
     if (DeltaTimeSeconds <= 0.0 ||
-        !TADoubleWishboneSolver::ValidateConfig(Config.RightGeometry))
+        !TADoubleWishboneSolver::ValidateConfig(
+            Config.RightGeometry))
     {
         return false;
     }
@@ -239,7 +240,8 @@ bool TAFrontAxleRuntime::ResolveWithTireCompliance(
         TADoubleWishboneSolver::MirrorAcrossCenterline(
             Config.RightGeometry);
 
-    if (!TADoubleWishboneSolver::ValidateConfig(LeftGeometry))
+    if (!TADoubleWishboneSolver::ValidateConfig(
+            LeftGeometry))
     {
         return false;
     }
@@ -249,44 +251,159 @@ bool TAFrontAxleRuntime::ResolveWithTireCompliance(
             Config.SteeringRack,
             Input.Steering01);
 
+    const FTAFrontAxleRuntimeState BaseAxleState =
+        InOutState;
+
+    const FTATireRuntimeState BaseLeftTireState =
+        InOutLeftTireState;
+
+    const FTATireRuntimeState BaseRightTireState =
+        InOutRightTireState;
+
+    double LeftAntiRollReactionN = 0.0;
+    double RightAntiRollReactionN = 0.0;
+
+    constexpr int32 CouplingIterations = 6;
+    constexpr double ReactionToleranceN = 2.0;
+
+    for (int32 Iteration = 0;
+         Iteration < CouplingIterations;
+         ++Iteration)
+    {
+        FTAFrontAxleRuntimeState ProbeState =
+            BaseAxleState;
+
+        FTATireRuntimeState ProbeLeftTire =
+            BaseLeftTireState;
+
+        FTATireRuntimeState ProbeRightTire =
+            BaseRightTireState;
+
+        FTAResolvedWheelContact ProbeLeftContact;
+        FTAResolvedWheelContact ProbeRightContact;
+
+        if (!TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
+                Chassis,
+                LeftGeometry,
+                Config.LeftSuspension,
+                LeftTireConfig,
+                RackDisplacementM,
+                LeftAntiRollReactionN,
+                Input.LeftDamage,
+                Input.LeftRoad,
+                DeltaTimeSeconds,
+                ProbeState.LeftGeometry,
+                ProbeState.LeftSuspension,
+                ProbeLeftTire,
+                ProbeLeftContact) ||
+            !TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
+                Chassis,
+                Config.RightGeometry,
+                Config.RightSuspension,
+                RightTireConfig,
+                RackDisplacementM,
+                RightAntiRollReactionN,
+                Input.RightDamage,
+                Input.RightRoad,
+                DeltaTimeSeconds,
+                ProbeState.RightGeometry,
+                ProbeState.RightSuspension,
+                ProbeRightTire,
+                ProbeRightContact))
+        {
+            return false;
+        }
+
+        const FTAAntiRollBarOutput AntiRoll =
+            TASuspensionRuntime::CalculateAntiRollBar(
+                Config.AntiRollBar,
+                ProbeLeftContact.TravelM,
+                ProbeRightContact.TravelM);
+
+        const double MaxReactionDeltaN =
+            FMath::Max(
+                FMath::Abs(
+                    AntiRoll.LeftLoadAdjustmentN
+                    - LeftAntiRollReactionN),
+                FMath::Abs(
+                    AntiRoll.RightLoadAdjustmentN
+                    - RightAntiRollReactionN));
+
+        // Mild under-relaxation keeps the coupled tire/suspension root stable
+        // when road-height differences are large.
+        LeftAntiRollReactionN =
+            FMath::Lerp(
+                LeftAntiRollReactionN,
+                AntiRoll.LeftLoadAdjustmentN,
+                0.75);
+
+        RightAntiRollReactionN =
+            FMath::Lerp(
+                RightAntiRollReactionN,
+                AntiRoll.RightLoadAdjustmentN,
+                0.75);
+
+        if (MaxReactionDeltaN <= ReactionToleranceN)
+        {
+            LeftAntiRollReactionN =
+                AntiRoll.LeftLoadAdjustmentN;
+
+            RightAntiRollReactionN =
+                AntiRoll.RightLoadAdjustmentN;
+
+            break;
+        }
+    }
+
+    FTAFrontAxleRuntimeState FinalState =
+        BaseAxleState;
+
+    FTATireRuntimeState FinalLeftTire =
+        BaseLeftTireState;
+
+    FTATireRuntimeState FinalRightTire =
+        BaseRightTireState;
+
     if (!TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
             Chassis,
             LeftGeometry,
             Config.LeftSuspension,
             LeftTireConfig,
             RackDisplacementM,
+            LeftAntiRollReactionN,
             Input.LeftDamage,
             Input.LeftRoad,
             DeltaTimeSeconds,
-            InOutState.LeftGeometry,
-            InOutState.LeftSuspension,
-            InOutLeftTireState,
-            OutOutput.LeftContact))
-    {
-        return false;
-    }
-
-    if (!TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
+            FinalState.LeftGeometry,
+            FinalState.LeftSuspension,
+            FinalLeftTire,
+            OutOutput.LeftContact) ||
+        !TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
             Chassis,
             Config.RightGeometry,
             Config.RightSuspension,
             RightTireConfig,
             RackDisplacementM,
+            RightAntiRollReactionN,
             Input.RightDamage,
             Input.RightRoad,
             DeltaTimeSeconds,
-            InOutState.RightGeometry,
-            InOutState.RightSuspension,
-            InOutRightTireState,
+            FinalState.RightGeometry,
+            FinalState.RightSuspension,
+            FinalRightTire,
             OutOutput.RightContact))
     {
         return false;
     }
 
-    TAWheelContactResolver::ApplyAntiRollBarToPair(
-        Config.AntiRollBar,
-        OutOutput.LeftContact,
-        OutOutput.RightContact);
+    InOutState =
+        FinalState;
+
+    InOutLeftTireState =
+        FinalLeftTire;
+
+    InOutRightTireState =
+        FinalRightTire;
 
     OutOutput.LeftVehicleContact =
         TAWheelContactResolver::BuildVehicleWheelContactInput(
@@ -329,14 +446,18 @@ bool TAFrontAxleRuntime::ResolveWithTireCompliance(
         if (AverageSteeringAngleRad > 0.0)
         {
             OutOutput.AckermannDeltaRad =
-                FMath::Abs(OutOutput.RightSteeringAngleRad)
-                - FMath::Abs(OutOutput.LeftSteeringAngleRad);
+                FMath::Abs(
+                    OutOutput.RightSteeringAngleRad)
+                - FMath::Abs(
+                    OutOutput.LeftSteeringAngleRad);
         }
         else
         {
             OutOutput.AckermannDeltaRad =
-                FMath::Abs(OutOutput.LeftSteeringAngleRad)
-                - FMath::Abs(OutOutput.RightSteeringAngleRad);
+                FMath::Abs(
+                    OutOutput.LeftSteeringAngleRad)
+                - FMath::Abs(
+                    OutOutput.RightSteeringAngleRad);
         }
     }
 
