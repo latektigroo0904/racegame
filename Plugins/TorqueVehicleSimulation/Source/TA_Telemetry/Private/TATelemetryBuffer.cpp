@@ -67,7 +67,8 @@ FString FTATelemetryRingBuffer::ExportCsv() const
         "vx_mps,vy_mps,vz_mps,"
         "wx_radps,wy_radps,wz_radps,"
         "fx_total_n,fy_total_n,"
-        "rack_m,steer_fl_rad,steer_fr_rad,"
+        "rack_m,rack_damage,rack_authority,rack_freeplay_m,"
+        "steer_fl_rad,steer_fr_rad,"
         "bumpsteer_fl_rad,bumpsteer_fr_rad,ackermann_delta_rad");
 
     const TCHAR* WheelNames[TAPrototypeTelemetryWheelCount] =
@@ -85,10 +86,15 @@ FString FTATelemetryRingBuffer::ExportCsv() const
         Csv.Appendf(
             TEXT(
                 ",load_%s_n,travel_%s_m,camber_%s_rad,toe_%s_rad,"
+                "hubdamage_%s,hubbrake_%s,hubdrive_%s,hubdrag_%s_nm,"
                 "slipratio_%s,slipangle_%s_rad,"
                 "tirefx_%s_n,tirefy_%s_n,"
                 "tiretemp_%s_c,tirepressure_%s_kpa,"
                 "tirewear_%s,tiredeflection_%s_m"),
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
@@ -123,6 +129,7 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 "%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,"
+                "%.9g,%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,%.9g"),
             static_cast<unsigned long long>(
@@ -139,6 +146,9 @@ FString FTATelemetryRingBuffer::ExportCsv() const
             Sample->TotalLongitudinalForceN,
             Sample->TotalLateralForceN,
             Sample->SteeringRackDisplacementM,
+            Sample->SteeringRackDamage01,
+            Sample->SteeringCommandAuthority01,
+            Sample->SteeringRackFreePlayM,
             Sample->FrontLeftSteeringAngleRad,
             Sample->FrontRightSteeringAngleRad,
             Sample->FrontLeftBumpSteerRad,
@@ -153,11 +163,16 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 TEXT(
                     ",%.9g,%.9g,%.9g,%.9g,"
                     "%.9g,%.9g,%.9g,%.9g,"
+                    "%.9g,%.9g,%.9g,%.9g,"
                     "%.9g,%.9g,%.9g,%.9g"),
                 Sample->WheelVerticalLoadN[Wheel],
                 Sample->SuspensionTravelM[Wheel],
                 Sample->WheelCamberRad[Wheel],
                 Sample->WheelToeRad[Wheel],
+                Sample->WheelHubDamage01[Wheel],
+                Sample->WheelHubBrakeEfficiency01[Wheel],
+                Sample->WheelHubDriveEfficiency01[Wheel],
+                Sample->WheelHubBearingDragTorqueNm[Wheel],
                 Sample->WheelSlipRatio[Wheel],
                 Sample->WheelSlipAngleRad[Wheel],
                 Sample->TireLongitudinalForceN[Wheel],
@@ -201,6 +216,15 @@ FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
     Sample.TotalLateralForceN =
         Output.TotalLateralForceN;
 
+    Sample.SteeringRackDamage01 =
+        State.SteeringRackDamage.Damage01;
+
+    Sample.SteeringCommandAuthority01 =
+        State.SteeringRackDamage.CommandAuthority01;
+
+    Sample.SteeringRackFreePlayM =
+        State.SteeringRackDamage.FreePlayM;
+
     const int32 WheelCount =
         FMath::Min(
             State.Wheels.Num(),
@@ -237,6 +261,24 @@ FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
 
         Sample.TireRadialDeflectionM[Index] =
             TireState.RadialDeflectionM;
+
+        if (State.WheelHubDamage.IsValidIndex(Index))
+        {
+            const FTAWheelHubFunctionalDamageState& Hub =
+                State.WheelHubDamage[Index];
+
+            Sample.WheelHubDamage01[Index] =
+                Hub.Damage01;
+
+            Sample.WheelHubBrakeEfficiency01[Index] =
+                Hub.BrakeEfficiency01;
+
+            Sample.WheelHubDriveEfficiency01[Index] =
+                Hub.DriveEfficiency01;
+
+            Sample.WheelHubBearingDragTorqueNm[Index] =
+                Hub.BearingDragTorqueNm;
+        }
     }
 
     return Sample;
