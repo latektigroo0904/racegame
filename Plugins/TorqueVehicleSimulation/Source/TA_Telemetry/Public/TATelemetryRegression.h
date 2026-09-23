@@ -63,6 +63,17 @@ struct TA_TELEMETRY_API FTATelemetryEnvelopeResult
 {
     int32 EnvelopeIndex = INDEX_NONE;
 
+    ETATelemetryMetric Metric =
+        ETATelemetryMetric::ChassisSpeedMps;
+
+    ETATelemetryStatistic Statistic =
+        ETATelemetryStatistic::Mean;
+
+    int32 WheelIndex = INDEX_NONE;
+
+    double StartFraction01 = 0.0;
+    double EndFraction01 = 1.0;
+
     bool bPassed = false;
 
     double ObservedValue = 0.0;
@@ -72,7 +83,13 @@ struct TA_TELEMETRY_API FTATelemetryEnvelopeResult
 
 struct TA_TELEMETRY_API FTATelemetryRegressionResult
 {
+    FName ScenarioId = NAME_None;
+
+    uint32 ExpectedPhysicsConfigHash = 0;
+    uint32 ObservedPhysicsConfigHash = 0;
+
     bool bPassed = false;
+    bool bPhysicsConfigHashConsistent = true;
     bool bPhysicsConfigHashMatched = true;
 
     int32 SampleCount = 0;
@@ -92,4 +109,11 @@ namespace TATelemetryRegression
         const FTATelemetryRingBuffer& Buffer,
         const FTATelemetryRegressionConfig& Config,
         FTATelemetryRegressionResult& OutResult);
+
+    // Machine-readable outputs for CI/regression artifact capture.
+    TA_TELEMETRY_API FString ExportCsv(
+        const FTATelemetryRegressionResult& Result);
+
+    TA_TELEMETRY_API FString ExportJsonLines(
+        const FTATelemetryRegressionResult& Result);
 }
