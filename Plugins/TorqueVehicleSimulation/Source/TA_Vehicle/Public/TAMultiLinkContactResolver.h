@@ -55,6 +55,7 @@ namespace TAMultiLinkContactResolver
         const FTAMultiLinkSolverConfig& GeometryConfig,
         const FTASuspensionRuntimeConfig& SuspensionConfig,
         const FTATireRuntimeConfig& TireConfig,
+        double AdditionalSuspensionReactionN,
         const FTAMultiLinkDamageOffsets& DamageOffsets,
         const FTARoadPlane& Road,
         double DeltaTimeSeconds,
