@@ -482,12 +482,12 @@ bool FTACrashFunctionalDamageRoutingTest::RunTest(
 
     TestTrue(
         TEXT("Typed steering route was applied"),
-        CrashOutput.DamageRouting.SteeringRackSignalsApplied
+        CrashOutput.Routing.SteeringRackSignalsApplied
             >= 1);
 
     TestTrue(
         TEXT("Typed hub route was applied"),
-        CrashOutput.DamageRouting.WheelHubSignalsApplied
+        CrashOutput.Routing.WheelHubSignalsApplied
             >= 1);
 
     return true;
