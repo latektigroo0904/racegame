@@ -1,19 +1,19 @@
 #include "TATelemetry.h"
 
-void FTATelemetryRingBuffer::Initialize(const int32 InCapacity)
+void FTACompactTelemetryRingBuffer::Initialize(const int32 InCapacity)
 {
     Samples.SetNum(FMath::Max(0, InCapacity));
     WriteIndex = 0;
     Count = 0;
 }
 
-void FTATelemetryRingBuffer::Reset()
+void FTACompactTelemetryRingBuffer::Reset()
 {
     WriteIndex = 0;
     Count = 0;
 }
 
-void FTATelemetryRingBuffer::Push(const FTATelemetrySample& Sample)
+void FTACompactTelemetryRingBuffer::Push(const FTATelemetrySample& Sample)
 {
     if (Samples.Num() == 0)
     {
@@ -25,17 +25,17 @@ void FTATelemetryRingBuffer::Push(const FTATelemetrySample& Sample)
     Count = FMath::Min(Count + 1, Samples.Num());
 }
 
-int32 FTATelemetryRingBuffer::Num() const
+int32 FTACompactTelemetryRingBuffer::Num() const
 {
     return Count;
 }
 
-int32 FTATelemetryRingBuffer::Capacity() const
+int32 FTACompactTelemetryRingBuffer::Capacity() const
 {
     return Samples.Num();
 }
 
-bool FTATelemetryRingBuffer::GetOldest(
+bool FTACompactTelemetryRingBuffer::GetOldest(
     const int32 LogicalIndex,
     FTATelemetrySample& OutSample) const
 {
