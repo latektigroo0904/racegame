@@ -108,6 +108,31 @@ namespace
                 Sample.CoolantTemperatureC;
             break;
 
+        case ETATelemetryMetric::ElectricalDamage01:
+            OutValue =
+                Sample.ElectricalDamage01;
+            break;
+
+        case ETATelemetryMetric::StarterEfficiency01:
+            OutValue =
+                Sample.StarterEfficiency01;
+            break;
+
+        case ETATelemetryMetric::EngineControlEfficiency01:
+            OutValue =
+                Sample.EngineControlEfficiency01;
+            break;
+
+        case ETATelemetryMetric::FuelDeliveryDamage01:
+            OutValue =
+                Sample.FuelDeliveryDamage01;
+            break;
+
+        case ETATelemetryMetric::FuelDeliveryEfficiency01:
+            OutValue =
+                Sample.FuelDeliveryEfficiency01;
+            break;
+
         case ETATelemetryMetric::SteeringRackDisplacementM:
             OutValue =
                 Sample.SteeringRackDisplacementM;
@@ -417,6 +442,16 @@ namespace
             return TEXT("CoolingEfficiency01");
         case ETATelemetryMetric::CoolantTemperatureC:
             return TEXT("CoolantTemperatureC");
+        case ETATelemetryMetric::ElectricalDamage01:
+            return TEXT("ElectricalDamage01");
+        case ETATelemetryMetric::StarterEfficiency01:
+            return TEXT("StarterEfficiency01");
+        case ETATelemetryMetric::EngineControlEfficiency01:
+            return TEXT("EngineControlEfficiency01");
+        case ETATelemetryMetric::FuelDeliveryDamage01:
+            return TEXT("FuelDeliveryDamage01");
+        case ETATelemetryMetric::FuelDeliveryEfficiency01:
+            return TEXT("FuelDeliveryEfficiency01");
         case ETATelemetryMetric::SteeringRackDisplacementM:
             return TEXT("SteeringRackDisplacementM");
         case ETATelemetryMetric::SteeringRackDamage01:
