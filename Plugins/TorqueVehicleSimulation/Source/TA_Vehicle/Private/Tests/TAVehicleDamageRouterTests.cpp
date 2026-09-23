@@ -709,4 +709,185 @@ bool FTAVehicleDamageRouterRejectsZeroSpringSupportTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDamageRouterElectricalBusTest,
+    "TorqueAtlas.Damage.VehicleRouter.ElectricalBusFunctionalDamage",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDamageRouterElectricalBusTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig VehicleConfig =
+        MakeFunctionalDamageVehicleConfig();
+
+    FTAVehicleRuntimeState State =
+        MakeVehicleState(VehicleConfig);
+
+    FTAVehicleDamageRoutingConfig Routing;
+
+    FTAVehicleDamageRoute Route;
+    Route.TargetComponentIndex = 12;
+    Route.Consumer =
+        ETAVehicleDamageConsumerType::ElectricalBus;
+    Route.bAcceptImpactEnergy = false;
+    Route.bAcceptStructuralDisplacement = false;
+    Route.bAcceptStructuralFracture = false;
+    Route.bAcceptElectricalDisconnection = true;
+    Route.MinimumStarterEfficiency01 = 0.10;
+    Route.MinimumEngineControlEfficiency01 = 0.20;
+
+    Routing.Routes.Add(Route);
+
+    FTADamageSignal PartialDisconnect;
+    PartialDisconnect.TargetComponentIndex = 12;
+    PartialDisconnect.Type =
+        ETADamageSignalType::ElectricalDisconnection;
+    PartialDisconnect.ScalarValue = 0.50;
+
+    FTAVehicleDamageRoutingOutput Output;
+
+    TestTrue(
+        TEXT("Partial electrical disconnect routes"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&PartialDisconnect, 1),
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Half electrical severity degrades starter authority"),
+        FMath::IsNearlyEqual(
+            State.ElectricalDamage.StarterEfficiency01,
+            0.55,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Half electrical severity degrades engine-control authority"),
+        FMath::IsNearlyEqual(
+            State.ElectricalDamage.EngineControlEfficiency01,
+            0.60,
+            1.0e-9));
+
+    TestEqual(
+        TEXT("Electrical route count increments"),
+        Output.ElectricalBusSignalsApplied,
+        1);
+
+    FTADamageSignal FullDisconnect =
+        PartialDisconnect;
+
+    // A discrete disconnect event with no normalized scalar means full loss.
+    FullDisconnect.ScalarValue =
+        0.0;
+
+    TestTrue(
+        TEXT("Full electrical disconnect routes"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&FullDisconnect, 1),
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Full disconnect reaches starter minimum"),
+        FMath::IsNearlyEqual(
+            State.ElectricalDamage.StarterEfficiency01,
+            0.10,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Full disconnect reaches engine-control minimum"),
+        FMath::IsNearlyEqual(
+            State.ElectricalDamage.EngineControlEfficiency01,
+            0.20,
+            1.0e-9));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDamageRouterFuelDeliveryTest,
+    "TorqueAtlas.Damage.VehicleRouter.FuelDeliveryFunctionalDamage",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDamageRouterFuelDeliveryTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig VehicleConfig =
+        MakeFunctionalDamageVehicleConfig();
+
+    FTAVehicleRuntimeState State =
+        MakeVehicleState(VehicleConfig);
+
+    FTAVehicleDamageRoutingConfig Routing;
+
+    FTAVehicleDamageRoute Route;
+    Route.TargetComponentIndex = 13;
+    Route.Consumer =
+        ETAVehicleDamageConsumerType::FuelDelivery;
+    Route.bAcceptImpactEnergy = false;
+    Route.bAcceptStructuralDisplacement = false;
+    Route.bAcceptStructuralFracture = false;
+    Route.bAcceptFluidPressureLoss = true;
+    Route.MinimumFuelDeliveryEfficiency01 = 0.0;
+
+    Routing.Routes.Add(Route);
+
+    FTADamageSignal PartialLoss;
+    PartialLoss.TargetComponentIndex = 13;
+    PartialLoss.Type =
+        ETADamageSignalType::FluidPressureLoss;
+    PartialLoss.ScalarValue = 0.40;
+
+    FTAVehicleDamageRoutingOutput Output;
+
+    TestTrue(
+        TEXT("Partial fuel pressure loss routes"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&PartialLoss, 1),
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Forty percent fuel severity leaves sixty percent delivery"),
+        FMath::IsNearlyEqual(
+            State.FuelDeliveryDamage.DeliveryEfficiency01,
+            0.60,
+            1.0e-9));
+
+    TestEqual(
+        TEXT("Fuel-delivery route count increments"),
+        Output.FuelDeliverySignalsApplied,
+        1);
+
+    FTADamageSignal FullLoss =
+        PartialLoss;
+
+    FullLoss.ScalarValue =
+        0.0;
+
+    TestTrue(
+        TEXT("Discrete full fuel-pressure loss routes"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&FullLoss, 1),
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Full fuel-pressure loss can remove delivery"),
+        FMath::IsNearlyEqual(
+            State.FuelDeliveryDamage.DeliveryEfficiency01,
+            0.0,
+            1.0e-9));
+
+    return true;
+}
+
 #endif
