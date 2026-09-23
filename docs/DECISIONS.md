@@ -50,3 +50,23 @@
 ## ADR-012 — Repository as canonical record
 **Status:** accepted 2026-09-23  
 **Decision:** `latektigroo0904/racegame` is the main versioned repository for project documentation and future code unless explicitly changed.
+
+## ADR-013 — Initial tire solver family
+**Status:** accepted for prototype  
+**Decision:** start with an interpretable brush-inspired semi-empirical tire model behind a backend-neutral API, rather than making a full Magic Formula implementation a prerequisite.  
+**Reason:** faster calibration, better debugging and easier low-speed/combined-slip stability while preserving a future measured-data backend.
+
+## ADR-014 — Aquaplaning is continuous and per wheel
+**Status:** accepted  
+**Decision:** standing water creates a continuous hydrodynamic support fraction per tire; it is not a binary global weather threshold.  
+**Reason:** split puddles, tread wear, pressure and load must produce local vehicle reactions.
+
+## ADR-015 — XPBD-style structural compliance
+**Status:** accepted for prototype  
+**Decision:** use an iterative position/compliance-based structural constraint solver with semi-implicit integration rather than very stiff explicit springs.  
+**Reason:** high structural stiffness needs practical timesteps and stable crash solving.
+
+## ADR-016 — GeoForge normalized intermediate representation
+**Status:** accepted  
+**Decision:** source map formats are converted into a stable GeoForge schema before Unreal export. Raw OSM/source tags are not gameplay APIs.  
+**Reason:** source independence, regeneration, validation, licensing provenance and regional rule packs.
