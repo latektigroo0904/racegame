@@ -14,7 +14,8 @@ The repository now has a substantially closed source-level physics foundation:
 - 6-DOF chassis;
 - collision → internal structure coupling;
 - structure → suspension pickup deformation;
-- radiator, steering-rack and wheel-hub functional damage;
+- radiator, steering-rack, wheel-hub, suspension-corner and anti-roll-link functional damage;
+- persistent brake thermal/fade/wear dynamics;
 - telemetry and scenario regression reporting;
 - complete vehicle calibration authoring v2;
 - isolated dynamic-unsprung experiment;
@@ -62,6 +63,7 @@ Vehicle-specific effective physics is now explicit/versioned for:
 - engine thermal/derate;
 - radiator/coolant damage and leak calibration;
 - suspension spring/damper/stop calibration;
+- brake thermal, fade and wear calibration;
 - steering geometry;
 - hardpoint geometry;
 - structural solver/impact/damage routing content.
@@ -83,6 +85,7 @@ Global chassis gravity remains scenario/world physics. Vehicle-attached internal
 - engine and torque curve;
 - engine thermal;
 - cooling/radiator;
+- per-wheel brake thermal/fade/wear;
 - clutch;
 - gearbox;
 - driveline;
@@ -112,7 +115,7 @@ collision impulse
 Typed functional path:
 ```
 impact/structure signal
-→ radiator / steering rack / wheel hub
+→ radiator / steering rack / wheel hub / suspension corner / anti-roll link
 → persistent subsystem degradation
 → runtime behavior consequence
 ```
@@ -125,9 +128,36 @@ Implemented functional consequences:
 - steering rack free play;
 - hub brake-efficiency loss;
 - hub drive-efficiency loss;
-- hub bearing drag.
+- hub bearing drag;
+- spring support degradation;
+- damping degradation;
+- suspension-stop degradation;
+- anti-roll drop-link degradation/disconnection.
 
 Functional damage is monotonic until a future explicit repair operation exists.
+
+Topology-changing failures such as broken control arms, tie rods and rear links are intentionally deferred until the kinematic solver can disable constraints and solve a partially free upright. They are not approximated with arbitrary camber/toe offsets.
+
+## Brake thermal/fade/wear
+
+Per-wheel brake capacity is now:
+
+```
+base max brake torque
+× hub brake efficiency
+× thermal fade factor
+× wear torque factor
+```
+
+Persistent state:
+- brake temperature;
+- brake wear;
+- thermal torque factor;
+- wear torque factor.
+
+Heat is derived from effective brake torque × average absolute wheel speed. Cooling is proportional to temperature above ambient. Wear is energy-based.
+
+The full brake calibration is authored, validated and included in `PhysicsConfigHash`.
 
 ## Dynamic-unsprung experiment
 
@@ -168,7 +198,10 @@ Telemetry includes:
 - tire slip/force/temp/pressure/wear/deflection;
 - rack position/Ackermann/bump steer;
 - steering damage/authority/free play;
-- per-wheel hub damage/brake/drive/bearing drag.
+- per-wheel hub damage/brake/drive/bearing drag;
+- per-wheel suspension spring/damper/stop health;
+- per-wheel anti-roll-link health;
+- per-wheel brake temperature/fade/wear state.
 
 Regression infrastructure includes:
 - scalar envelopes;
@@ -236,7 +269,7 @@ The first enhanced run successfully passed:
 
 It then identified a malformed C++ JSON quote-escape in `TATelemetryRegression.cpp`; that source error was repaired on `main`.
 
-The next source-sanity run determines whether further static issues remain.
+Subsequent source-sanity runs are now green across the completed suspension-damage and brake-thermal code paths. The latest complete brake code/test commit confirmed green source sanity at `9b71a34...`.
 
 This is still not equivalent to an Unreal build.
 
@@ -246,9 +279,9 @@ This is still not equivalent to an Unreal build.
 3. Dynamic-unsprung stability/energy/CPU cost is unmeasured.
 4. Coupled contact and five-link convergence has not been profiled.
 5. Real collision manifold/contact persistence is not yet connected.
-6. Suspension discrete fracture consumers remain incomplete.
+6. Topology-changing control-arm/tie-rod/multi-link fracture remains incomplete.
 7. Fluid/electrical damage consumers remain incomplete.
-8. Brake thermal dynamics remain incomplete.
+8. Hydraulic brake/ABS/fluid-boil behavior remains incomplete.
 9. Aero remains incomplete.
 10. Real-world calibration remains provisional.
 
@@ -281,24 +314,24 @@ After canonical UE baseline exists:
 - measure per-corner CPU cost;
 - test four-corner coupling only if isolated acceptance gates pass.
 
-### 5. Next damage systems
+### 5. Next source-level damage system
 Without weakening the build gate:
-- discrete suspension/link fracture consumers;
-- brake thermal/fade/wear;
-- fluid/electrical consumers.
+- fluid/electrical consumers;
+- then topology-changing suspension failures only after an appropriate free-upright constraint model exists.
 
 ## Exact continuation point
-Resume from the **latest GitHub source-sanity run**.
+Resume with **fluid/electrical functional damage**, while the first UE 5.8 executable verification remains the highest-priority external gate.
 
-If green:
-- do not claim UE build success;
-- proceed to first UE 5.8 executable verification when a toolchain is available;
-- otherwise continue source-level work on discrete suspension-component damage behind the same regression/hash/version discipline.
+Source-level next step:
+1. audit current engine/radiator/electrical assumptions;
+2. define only consequences the current runtime can physically represent;
+3. add typed consumers without creating global vehicle HP;
+4. author/hash/validate route calibration;
+5. add crash → signal → persistent state → runtime consequence regressions;
+6. expose the state in telemetry;
+7. require GitHub source-sanity green again.
 
-If red:
-- inspect the exact failing job step/log;
-- repair the smallest root cause;
-- rerun through the normal push-triggered workflow.
+Do not claim UE build success until the local verification harness actually runs against Unreal Engine 5.8.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
