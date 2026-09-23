@@ -49,6 +49,19 @@ struct TA_VEHICLE_API FTASuspensionRuntimeState
     bool bTravelInitialized = false;
 };
 
+struct TA_VEHICLE_API FTAAntiRollBarConfig
+{
+    // Effective wheel-rate coupling for the first prototype.
+    double CouplingRateNPerM = 12000.0;
+    double MaxTransferForceN = 3500.0;
+};
+
+struct TA_VEHICLE_API FTAAntiRollBarOutput
+{
+    double LeftLoadAdjustmentN = 0.0;
+    double RightLoadAdjustmentN = 0.0;
+};
+
 struct TA_VEHICLE_API FTASuspensionForceOutput
 {
     double SpringForceN = 0.0;
@@ -68,4 +81,9 @@ namespace TASuspensionRuntime
     TA_VEHICLE_API FTASuspensionForceOutput CalculateForce(
         const FTASuspensionRuntimeConfig& Config,
         const FTASuspensionRuntimeState& State);
+
+    TA_VEHICLE_API FTAAntiRollBarOutput CalculateAntiRollBar(
+        const FTAAntiRollBarConfig& Config,
+        double LeftTravelM,
+        double RightTravelM);
 }
