@@ -2081,6 +2081,67 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             TEXT("Vehicle DefinitionId must not be None."));
     }
 
+    const bool bVersionNumbersPositive =
+        Version.SchemaVersion > 0
+        && Version.PhysicsVersion > 0
+        && Version.DamageModelVersion > 0;
+
+    if (!bVersionNumbersPositive)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.InvalidVersion"),
+            TEXT("Schema, physics and damage-model versions must all be positive."));
+    }
+
+    const bool bFutureVersion =
+        Version.SchemaVersion
+            > TAVersion::CurrentSchemaVersion
+        || Version.PhysicsVersion
+            > TAVersion::CurrentPhysicsVersion
+        || Version.DamageModelVersion
+            > TAVersion::CurrentDamageModelVersion;
+
+    if (bFutureVersion)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.UnsupportedFutureVersion"),
+            TEXT(
+                "Vehicle content targets a schema/physics/damage version newer "
+                "than this runtime understands."));
+    }
+
+    const bool bLegacyVersion =
+        Version.SchemaVersion
+            < TAVersion::CurrentSchemaVersion
+        || Version.PhysicsVersion
+            < TAVersion::CurrentPhysicsVersion
+        || Version.DamageModelVersion
+            < TAVersion::CurrentDamageModelVersion;
+
+    if (bVersionNumbersPositive
+        && !bFutureVersion
+        && bLegacyVersion)
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Warning,
+            TEXT("Vehicle.LegacyVersion"),
+            FString::Printf(
+                TEXT(
+                    "Vehicle uses schema/physics/damage %d/%d/%d; current runtime is %d/%d/%d. "
+                    "Re-save/review calibration before promoting regression baselines."),
+                Version.SchemaVersion,
+                Version.PhysicsVersion,
+                Version.DamageModelVersion,
+                TAVersion::CurrentSchemaVersion,
+                TAVersion::CurrentPhysicsVersion,
+                TAVersion::CurrentDamageModelVersion));
+    }
+
     if (Mass.ReferenceMassKg <= 0.0)
     {
         AddValidation(
