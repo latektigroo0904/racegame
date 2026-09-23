@@ -121,8 +121,6 @@ bool FTACrashToAlignmentAndRadiatorTest::RunTest(
         VehicleConfig.Radiator,
         VehicleState.Radiator);
 
-    FTAChassisState ChassisState;
-
     TArray<FTAStructureNode> Nodes =
         MakeCrashStructureNodes();
 
@@ -166,7 +164,6 @@ bool FTACrashToAlignmentAndRadiatorTest::RunTest(
             PipelineConfig,
             VehicleConfig,
             CrashInput,
-            ChassisState,
             VehicleState,
             Nodes,
             Constraints,
@@ -177,7 +174,7 @@ bool FTACrashToAlignmentAndRadiatorTest::RunTest(
 
     TestTrue(
         TEXT("Crash changes chassis velocity"),
-        ChassisState.LinearVelocityWorldMps.Length() > 0.0);
+        VehicleState.Chassis.LinearVelocityWorldMps.Length() > 0.0);
 
     TestTrue(
         TEXT("Crash injects internal structural deformation"),
