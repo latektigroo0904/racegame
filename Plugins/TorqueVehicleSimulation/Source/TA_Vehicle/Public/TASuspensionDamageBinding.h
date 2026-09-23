@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "TADoubleWishboneSolver.h"
+#include "TAMultiLinkSolver.h"
 #include "TAStructureSolver.h"
 
 struct TA_VEHICLE_API FTAStructureDisplacementBinding
@@ -22,6 +23,12 @@ struct TA_VEHICLE_API FTADoubleWishboneStructuralBindings
     FTAStructureDisplacementBinding DamperChassis;
 };
 
+struct TA_VEHICLE_API FTAMultiLinkStructuralBindings
+{
+    FTAStructureDisplacementBinding ChassisPickups[TARearMultiLinkCount];
+    FTAStructureDisplacementBinding DamperChassis;
+};
+
 namespace TASuspensionDamageBinding
 {
     TA_VEHICLE_API bool ValidateBinding(
@@ -37,4 +44,9 @@ namespace TASuspensionDamageBinding
         TConstArrayView<FTAStructureNode> StructureNodes,
         const FTADoubleWishboneStructuralBindings& Bindings,
         FTADoubleWishboneDamageOffsets& OutOffsets);
+
+    TA_VEHICLE_API bool ResolveMultiLinkDamageOffsets(
+        TConstArrayView<FTAStructureNode> StructureNodes,
+        const FTAMultiLinkStructuralBindings& Bindings,
+        FTAMultiLinkDamageOffsets& OutOffsets);
 }
