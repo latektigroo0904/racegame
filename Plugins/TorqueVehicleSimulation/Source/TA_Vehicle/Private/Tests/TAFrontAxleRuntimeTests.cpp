@@ -251,4 +251,95 @@ bool FTAFrontAxleAsymmetricRoadTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAFrontAxleCompliantAntiRollEquilibriumTest,
+    "TorqueAtlas.Suspension.FrontAxle.CompliantAntiRollEquilibrium",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAFrontAxleCompliantAntiRollEquilibriumTest::RunTest(const FString& Parameters)
+{
+    FTAFrontAxleRuntimeConfig NoBarConfig =
+        MakeFrontAxleConfig();
+
+    NoBarConfig.AntiRollBar.CouplingRateNPerM = 0.0;
+    NoBarConfig.AntiRollBar.MaxTransferForceN = 0.0;
+
+    FTAFrontAxleRuntimeConfig BarConfig =
+        MakeFrontAxleConfig();
+
+    FTAFrontAxleSolveInput Input;
+    Input.LeftRoad = MakeRoad();
+    Input.RightRoad = MakeRoad();
+    Input.RightRoad.PointWorldM.Z = 0.020;
+
+    FTATireRuntimeConfig LeftTireConfig;
+    FTATireRuntimeConfig RightTireConfig;
+
+    FTAFrontAxleRuntimeState NoBarState;
+    FTATireRuntimeState NoBarLeftTire;
+    FTATireRuntimeState NoBarRightTire;
+    FTAFrontAxleSolveOutput NoBarOutput;
+
+    TestTrue(
+        TEXT("Compliant front axle resolves without anti-roll"),
+        TAFrontAxleRuntime::ResolveWithTireCompliance(
+            MakeChassis(),
+            NoBarConfig,
+            Input,
+            LeftTireConfig,
+            RightTireConfig,
+            1.0 / 240.0,
+            NoBarState,
+            NoBarLeftTire,
+            NoBarRightTire,
+            NoBarOutput));
+
+    FTAFrontAxleRuntimeState BarState;
+    FTATireRuntimeState BarLeftTire;
+    FTATireRuntimeState BarRightTire;
+    FTAFrontAxleSolveOutput BarOutput;
+
+    TestTrue(
+        TEXT("Compliant front axle resolves with coupled anti-roll"),
+        TAFrontAxleRuntime::ResolveWithTireCompliance(
+            MakeChassis(),
+            BarConfig,
+            Input,
+            LeftTireConfig,
+            RightTireConfig,
+            1.0 / 240.0,
+            BarState,
+            BarLeftTire,
+            BarRightTire,
+            BarOutput));
+
+    TestTrue(
+        TEXT("Raised right road compresses right suspension more"),
+        BarOutput.RightContact.TravelM
+            > BarOutput.LeftContact.TravelM);
+
+    TestTrue(
+        TEXT("Coupled anti-roll raises inside/right normal load"),
+        BarOutput.RightContact.VerticalLoadN
+            > NoBarOutput.RightContact.VerticalLoadN);
+
+    TestTrue(
+        TEXT("Coupled anti-roll lowers opposite/left normal load"),
+        BarOutput.LeftContact.VerticalLoadN
+            < NoBarOutput.LeftContact.VerticalLoadN);
+
+    TestTrue(
+        TEXT("Higher anti-roll-supported load is represented by tire deflection"),
+        BarOutput.RightContact.TireRadialDeflectionM
+            > NoBarOutput.RightContact.TireRadialDeflectionM);
+
+    TestTrue(
+        TEXT("Lower opposite load is represented by reduced tire deflection"),
+        BarOutput.LeftContact.TireRadialDeflectionM
+            < NoBarOutput.LeftContact.TireRadialDeflectionM);
+
+    return true;
+}
+
 #endif
