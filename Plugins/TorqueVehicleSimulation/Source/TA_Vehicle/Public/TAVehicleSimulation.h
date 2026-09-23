@@ -44,6 +44,7 @@ struct TA_VEHICLE_API FTADriverControls
 {
     double Throttle01 = 0.0;
     double Brake01 = 0.0;
+    double Steering01 = 0.0;
     double ClutchEngagement01 = 1.0;
 
     bool bStarterEngaged = false;
