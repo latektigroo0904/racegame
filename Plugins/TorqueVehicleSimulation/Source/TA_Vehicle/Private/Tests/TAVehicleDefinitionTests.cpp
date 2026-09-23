@@ -1704,4 +1704,254 @@ bool FTAVehicleDefinitionVersionPolicyTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionSuspensionDamageRoutesTest,
+    "TorqueAtlas.Vehicle.Definition.CompilesSuspensionDamageRoutes",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionSuspensionDamageRoutesTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(1.20, 0.30, -0.30);
+    Node.MassKg =
+        15.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleDamageRouteAuthoringDefinition SuspensionRoute;
+    SuspensionRoute.TargetComponentIndex =
+        10;
+    SuspensionRoute.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::SuspensionCorner;
+    SuspensionRoute.WheelIndex =
+        0;
+    SuspensionRoute.MinimumSpringEfficiency01 =
+        0.25;
+    SuspensionRoute.MinimumDampingEfficiency01 =
+        0.10;
+    SuspensionRoute.MinimumStopEfficiency01 =
+        0.80;
+
+    Definition->Structure.DamageRoutes.Add(
+        SuspensionRoute);
+
+    FTAVehicleDamageRouteAuthoringDefinition AntiRollRoute;
+    AntiRollRoute.TargetComponentIndex =
+        11;
+    AntiRollRoute.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::AntiRollLink;
+    AntiRollRoute.WheelIndex =
+        1;
+    AntiRollRoute.MinimumAntiRollLinkEfficiency01 =
+        0.0;
+
+    Definition->Structure.DamageRoutes.Add(
+        AntiRollRoute);
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Suspension damage routes compile"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestEqual(
+        TEXT("Two suspension-related routes compile"),
+        Config.StructureRuntime.DamageRouting.Routes.Num(),
+        2);
+
+    const FTAVehicleDamageRoute& CompiledSuspension =
+        Config.StructureRuntime.DamageRouting.Routes[0];
+
+    TestTrue(
+        TEXT("Suspension-corner consumer type is preserved"),
+        CompiledSuspension.Consumer
+            == ETAVehicleDamageConsumerType::SuspensionCorner);
+
+    TestEqual(
+        TEXT("Suspension-corner wheel index is preserved"),
+        CompiledSuspension.WheelIndex,
+        0);
+
+    TestTrue(
+        TEXT("Suspension spring/damping/stop minima are preserved"),
+        FMath::IsNearlyEqual(
+            CompiledSuspension.MinimumSpringEfficiency01,
+            0.25,
+            1.0e-9)
+        && FMath::IsNearlyEqual(
+            CompiledSuspension.MinimumDampingEfficiency01,
+            0.10,
+            1.0e-9)
+        && FMath::IsNearlyEqual(
+            CompiledSuspension.MinimumStopEfficiency01,
+            0.80,
+            1.0e-9));
+
+    const FTAVehicleDamageRoute& CompiledAntiRoll =
+        Config.StructureRuntime.DamageRouting.Routes[1];
+
+    TestTrue(
+        TEXT("Anti-roll-link consumer type is preserved"),
+        CompiledAntiRoll.Consumer
+            == ETAVehicleDamageConsumerType::AntiRollLink);
+
+    TestEqual(
+        TEXT("Anti-roll-link wheel index is preserved"),
+        CompiledAntiRoll.WheelIndex,
+        1);
+
+    TestTrue(
+        TEXT("Anti-roll-link minimum efficiency is preserved"),
+        FMath::IsNearlyEqual(
+            CompiledAntiRoll.MinimumAntiRollLinkEfficiency01,
+            0.0,
+            1.0e-9));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionSuspensionDamageHashSensitivityTest,
+    "TorqueAtlas.Vehicle.Definition.SuspensionDamageCalibrationChangesHash",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionSuspensionDamageHashSensitivityTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(1.20, 0.30, -0.30);
+    Node.MassKg =
+        15.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleDamageRouteAuthoringDefinition Route;
+    Route.TargetComponentIndex =
+        10;
+    Route.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::SuspensionCorner;
+    Route.WheelIndex =
+        0;
+    Route.MinimumSpringEfficiency01 =
+        0.30;
+
+    Definition->Structure.DamageRoutes.Add(
+        Route);
+
+    FTAVehicleCompiledConfig Baseline;
+    FTAValidationResult BaselineValidation;
+
+    TestTrue(
+        TEXT("Baseline suspension route compiles"),
+        Definition->BuildCompiledConfig(
+            Baseline,
+            BaselineValidation));
+
+    Definition->Structure.DamageRoutes[0]
+        .MinimumSpringEfficiency01 =
+        0.45;
+
+    FTAVehicleCompiledConfig SpringModified;
+    FTAValidationResult SpringValidation;
+
+    TestTrue(
+        TEXT("Modified spring minimum compiles"),
+        Definition->BuildCompiledConfig(
+            SpringModified,
+            SpringValidation));
+
+    TestTrue(
+        TEXT("Spring damage calibration changes physics hash"),
+        SpringModified.PhysicsConfigHash
+            != Baseline.PhysicsConfigHash);
+
+    Definition->Structure.DamageRoutes[0]
+        .Consumer =
+        ETAVehicleDamageConsumerAuthoringType::AntiRollLink;
+
+    Definition->Structure.DamageRoutes[0]
+        .MinimumAntiRollLinkEfficiency01 =
+        0.35;
+
+    FTAVehicleCompiledConfig AntiRollModified;
+    FTAValidationResult AntiRollValidation;
+
+    TestTrue(
+        TEXT("Anti-roll route compiles"),
+        Definition->BuildCompiledConfig(
+            AntiRollModified,
+            AntiRollValidation));
+
+    TestTrue(
+        TEXT("Changing consumer/calibration changes physics hash"),
+        AntiRollModified.PhysicsConfigHash
+            != SpringModified.PhysicsConfigHash);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionRejectsInvalidSuspensionRouteWheelTest,
+    "TorqueAtlas.Vehicle.Definition.RejectsInvalidSuspensionRouteWheel",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionRejectsInvalidSuspensionRouteWheelTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(1.20, 0.30, -0.30);
+    Node.MassKg =
+        15.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleDamageRouteAuthoringDefinition Route;
+    Route.TargetComponentIndex =
+        10;
+    Route.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::SuspensionCorner;
+    Route.WheelIndex =
+        4;
+    Route.MinimumSpringEfficiency01 =
+        0.20;
+
+    Definition->Structure.DamageRoutes.Add(
+        Route);
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestFalse(
+        TEXT("Out-of-range suspension route wheel fails asset compilation"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Invalid suspension route emits validation errors"),
+        Validation.HasErrors());
+
+    return true;
+}
+
 #endif
