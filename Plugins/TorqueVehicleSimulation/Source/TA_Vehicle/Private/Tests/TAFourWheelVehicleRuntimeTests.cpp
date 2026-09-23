@@ -97,7 +97,7 @@ namespace
             MakeFrontRightGeometry();
 
         Config.FrontAxle.LeftSuspension.SpringRateNPerM = 100000.0;
-        Config.FrontAxle.LeftSuspension.StaticSpringCompressionM = 0.08;
+        Config.FrontAxle.LeftSuspension.StaticSpringCompressionM = 0.0872;
         Config.FrontAxle.LeftSuspension.BumpDampingNsPerM = 4500.0;
         Config.FrontAxle.LeftSuspension.ReboundDampingNsPerM = 6500.0;
         Config.FrontAxle.RightSuspension =
@@ -114,7 +114,7 @@ namespace
             MakeRearRightGeometry();
 
         Config.RearAxle.LeftSuspension.SpringRateNPerM = 50000.0;
-        Config.RearAxle.LeftSuspension.StaticSpringCompressionM = 0.08;
+        Config.RearAxle.LeftSuspension.StaticSpringCompressionM = 0.0908;
         Config.RearAxle.LeftSuspension.BumpDampingNsPerM = 3800.0;
         Config.RearAxle.LeftSuspension.ReboundDampingNsPerM = 5200.0;
         Config.RearAxle.RightSuspension =
@@ -239,6 +239,16 @@ bool FTAFourWheelStaticSupportTest::RunTest(const FString& Parameters)
     TestTrue(
         TEXT("Static suspension support is close to vehicle weight"),
         FMath::Abs(TotalSupportN - WeightN) < 750.0);
+
+    TestTrue(
+        TEXT("Front tires carry finite radial deflection"),
+        Output.FrontAxle.LeftContact.TireRadialDeflectionM > 0.005
+        && Output.FrontAxle.RightContact.TireRadialDeflectionM > 0.005);
+
+    TestTrue(
+        TEXT("Rear tires carry finite radial deflection"),
+        Output.RearAxle.LeftContact.TireRadialDeflectionM > 0.005
+        && Output.RearAxle.RightContact.TireRadialDeflectionM > 0.005);
 
     TestTrue(
         TEXT("Reference-height first step has small vertical velocity"),
