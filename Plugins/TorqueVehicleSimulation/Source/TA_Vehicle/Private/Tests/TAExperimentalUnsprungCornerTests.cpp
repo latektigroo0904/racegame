@@ -293,6 +293,50 @@ bool FTAExperimentalUnsprungRoadStepTest::RunTest(
             State.Unsprung.TravelVelocityMps)
             < 0.5);
 
+    FTADoubleWishboneState ReferenceGeometryState;
+    FTASuspensionRuntimeState ReferenceSuspensionState;
+    FTATireRuntimeState ReferenceTireState;
+
+    ReferenceTireState.PressureKPa =
+        Config.Tire.ReferencePressureKPa;
+
+    ReferenceTireState.TreadDepthMm =
+        Config.Tire.NewTreadDepthMm;
+
+    FTAResolvedWheelContact ReferenceContact;
+
+    TestTrue(
+        TEXT("Raised-road quasi-static reference resolves"),
+        TAWheelContactResolver::
+            ResolveDoubleWishboneCompliantRoadContact(
+                Input.Chassis,
+                Config.Geometry,
+                Config.Suspension,
+                Config.Tire,
+                Input.RackDisplacementM,
+                Input.AdditionalSuspensionReactionN,
+                Input.Damage,
+                Input.Road,
+                1.0 / 240.0,
+                ReferenceGeometryState,
+                ReferenceSuspensionState,
+                ReferenceTireState,
+                ReferenceContact));
+
+    TestTrue(
+        TEXT("Settled dynamic travel converges near quasi-static raised-road equilibrium"),
+        FMath::Abs(
+            State.Unsprung.TravelM
+            - ReferenceContact.TravelM)
+            < 0.003);
+
+    TestTrue(
+        TEXT("Settled dynamic tire load converges near quasi-static load"),
+        FMath::Abs(
+            Output.TireNormalForceN
+            - ReferenceContact.VerticalLoadN)
+            < 300.0);
+
     return true;
 }
 
