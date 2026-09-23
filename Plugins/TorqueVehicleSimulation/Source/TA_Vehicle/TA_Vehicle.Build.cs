@@ -16,7 +16,8 @@ public class TA_Vehicle : ModuleRules
                 "TA_Surface",
                 "TA_Tire",
                 "TA_Powertrain",
-                "TA_Damage"
+                "TA_Damage",
+                "TA_Structure"
             }
         );
     }
