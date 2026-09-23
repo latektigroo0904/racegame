@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-09-23 — Integrated vehicle runtime session
+
+Added:
+- `docs/17-INTEGRATED-VEHICLE-RUNTIME-V01.md`;
+- first integrated native `TA_Vehicle` fixed-step runtime;
+- wheel angular dynamics with brake-to-zero clamping;
+- drivetrain-to-wheel-to-tire reaction coupling;
+- aggregate tire force outputs;
+- open-differential split-grip integration;
+- integrated vehicle Automation tests for drive torque, neutral, braking and split-mu;
+- suspension runtime cache interpolation;
+- spring/damper/bump/droop force model;
+- static spring compression at reference ride height;
+- suspension Automation tests;
+- engine torque-curve interpolation;
+- redline/limiter torque fade;
+- engine thermal model and torque derate;
+- radiator coolant-loss → engine thermal chain integration;
+- integrated regression test for radiator damage causing thermal derate;
+- engine starter torque;
+- explicit Running/Stalled/Cranking state transitions;
+- starter/stall Automation test.
+
+Corrections:
+- prevented a zero-rpm Running engine from self-starting via the torque curve;
+- corrected suspension reference force so ride height includes static spring compression;
+- confirmed Unreal 5.8 `TVector::GetClampedToMaxSize` API used by the structural solver.
+
+Current limitation:
+- no Unreal 5.8 compiler/UHT/UBT/runtime execution has yet been performed;
+- suspension damaged-hardpoint geometric solve is not yet implemented;
+- chassis 6-DOF force integration is not yet connected;
+- telemetry module remains next-stage work.
+
 ## 2026-09-23 — Core solver implementation session
 
 Added runtime modules:
