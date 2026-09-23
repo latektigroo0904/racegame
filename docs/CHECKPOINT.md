@@ -3,7 +3,7 @@
 Updated: 2026-09-23
 
 ## Current phase
-**Proof-of-Physics v2: aerodynamic authoring/compiler pieces and telemetry ownership exist; canonical asset/hash/vehicle-step integration remains the immediate closure task. UE 5.8 executable verification remains the external acceptance gate.**
+**Proof-of-Physics v2: aerodynamic authoring/compiler pieces, telemetry ownership and scalar regression extraction exist; canonical asset/hash/vehicle-step integration remains the immediate closure task. UE 5.8 executable verification remains the external acceptance gate.**
 
 Canonical repository: `latektigroo0904/racegame`. Current content/runtime versions remain SchemaVersion 2, PhysicsVersion 2 and DamageModelVersion 2.
 
@@ -12,32 +12,27 @@ The repository contains four-wheel compliant contact; front shared-rack double w
 
 The project remains **UE-build-unverified** until UnrealHeaderTool, UnrealBuildTool/C++ compilation, Editor module loading and `Automation RunTest TorqueAtlas.` complete successfully under Unreal Engine 5.8.
 
-## Canonical driving path
-`UTAVehicleDefinition -> validation/FTAVehicleCompiledConfig -> controls/environment -> powertrain -> wheel dynamics -> suspension/contact -> tire forces -> shared chassis force accumulator -> 6-DOF integration`.
-
-Quasi-static compliant contact remains production-canonical. Dynamic unsprung remains experimental pending executable stability, energy and CPU evidence.
-
 ## Aerodynamics status
-Already established:
+Established:
 - deterministic `TAAerodynamics` solver;
 - `FTAVehicleRuntimeConfig::Aerodynamics` ownership;
 - transient `FTAVehicleStepInput::AerodynamicsEnvironment` ownership;
 - exact result slot in `FTAVehicleStepOutput::Aerodynamics`;
 - `TAVehicleAerodynamicsBridge` as the single adapter into the shared chassis force accumulator;
-- Blueprint-authorable `FTAAerodynamicsDefinition`;
-- finite/range validation;
-- vehicle-origin-local -> COM-local application-point compilation;
-- effective-runtime aero hash helper;
-- low-level, bridge and authoring/compiler regressions.
-
-Completed this session:
-- audited the repository against the prior checkpoint and confirmed the remaining canonical integration gap is real;
-- extended `FTATelemetrySample` with relative air speed, dynamic pressure, applied world force and applied world torque;
-- made `TATelemetry::MakeSample` consume only `FTAVehicleStepOutput::Aerodynamics`, with no independent aero solve/reconstruction path;
-- added `TorqueAtlas.Telemetry.Aerodynamics.CapturesAppliedStepOutput` regression;
-- documented the telemetry ownership contract in `docs/36-AERO-TELEMETRY-INTEGRATION-V01.md`.
+- Blueprint-authorable `FTAAerodynamicsDefinition` with validation, vehicle-origin-local -> COM-local compilation and effective-runtime hashing helper;
+- exact applied-result aero channels in `FTATelemetrySample`;
+- `TAAeroRegressionMetrics` scalar extraction for air speed, dynamic pressure, force magnitude, drag, vertical force/downforce and pitch torque;
+- Automation coverage for low-level aero, bridge, authoring/compiler, telemetry propagation and scalar regression projection.
 
 Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
+
+## Work completed this session
+1. Re-audited the canonical repository and confirmed the previous integration gap still exists: `UTAVehicleDefinition` has no `Aerodynamics` property and `TAVehicleSimulation::Step` still reaches chassis integration without invoking `TAVehicleAerodynamicsBridge`.
+2. Added `TAAeroRegressionMetrics` as a reporting-only scalar adapter sourced exclusively from `FTATelemetrySample`.
+3. Defined stable sign conventions: drag is positive when force opposes scenario forward; downforce is negative along scenario up; pitch torque is projected onto scenario right.
+4. Added finite/orthogonal-frame rejection so invalid proving-ground axes cannot silently contaminate baselines.
+5. Added Automation regressions for scalar extraction and invalid-frame rejection.
+6. Added `docs/37-AERO-REGRESSION-METRICS-V01.md`.
 
 ## Decisions and assumptions
 1. Vehicle asset authoring uses vehicle-origin-local coordinates, matching suspension/structure authoring.
@@ -45,8 +40,8 @@ Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero gr
 3. Physics hashing must use effective compiled aero values.
 4. Air density and wind remain per-step environment state, not vehicle calibration.
 5. Negative lift coefficient means downforce under the current solver convention.
-6. Telemetry reports the exact applied step result and never calls the aero solver independently.
-7. Aero telemetry retains world-space force/torque vectors so wind/yaw cases remain observable.
+6. Telemetry and regression reporting consume the exact applied step result and never call the aero solver independently.
+7. Regression scalar projection uses explicit scenario axes rather than assuming world axes inside telemetry.
 8. The single-resultant aero model remains Proof-of-Physics scope; front/rear map-based balance and active aero stay deferred until executable baseline evidence exists.
 
 ## Remaining aero work
@@ -56,7 +51,7 @@ Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero gr
 4. fold `TAAerodynamicsDefinition::HashRuntimeConfig` into canonical `PhysicsConfigHash`;
 5. invoke `TAVehicleAerodynamicsBridge::AddToChassis` after wheel/suspension force accumulation and immediately before `TAChassisDynamics::Integrate`;
 6. add full-step speed/wind -> aero force -> chassis response regression;
-7. extend machine-readable regression metrics/reporting with scalar aero channels;
+7. wire `TAAeroRegressionMetrics` into the machine-readable scenario report/envelope layer;
 8. require source-sanity green and ultimately UE 5.8 executable verification.
 
 ## Risks
@@ -67,23 +62,22 @@ Aero-specific risks:
 - canonical `PhysicsConfigHash` still does not include the aero helper contribution;
 - `TAVehicleSimulation::Step` still does not call the bridge, so ordinary full-step aero output remains zero and no claim of full causal integration is allowed;
 - a single resultant cannot represent front/rear aero balance over large attitude changes;
-- machine-readable regression reporting is primarily scalar and still needs an explicit aero metric policy.
+- scalar metric extraction exists but is not yet serialized by the machine-readable regression report.
 
 ## Deliverables completed this session
-- aerodynamic channels in `FTATelemetrySample`;
-- exact applied-result mapping in `TATelemetry::MakeSample`;
-- aero telemetry Automation regression;
-- `docs/36-AERO-TELEMETRY-INTEGRATION-V01.md`;
+- `TAAeroRegressionMetrics.h/.cpp`;
+- two aero regression metric Automation tests;
+- `docs/37-AERO-REGRESSION-METRICS-V01.md`;
 - refreshed active checkpoint.
 
 ## Exact continuation point
 Resume with **canonical aero physics closure**:
 1. wire `FTAAerodynamicsDefinition` into `UTAVehicleDefinition`;
-2. validation + compile into `VehicleRuntime.Aerodynamics`;
+2. validation + COM-local compile into `VehicleRuntime.Aerodynamics`;
 3. include effective aero values in `PhysicsConfigHash`;
 4. call `TAVehicleAerodynamicsBridge::AddToChassis` immediately before chassis integration;
 5. add full `TAVehicleSimulation::Step` regression proving drag/downforce/moment affect chassis state;
-6. add scalar aero metrics to regression reporting, sourced from the telemetry sample;
+6. connect `TAAeroRegressionMetrics` to machine-readable regression reporting/envelopes;
 7. run/extend source-sanity checks.
 
 Do not claim UE build success until the verification harness actually runs against UE 5.8.
