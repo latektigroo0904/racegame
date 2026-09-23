@@ -15,6 +15,12 @@ namespace
         case ETATelemetryMetric::WheelHubBrakeEfficiency01:
         case ETATelemetryMetric::WheelHubDriveEfficiency01:
         case ETATelemetryMetric::WheelHubBearingDragTorqueNm:
+        case ETATelemetryMetric::SuspensionSpringDamperDamage01:
+        case ETATelemetryMetric::SuspensionSpringEfficiency01:
+        case ETATelemetryMetric::SuspensionDampingEfficiency01:
+        case ETATelemetryMetric::SuspensionStopEfficiency01:
+        case ETATelemetryMetric::AntiRollLinkDamage01:
+        case ETATelemetryMetric::AntiRollLinkEfficiency01:
         case ETATelemetryMetric::TireRadialDeflectionM:
         case ETATelemetryMetric::WheelSlipRatio:
         case ETATelemetryMetric::TireLongitudinalForceN:
@@ -156,6 +162,36 @@ namespace
         case ETATelemetryMetric::WheelHubBearingDragTorqueNm:
             OutValue =
                 Sample.WheelHubBearingDragTorqueNm[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::SuspensionSpringDamperDamage01:
+            OutValue =
+                Sample.SuspensionSpringDamperDamage01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::SuspensionSpringEfficiency01:
+            OutValue =
+                Sample.SuspensionSpringEfficiency01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::SuspensionDampingEfficiency01:
+            OutValue =
+                Sample.SuspensionDampingEfficiency01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::SuspensionStopEfficiency01:
+            OutValue =
+                Sample.SuspensionStopEfficiency01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::AntiRollLinkDamage01:
+            OutValue =
+                Sample.AntiRollLinkDamage01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::AntiRollLinkEfficiency01:
+            OutValue =
+                Sample.AntiRollLinkEfficiency01[WheelIndex];
             break;
 
         case ETATelemetryMetric::TireRadialDeflectionM:
@@ -381,6 +417,18 @@ namespace
             return TEXT("WheelHubDriveEfficiency01");
         case ETATelemetryMetric::WheelHubBearingDragTorqueNm:
             return TEXT("WheelHubBearingDragTorqueNm");
+        case ETATelemetryMetric::SuspensionSpringDamperDamage01:
+            return TEXT("SuspensionSpringDamperDamage01");
+        case ETATelemetryMetric::SuspensionSpringEfficiency01:
+            return TEXT("SuspensionSpringEfficiency01");
+        case ETATelemetryMetric::SuspensionDampingEfficiency01:
+            return TEXT("SuspensionDampingEfficiency01");
+        case ETATelemetryMetric::SuspensionStopEfficiency01:
+            return TEXT("SuspensionStopEfficiency01");
+        case ETATelemetryMetric::AntiRollLinkDamage01:
+            return TEXT("AntiRollLinkDamage01");
+        case ETATelemetryMetric::AntiRollLinkEfficiency01:
+            return TEXT("AntiRollLinkEfficiency01");
         case ETATelemetryMetric::TireRadialDeflectionM:
             return TEXT("TireRadialDeflectionM");
         case ETATelemetryMetric::WheelSlipRatio:
