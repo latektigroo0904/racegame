@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-09-23 — Vehicle calibration authoring v2 session
+
+Added:
+- complete current tire runtime coefficient surface to `UTAVehicleDefinition`;
+- authored engine friction, run-state, starter and idle-control calibration;
+- actual authored torque-curve compilation into engine runtime;
+- authored engine thermal model;
+- authored clutch thermal/wear/coupling calibration;
+- authored driveline compliance;
+- authored radiator/coolant damage calibration;
+- authored front/rear bump- and droop-stop rates;
+- 17-point compiler-derived front/rear/left/right suspension kinematic LUTs;
+- semantic validation for tire, engine, torque curve, clutch, gearbox, driveline, thermal, cooling and suspension calibration;
+- schema/physics/damage version policy with current 2/2/2 defaults;
+- `docs/34-VEHICLE-CALIBRATION-AUTHORING-V02.md`.
+
+Fixed:
+- missing `FTAPrototypeDrivetrainDefinition` constructor implementation;
+- previously dead authored torque-curve field;
+- incomplete tire thermal/slip coefficient hash coverage;
+- incomplete engine/clutch/thermal/driveline configuration hash coverage;
+- hidden suspension stop defaults;
+- hidden radiator/coolant defaults;
+- vehicle-attached internal structure gravity double-count risk.
+
+Tests added:
+- complete tire authoring;
+- complete powertrain/thermal authoring;
+- calibration hash sensitivity;
+- tire validation;
+- torque-curve validation;
+- suspension stop and cooling authoring/hash;
+- cooling validation;
+- derived kinematic cache versus exact geometry solver;
+- structure gravity ownership;
+- version policy.
+
 ## 2026-09-23 — Experimental dynamic-unsprung corner session
 
 Added:
