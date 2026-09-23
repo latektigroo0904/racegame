@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-09-23 — Experimental dynamic-unsprung corner session
+
+Added:
+- `TAExperimentalUnsprungCorner` isolated one-corner adapter;
+- quasi-static equilibrium seeding;
+- explicit unsprung travel/velocity integration using existing tire/suspension models;
+- generalized force-balance diagnostics;
+- internal local substeps;
+- separate tire-normal versus chassis-suspension force ownership;
+- optional chassis-side suspension force application point in `FTAWheelContactInput`;
+- dynamic contact use of damaged damper-chassis mount as the suspension reaction point;
+- source regressions for quasi-static seed, 20 mm road step, gravity force separation, determinism and config validation;
+- quasi-static-vs-dynamic settled road-step comparison;
+- `docs/33-EXPERIMENTAL-UNSPRUNG-CORNER-V01.md`.
+
+Corrected architecture:
+- tire tangential force and suspension reaction are now accumulated independently in `TAVehicleSimulation`;
+- legacy/canonical suspension-force moment arm remains unchanged unless an explicit suspension application point is provided.
+
+Status:
+- dynamic unsprung remains experimental and is not connected to the canonical four-wheel runtime;
+- all thresholds remain source-level until UE 5.8 Automation executes.
+
 ## 2026-09-23 — Functional damage and scenario regression session
 
 Added:
