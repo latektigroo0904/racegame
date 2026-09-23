@@ -438,6 +438,15 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
         Sample.BrakeThermalTorqueFactor01[0] =
             1.0 - 0.10 * static_cast<double>(Index);
 
+        Sample.ElectricalDamage01 =
+            0.10 * static_cast<double>(Index);
+
+        Sample.StarterEfficiency01 =
+            1.0 - 0.20 * static_cast<double>(Index);
+
+        Sample.FuelDeliveryEfficiency01 =
+            1.0 - 0.25 * static_cast<double>(Index);
+
         Buffer.Push(Sample);
     }
 
@@ -565,6 +574,45 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
     Config.Envelopes.Add(
         BrakeFade);
 
+    FTATelemetryMetricEnvelope ElectricalDamage;
+    ElectricalDamage.Metric =
+        ETATelemetryMetric::ElectricalDamage01;
+    ElectricalDamage.Statistic =
+        ETATelemetryStatistic::Maximum;
+    ElectricalDamage.MinimumAllowed =
+        0.29;
+    ElectricalDamage.MaximumAllowed =
+        0.31;
+
+    Config.Envelopes.Add(
+        ElectricalDamage);
+
+    FTATelemetryMetricEnvelope StarterEfficiency;
+    StarterEfficiency.Metric =
+        ETATelemetryMetric::StarterEfficiency01;
+    StarterEfficiency.Statistic =
+        ETATelemetryStatistic::Minimum;
+    StarterEfficiency.MinimumAllowed =
+        0.39;
+    StarterEfficiency.MaximumAllowed =
+        0.41;
+
+    Config.Envelopes.Add(
+        StarterEfficiency);
+
+    FTATelemetryMetricEnvelope FuelDeliveryEfficiency;
+    FuelDeliveryEfficiency.Metric =
+        ETATelemetryMetric::FuelDeliveryEfficiency01;
+    FuelDeliveryEfficiency.Statistic =
+        ETATelemetryStatistic::Minimum;
+    FuelDeliveryEfficiency.MinimumAllowed =
+        0.24;
+    FuelDeliveryEfficiency.MaximumAllowed =
+        0.26;
+
+    Config.Envelopes.Add(
+        FuelDeliveryEfficiency);
+
     FTATelemetryRegressionResult Result;
 
     TestTrue(
@@ -579,9 +627,9 @@ bool FTATelemetryRegressionFunctionalDamageMetricsTest::RunTest(
         Result.bPassed);
 
     TestEqual(
-        TEXT("All eight functional/thermal envelopes pass"),
+        TEXT("All eleven functional/thermal envelopes pass"),
         Result.PassedEnvelopeCount,
-        8);
+        11);
 
     return true;
 }
