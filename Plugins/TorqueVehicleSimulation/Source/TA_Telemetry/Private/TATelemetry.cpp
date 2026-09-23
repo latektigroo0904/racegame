@@ -79,5 +79,17 @@ FTATelemetrySample TATelemetry::MakeSample(
     Sample.LeftDrivenWheelTorqueNm = Output.LeftDrivenWheelTorqueNm;
     Sample.RightDrivenWheelTorqueNm = Output.RightDrivenWheelTorqueNm;
 
+    // Telemetry consumes the exact result produced by the canonical vehicle
+    // step. It must never invoke TAAerodynamics independently, otherwise a
+    // second calculation path could silently diverge from applied physics.
+    Sample.AeroRelativeAirSpeedMps =
+        Output.Aerodynamics.RelativeAirVelocityWorldMps.Length();
+    Sample.AeroDynamicPressurePa =
+        Output.Aerodynamics.DynamicPressurePa;
+    Sample.AeroForceWorldN =
+        Output.Aerodynamics.ForceWorldN;
+    Sample.AeroTorqueWorldNm =
+        Output.Aerodynamics.TorqueWorldNm;
+
     return Sample;
 }
