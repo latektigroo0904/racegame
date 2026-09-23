@@ -3,7 +3,7 @@
 Updated: 2026-09-23
 
 ## Current phase
-**Proof-of-Physics v2: canonical aerodynamic force application is wired into the ordinary vehicle step. Asset-side closure is now staged behind a transactional compiler adapter; the remaining primary edit is UTAVehicleDefinition ownership/call-site integration. UE 5.8 executable verification remains the external acceptance gate.**
+**Proof-of-Physics v2: canonical aerodynamic force application is wired into the ordinary vehicle step. Aero machine-readable regression reporting is now source-level closed over the exact applied compact telemetry. The remaining primary closure is UTAVehicleDefinition authored-aero ownership and asset call-site integration. UE 5.8 executable verification remains the external acceptance gate.**
 
 Canonical repository: `latektigroo0904/racegame`. Current content/runtime versions remain SchemaVersion 2, PhysicsVersion 2 and DamageModelVersion 2.
 
@@ -24,19 +24,21 @@ Established:
 - exact applied-result aero telemetry and scalar regression extraction;
 - full-step source regressions for moving-air response, zero-density neutrality and headwind amplification;
 - effective aero hash coordinate-invariance regression;
-- new `TAVehicleAerodynamicsAssetCompiler::CompileValidatedAndHash` adapter that transactionally validates, compiles and hashes effective runtime aero;
-- new asset-compiler regressions using the frozen non-default values and non-zero COM.
+- `TAVehicleAerodynamicsAssetCompiler::CompileValidatedAndHash` transactional asset adapter;
+- asset-compiler regressions using frozen non-default values and non-zero COM;
+- `TAAeroRegressionReport` machine-readable summary layer over the exact applied compact telemetry, with JSON-lines and CSV export;
+- report regressions for scalar sign conventions, steady-state summaries, serialization presence and invalid scenario-frame rejection.
 
 Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
 
 ## Work completed this session
-1. Re-audited the active checkpoint and current repository tree before editing.
-2. Confirmed `UTAVehicleDefinition` still has no authored `Aerodynamics` property and the canonical `BuildCompiledConfig` hash tail still excludes aero.
-3. Added `TAVehicleAerodynamicsAssetCompiler.h/.cpp` as a small canonical asset-side adapter around the existing definition validator/compiler/effective-runtime hash helper.
-4. Made the adapter transactional: invalid authoring returns false without changing the caller's physics hash or output runtime config.
-5. Added `TorqueAtlas.Vehicle.Aerodynamics.AssetCompiler.NonDefaultCompileAndHash` using Area=2.37 m^2, Cd=0.287, Cl=-0.219, authored point `(0.46,-0.04,0.52)` and COM `(0.14,-0.01,0.19)`. The expected effective point is `(0.32,-0.03,0.33)` m.
-6. Added `TorqueAtlas.Vehicle.Aerodynamics.AssetCompiler.InvalidIsTransactional` to guard failure-path mutation.
-7. Kept the canonical asset call-site edit deferred rather than partially modifying the large vehicle-definition implementation without closing validation, compilation and hashing together.
+1. Re-audited the repository tree and active checkpoint before editing.
+2. Confirmed the canonical asset-side gap remains: `UTAVehicleDefinition` still has no authored `Aerodynamics` property and `BuildCompiledConfig` still finalizes `PhysicsConfigHash` without aero.
+3. Audited telemetry ownership and found two intentional-but-divergent telemetry surfaces: `FTATelemetrySample` is the compact exact-step sample and already contains applied aero, while `FTAVehicleTelemetrySample` is the older broad ring-buffer sample used by the generic scenario regression layer and currently contains no aero channels.
+4. Avoided copying/recomputing aero into the older broad sample just to satisfy reporting. Added `TAAeroRegressionReport` directly over `FTACompactTelemetryRingBuffer`, preserving the single-source-of-truth applied-aero path.
+5. Added summaries for relative air speed, dynamic pressure, force magnitude, drag-axis force, vertical force and pitch torque using `TARegressionEnvelope::Summarize`.
+6. Added deterministic JSON-lines and CSV exporters suitable for CI artifact capture.
+7. Added Automation regressions proving sample count, min/max/mean/trailing mean, drag/downforce/pitch sign conventions, serialization fields and invalid frame rejection.
 
 ## Decisions and assumptions
 1. Vehicle asset authoring uses vehicle-origin-local coordinates; runtime aero application point is COM-local.
@@ -46,18 +48,10 @@ Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero gr
 5. Negative lift coefficient means downforce under the current solver convention.
 6. Telemetry/regression consume applied step output and never independently recompute aero.
 7. Asset integration regressions use deliberately non-default values and non-zero COM to prevent default-value masking.
-8. The new asset compiler adapter is the intended single call-site for `UTAVehicleDefinition::BuildCompiledConfig`; direct duplicated Validate/Compile/Hash logic should not be added there.
-9. Failed asset aero compilation must be transactional so invalid content cannot leave a half-mutated runtime/hash state.
-10. Single-resultant aero remains Proof-of-Physics scope; map-based front/rear balance and active aero remain deferred pending executable evidence.
-
-## Remaining aero work
-1. include `TAAerodynamicsDefinition.h` from `TAVehicleDefinition.h` and add `UPROPERTY FTAAerodynamicsDefinition Aerodynamics`;
-2. in `BuildCompiledConfig`, emit `Vehicle.InvalidAerodynamics` when authored aero is invalid;
-3. invoke `TAVehicleAerodynamicsAssetCompiler::CompileValidatedAndHash` at the canonical point after COM is known and before final `PhysicsConfigHash` assignment, without hashing aero a second time;
-4. assign the successful compiled output to `VehicleRuntime.Aerodynamics`;
-5. add/extend `TAVehicleDefinitionTests.cpp` with asset-level success, invalid-validation-code and hash-sensitivity assertions;
-6. wire `TAAeroRegressionMetrics` into the machine-readable scenario report/envelope layer;
-7. run source-sanity and ultimately UE 5.8 executable verification.
+8. `TAVehicleAerodynamicsAssetCompiler` remains the intended single asset call-site for validate/compile/hash.
+9. Failed asset aero compilation must be transactional.
+10. Machine-readable aero reporting is built from `FTACompactTelemetryRingBuffer`, because that path already owns the exact applied aero result. The older broad telemetry buffer is not expanded merely to duplicate those values.
+11. Single-resultant aero remains Proof-of-Physics scope; map-based front/rear balance and active aero remain deferred pending executable evidence.
 
 ## Risks
 Highest general risks remain UHT/UBT/compiler errors, unexecuted numerical Automation assertions, unmeasured coupled-contact convergence, unmeasured dynamic-unsprung behavior, incomplete real collision-manifold persistence, deferred topology-changing suspension fracture, incomplete hydraulic/ABS/fluid-boil behavior, and provisional real-world calibration.
@@ -65,28 +59,28 @@ Highest general risks remain UHT/UBT/compiler errors, unexecuted numerical Autom
 Aero-specific risks:
 - runtime defaults still mask the missing `UTAVehicleDefinition` property/call-site until canonical integration is completed;
 - canonical `PhysicsConfigHash` still excludes aero at the vehicle-definition call site;
-- the newly added adapter/tests are source-level only and have not executed under UE 5.8;
+- source-level report/tests have not executed under UE 5.8;
 - a future call site must not hash aero twice: the adapter already advances the supplied hash on success;
-- double COM subtraction or raw-coordinate hashing would corrupt reproducibility; existing helper and adapter regressions are intended to catch both classes of error;
-- scalar metric extraction exists but is not yet serialized by the machine-readable regression report.
+- double COM subtraction or raw-coordinate hashing would corrupt reproducibility;
+- there are two telemetry sample families; future consolidation should be deliberate rather than silently duplicating channels.
 
 ## Deliverables completed this session
-- `Public/TAVehicleAerodynamicsAssetCompiler.h`;
-- `Private/TAVehicleAerodynamicsAssetCompiler.cpp`;
-- `Private/Tests/TAVehicleAerodynamicsAssetCompilerTests.cpp`;
-- transactional failure contract for asset aero compilation;
+- `Public/TAAeroRegressionReport.h`;
+- `Private/TAAeroRegressionReport.cpp`;
+- `Private/Tests/TAAeroRegressionReportTests.cpp`;
+- machine-readable JSON-lines/CSV aero summaries sourced from exact applied telemetry;
 - refreshed active checkpoint.
 
 ## Exact continuation point
-Resume with the **small canonical vehicle-definition call-site closure**:
-1. add `FTAAerodynamicsDefinition Aerodynamics` to `UTAVehicleDefinition`;
-2. add `Vehicle.InvalidAerodynamics` validation;
-3. after COM is established, call `TAVehicleAerodynamicsAssetCompiler::CompileValidatedAndHash` into `VehicleRuntime.Aerodynamics` and ensure its hash contribution occurs exactly once;
-4. extend `TAVehicleDefinitionTests.cpp` to prove non-default propagation, invalid validation code and physics-hash sensitivity;
-5. then wire machine-readable aero regression metrics;
+Resume with the **canonical vehicle-definition call-site closure**:
+1. add `#include "TAAerodynamicsDefinition.h"` and `FTAAerodynamicsDefinition Aerodynamics` to `UTAVehicleDefinition`;
+2. add `Vehicle.InvalidAerodynamics` validation before the early validation return;
+3. include `TAVehicleAerodynamicsAssetCompiler.h` in the implementation;
+4. after the normal base hash has been assembled and COM is known, call `TAVehicleAerodynamicsAssetCompiler::CompileValidatedAndHash(Aerodynamics, CenterOfMassVehicleLocalM, Hash, VehicleRuntime.Aerodynamics)` exactly once before assigning `OutConfig.PhysicsConfigHash`;
+5. extend `TAVehicleDefinitionTests.cpp` to prove non-default propagation, invalid validation code and physics-hash sensitivity;
 6. run source-sanity, then UE 5.8 verification when an engine environment is available.
 
-Do not start a new major physics subsystem until the canonical vehicle-definition aero property/call-site and tests are source-level closed. Do not claim UE build success until the verification harness actually runs against UE 5.8.
+After that closure, audit whether the two telemetry sample families should be consolidated or kept as compact-vs-broad layers with an explicit documented boundary. Do not start a new major physics subsystem until the canonical vehicle-definition aero property/call-site and tests are source-level closed. Do not claim UE build success until the verification harness actually runs against UE 5.8.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
