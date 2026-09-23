@@ -56,6 +56,49 @@ bool FTAAerodynamicsDefinitionHashTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAAerodynamicsDefinitionEffectiveHashInvariantTest,
+    "TorqueAtlas.Vehicle.Aerodynamics.Definition.EffectiveHashCoordinateInvariant",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAAerodynamicsDefinitionEffectiveHashInvariantTest::RunTest(const FString& Parameters)
+{
+    FTAAerodynamicsDefinition A;
+    A.ReferenceAreaM2 = 2.31;
+    A.DragCoefficient = 0.287;
+    A.LiftCoefficient = -0.214;
+    A.ApplicationPointVehicleLocalM = FVector(0.42, -0.03, 0.51);
+
+    FTAAerodynamicsDefinition B = A;
+
+    const FVector3d ComA(0.12, -0.01, 0.18);
+    const FVector3d OriginShift(0.37, 0.08, -0.14);
+    const FVector3d ComB = ComA + OriginShift;
+    B.ApplicationPointVehicleLocalM =
+        FVector(FVector3d(A.ApplicationPointVehicleLocalM) + OriginShift);
+
+    FTAAerodynamicsConfig RuntimeA;
+    FTAAerodynamicsConfig RuntimeB;
+
+    const bool bCompiledA = TAAerodynamicsDefinition::Compile(A, ComA, RuntimeA);
+    const bool bCompiledB = TAAerodynamicsDefinition::Compile(B, ComB, RuntimeB);
+
+    TestTrue(TEXT("First coordinate representation compiles"), bCompiledA);
+    TestTrue(TEXT("Shifted coordinate representation compiles"), bCompiledB);
+    TestTrue(
+        TEXT("Equivalent authored origin/COM shift preserves effective COM-local application point"),
+        RuntimeA.ApplicationPointBodyM.Equals(RuntimeB.ApplicationPointBodyM, 1.0e-12));
+
+    const uint32 HashA = TAAerodynamicsDefinition::HashRuntimeConfig(0x51A7u, RuntimeA);
+    const uint32 HashB = TAAerodynamicsDefinition::HashRuntimeConfig(0x51A7u, RuntimeB);
+    TestEqual(
+        TEXT("Physics hash contribution depends on effective runtime aero, not authored origin representation"),
+        HashA,
+        HashB);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
     FTAAerodynamicsDefinitionRejectsInvalidTest,
     "TorqueAtlas.Vehicle.Aerodynamics.Definition.Validation",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
