@@ -59,16 +59,22 @@ bool TAFourWheelVehicleRuntime::Step(
     FrontInput.RightDamage =
         Input.FrontRightDamage;
 
-    if (!TAFrontAxleRuntime::Resolve(
+    const int32 FrontLeftIndex =
+        ToIndex(ETAPrototypeWheelIndex::FrontLeft);
+
+    const int32 FrontRightIndex =
+        ToIndex(ETAPrototypeWheelIndex::FrontRight);
+
+    if (!TAFrontAxleRuntime::ResolveWithTireCompliance(
             InOutState.Vehicle.Chassis,
             RuntimeConfig.FrontAxle,
             FrontInput,
-            VehicleConfig.Wheels[
-                ToIndex(ETAPrototypeWheelIndex::FrontLeft)].RadiusM,
-            VehicleConfig.Wheels[
-                ToIndex(ETAPrototypeWheelIndex::FrontRight)].RadiusM,
+            VehicleConfig.Tires[FrontLeftIndex],
+            VehicleConfig.Tires[FrontRightIndex],
             DeltaTimeSeconds,
             InOutState.FrontAxle,
+            InOutState.Vehicle.Wheels[FrontLeftIndex].TireState,
+            InOutState.Vehicle.Wheels[FrontRightIndex].TireState,
             OutOutput.FrontAxle))
     {
         return false;
@@ -88,16 +94,22 @@ bool TAFourWheelVehicleRuntime::Step(
     RearInput.RightDamage =
         Input.RearRightDamage;
 
-    if (!TARearAxleRuntime::Resolve(
+    const int32 RearLeftIndex =
+        ToIndex(ETAPrototypeWheelIndex::RearLeft);
+
+    const int32 RearRightIndex =
+        ToIndex(ETAPrototypeWheelIndex::RearRight);
+
+    if (!TARearAxleRuntime::ResolveWithTireCompliance(
             InOutState.Vehicle.Chassis,
             RuntimeConfig.RearAxle,
             RearInput,
-            VehicleConfig.Wheels[
-                ToIndex(ETAPrototypeWheelIndex::RearLeft)].RadiusM,
-            VehicleConfig.Wheels[
-                ToIndex(ETAPrototypeWheelIndex::RearRight)].RadiusM,
+            VehicleConfig.Tires[RearLeftIndex],
+            VehicleConfig.Tires[RearRightIndex],
             DeltaTimeSeconds,
             InOutState.RearAxle,
+            InOutState.Vehicle.Wheels[RearLeftIndex].TireState,
+            InOutState.Vehicle.Wheels[RearRightIndex].TireState,
             OutOutput.RearAxle))
     {
         return false;
