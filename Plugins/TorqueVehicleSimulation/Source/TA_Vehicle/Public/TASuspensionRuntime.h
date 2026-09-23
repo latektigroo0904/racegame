@@ -17,6 +17,9 @@ struct TA_VEHICLE_API FTASuspensionRuntimeConfig
 {
     double SpringRateNPerM = 45000.0;
 
+    // Spring compression at reference ride height, measured along spring axis.
+    double StaticSpringCompressionM = 0.075;
+
     double BumpDampingNsPerM = 3500.0;
     double ReboundDampingNsPerM = 5200.0;
 
