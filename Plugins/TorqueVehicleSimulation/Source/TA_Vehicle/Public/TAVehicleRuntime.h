@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "TACoreTypes.h"
+#include "TAFourWheelVehicleRuntime.h"
 
 struct TA_VEHICLE_API FTAVehicleCompiledConfig
 {
@@ -21,6 +22,9 @@ struct TA_VEHICLE_API FTAVehicleCompiledConfig
     double TrackRearMeters = 0.0;
 
     int32 WheelCount = 4;
+
+    FTAVehicleRuntimeConfig VehicleRuntime;
+    FTAFourWheelRuntimeConfig FourWheelRuntime;
 
     uint32 PhysicsConfigHash = 0;
 };
