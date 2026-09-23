@@ -3,341 +3,58 @@
 Updated: 2026-09-23
 
 ## Current phase
-**Proof-of-Physics v2: source-sanity closure and first executable Unreal Engine 5.8 build gate.**
+**Proof-of-Physics v2: aerodynamic force integration, with UE 5.8 executable verification still the external acceptance gate.**
 
-The repository now has a substantially closed source-level physics foundation:
-- four-wheel compliant contact;
-- front shared-rack double wishbone;
-- rear five-link geometry;
-- tire force/thermal/wear/radial compliance;
-- drivetrain, clutch and thermal runtime;
-- 6-DOF chassis;
-- collision → internal structure coupling;
-- structure → suspension pickup deformation;
-- radiator, steering-rack, wheel-hub, suspension-corner and anti-roll-link functional damage;
-- electrical-bus and fuel-delivery functional damage;
-- persistent brake thermal/fade/wear dynamics;
-- telemetry and scenario regression reporting;
-- complete vehicle calibration authoring v2;
-- isolated dynamic-unsprung experiment;
-- reproducible UE 5.8 verification harness.
+The canonical repository is `latektigroo0904/racegame`. Current content/runtime versions remain SchemaVersion 2, PhysicsVersion 2 and DamageModelVersion 2.
 
-The project is still **UE-build-unverified** until UnrealHeaderTool, UnrealBuildTool/C++ compilation, Editor module loading and the full `TorqueAtlas.*` Automation suite actually execute successfully.
+## Established source-level foundation
+The repository contains four-wheel compliant contact; front shared-rack double wishbone; rear five-link geometry; tire force/thermal/wear/radial compliance; engine/clutch/gearbox/final-drive/differential dynamics; 6-DOF chassis; structural crash deformation and suspension pickup coupling; typed radiator, steering, hub, suspension, anti-roll, electrical and fuel damage; brake thermal/fade/wear; telemetry/regression reporting; vehicle calibration authoring; isolated dynamic-unsprung experimentation; and UE 5.8 verification runners.
 
-## Canonical repository
-`latektigroo0904/racegame`
+The project remains **UE-build-unverified** until UnrealHeaderTool, UnrealBuildTool/C++ compilation, Editor module loading and `Automation RunTest TorqueAtlas.` complete successfully under Unreal Engine 5.8.
 
-## Version baseline
-Current content/runtime defaults:
-```
-SchemaVersion      = 2
-PhysicsVersion     = 2
-DamageModelVersion = 2
-```
+## Canonical driving path
+`UTAVehicleDefinition → validation/FTAVehicleCompiledConfig → controls → powertrain → wheel dynamics → suspension/contact → tire forces → chassis force accumulator → 6-DOF integration`.
 
-Legacy positive versions may compile with warning. Unknown future versions are rejected.
+Quasi-static compliant contact remains production-canonical. Dynamic unsprung remains experimental pending executable stability, energy and CPU evidence.
 
-## Canonical production driving path
-```
-UTAVehicleDefinition
-→ validation / FTAVehicleCompiledConfig
-→ driver controls
-→ engine / clutch / gearbox / final drive / differential
-→ wheel angular dynamics
-→ front shared-rack double wishbone + rear five-link
-→ quasi-static compliant suspension/anti-roll/tire radial equilibrium
-→ tire longitudinal/lateral/alignment forces
-→ independent tire-contact and suspension-reaction force application
-→ 6-DOF chassis integration
-```
+## Aerodynamics status
+New source-level subsystem:
+- `TAAerodynamics.h/.cpp` defines deterministic SI-unit aero config, environment, output and chassis-accumulator adapter.
+- Relative airflow is `wind_world - vehicle_velocity_world`.
+- Dynamic pressure is `0.5 * rho * |Vrel|^2`.
+- Drag follows relative airflow.
+- Lift acts on chassis-up; negative `Cl` produces physical downforce.
+- The resultant is applied at a body-local point transformed to world space, so moments arise naturally from `r × F`.
+- Automation coverage now targets zero relative speed, speed-squared scaling, headwind/tailwind, downforce and off-center pitch moment.
+- Design/risks are recorded in `docs/34-AERODYNAMICS-V01.md`.
 
-The quasi-static compliant path remains canonical.
+Important invariant: **no arcade speed-dependent tire-grip multiplier**. Any aero grip gain must emerge from force application, chassis load transfer and changed tire normal loads.
 
-## Vehicle calibration ownership
+## Open aero work
+The solver exists but is not yet wired into canonical vehicle authoring/runtime. Remaining work is:
+1. authored aero definition;
+2. compile to runtime config;
+3. validation and `PhysicsConfigHash` ownership;
+4. environment input on vehicle step;
+5. force application into the same chassis accumulator before integration;
+6. telemetry/regression channels;
+7. source-sanity confirmation.
 
-Vehicle-specific effective physics is now explicit/versioned for:
-- tire force, thermal, pressure, wear, hydro and radial coefficients;
-- engine torque curve, friction, run-state, starter and idle control;
-- clutch coupling, thermal and wear calibration;
-- gearbox/final-drive/mechanical efficiency;
-- driveline compliance;
-- engine thermal/derate;
-- radiator/coolant damage and leak calibration;
-- suspension spring/damper/stop calibration;
-- brake thermal, fade and wear calibration;
-- steering geometry;
-- hardpoint geometry;
-- structural solver/impact/damage routing content.
-
-Suspension `KinematicSamples` are **derived**, not authored:
-```
-authored hardpoints
-→ exact front/rear geometry solver
-→ deterministic 17-point LUT
-```
-
-Global chassis gravity remains scenario/world physics. Vehicle-attached internal structure uses zero local gravity because its nodes represent chassis-relative deformation.
-
-## Physics configuration identity
-
-`PhysicsConfigHash` now covers effective current:
-- tire;
-- wheel;
-- engine and torque curve;
-- engine thermal;
-- cooling/radiator;
-- per-wheel brake thermal/fade/wear;
-- clutch;
-- gearbox;
-- driveline;
-- front/rear suspension force parameters;
-- derived kinematic LUTs;
-- steering;
-- exact suspension geometry;
-- structure solver/impact data;
-- structure nodes/constraints;
-- damage bridge/routes;
-- structure-to-suspension bindings.
-
-A handling/crash-relevant authored change must alter physics identity.
-
-## Crash and functional damage
-
-Continuous geometry path:
-```
-collision impulse
-→ internal structure deformation
-→ persistent node displacement
-→ suspension pickup displacement
-→ camber/toe/load change
-→ tire-force consequence
-```
-
-Typed functional path:
-```
-impact/structure signal
-→ radiator / steering rack / wheel hub / suspension corner / anti-roll link
-→ persistent subsystem degradation
-→ runtime behavior consequence
-```
-
-Key invariant: typed damage does not add a second generic alignment-damage scalar.
-
-Implemented functional consequences:
-- radiator puncture/leak/coolant loss;
-- steering command authority loss;
-- steering rack free play;
-- hub brake-efficiency loss;
-- hub drive-efficiency loss;
-- hub bearing drag;
-- spring support degradation;
-- damping degradation;
-- suspension-stop degradation;
-- anti-roll drop-link degradation/disconnection.
-
-Functional damage is monotonic until a future explicit repair operation exists.
-
-Topology-changing failures such as broken control arms, tie rods and rear links are intentionally deferred until the kinematic solver can disable constraints and solve a partially free upright. They are not approximated with arbitrary camber/toe offsets.
-
-## Brake thermal/fade/wear
-
-Per-wheel brake capacity is now:
-
-```
-base max brake torque
-× hub brake efficiency
-× thermal fade factor
-× wear torque factor
-```
-
-Persistent state:
-- brake temperature;
-- brake wear;
-- thermal torque factor;
-- wear torque factor.
-
-Heat is derived from effective brake torque × average absolute wheel speed. Cooling is proportional to temperature above ambient. Wear is energy-based.
-
-The full brake calibration is authored, validated and included in `PhysicsConfigHash`.
-
-## Dynamic-unsprung experiment
-
-`TAExperimentalUnsprungCorner` remains isolated from the canonical four-wheel runtime.
-
-Implemented source-level gates:
-- quasi-static seed;
-- 20 mm road-step transient;
-- settled comparison with quasi-static raised-road equilibrium;
-- explicit unsprung-weight force accounting;
-- no tire-normal double counting;
-- separate chassis-side suspension force application point;
-- generalized force-balance diagnostics;
-- deterministic fixed inputs;
-- travel/config validation.
-
-Force ownership:
-```
-road/tire normal force → unsprung generalized mass
-suspension/link reaction → chassis
-```
-
-Promotion is blocked until real UE execution and CPU/energy/stability evidence exist.
-
-## Telemetry/regression
-
-Canonical full telemetry buffer:
-`FTATelemetryRingBuffer`
-
-Legacy compact buffer:
-`FTACompactTelemetryRingBuffer`
-
-Telemetry includes:
-- physics config hash;
-- chassis/powertrain;
-- wheel loads and suspension;
-- camber/toe;
-- tire slip/force/temp/pressure/wear/deflection;
-- rack position/Ackermann/bump steer;
-- steering damage/authority/free play;
-- per-wheel hub damage/brake/drive/bearing drag;
-- per-wheel suspension spring/damper/stop health;
-- per-wheel anti-roll-link health;
-- per-wheel brake temperature/fade/wear state;
-- global electrical damage/starter/engine-control health;
-- global fuel-delivery damage/efficiency.
-
-Regression infrastructure includes:
-- scalar envelopes;
-- min/max/mean/final/absolute-maximum statistics;
-- rich min/max/mean/steady-state profiles;
-- physics-hash consistency;
-- CSV reports;
-- JSON Lines reports.
-
-Six provisional scenarios remain:
-1. `TA.StaticSettle.V1`
-2. `TA.Acceleration.V1`
-3. `TA.Braking15Mps.V1`
-4. `TA.ConstantSteer15Mps.V1`
-5. `TA.AsymmetricRoad20mm.V1`
-6. `TA.SyntheticFrontRightCrash.V1`
-
-They are not trusted baselines until real UE-generated traces are reviewed.
-
-## Verification harness
-
-Source-only CI:
-`.github/workflows/source-sanity.yml`
-
-It validates:
-- Bash verification-runner syntax;
-- PowerShell verification-runner syntax;
-- Automation-report validator selftests;
-- merge conflict markers;
-- balanced C++ delimiters after literal/comment stripping;
-- generated-header include ordering;
-- duplicate Automation symbols/names;
-- project/plugin module descriptors.
-
-Local full UE verification:
-
-Windows:
-```powershell
-powershell -ExecutionPolicy Bypass -File .\Scripts\Verify-Unreal.ps1
-```
-
-Linux/macOS:
-```bash
-bash Scripts/verify-unreal.sh --ue-root /path/to/UE_5.8
-```
-
-The runners require UE 5.8, build `TorqueAtlasEditor` Development, execute:
-`Automation RunTest TorqueAtlas.`
-
-and then validate `AutomationReport/index.json`.
-
-Artifacts are stored under:
-`Saved/Verification/<timestamp>/`
-
-A zero process exit alone is not enough; the report must contain successful Torque Atlas tests and no failed/not-run/in-process results.
-
-## External source-sanity feedback
-
-GitHub Actions is now being used as an actual source feedback loop.
-
-The first enhanced run successfully passed:
-- Bash syntax;
-- PowerShell syntax;
-- Automation-report validator selftests.
-
-It then identified a malformed C++ JSON quote-escape in `TATelemetryRegression.cpp`; that source error was repaired on `main`.
-
-Subsequent source-sanity runs are now green across the completed suspension-damage and brake-thermal code paths. The latest complete brake code/test commit confirmed green source sanity at `9b71a34...`.
-
-This is still not equivalent to an Unreal build.
-
-## Highest current risks
-1. UHT/UBT/C++ compiler errors can still exist beyond static delimiter checks.
-2. Automation numerical assertions have not run in UE.
-3. Dynamic-unsprung stability/energy/CPU cost is unmeasured.
-4. Coupled contact and five-link convergence has not been profiled.
-5. Real collision manifold/contact persistence is not yet connected.
-6. Topology-changing control-arm/tie-rod/multi-link fracture remains incomplete.
-7. Full fluid/electrical network simulation remains incomplete beyond current functional consumers.
-8. Hydraulic brake/ABS/fluid-boil behavior remains incomplete.
-9. Aero remains incomplete.
-10. Real-world calibration remains provisional.
-
-## Immediate next work — no user input required
-
-### 1. Close source-sanity to green
-Use GitHub Actions failures as evidence. Repair only real source/harness issues until the latest `main` run is green.
-
-### 2. First UE 5.8 build gate
-On any suitable machine with UE 5.8:
-1. run the verification harness;
-2. preserve the generated `Saved/Verification/<timestamp>` directory;
-3. repair UHT/UBT/compiler errors;
-4. rerun on a new Git SHA;
-5. repair Automation failures;
-6. record the first full passing commit/toolchain.
-
-### 3. Establish trusted baselines
-Only after full UE pass:
-- capture real scenario traces;
-- inspect numerical stability and expected steady states;
-- replace provisional broad envelopes with reviewed ranges;
-- stamp the exact non-zero physics-config hash.
-
-### 4. Dynamic-unsprung measured comparison
-After canonical UE baseline exists:
-- compare static equilibrium;
-- compare 20 mm road-step response;
-- inspect mechanical-energy behavior;
-- measure per-corner CPU cost;
-- test four-corner coupling only if isolated acceptance gates pass.
-
-### 5. Next source-level damage system
-Without weakening the build gate:
-- fluid/electrical consumers;
-- then topology-changing suspension failures only after an appropriate free-upright constraint model exists.
+## Verification status and risks
+GitHub source-sanity has previously caught real C++ source defects and has been green on the completed damage/brake paths, but that is not equivalent to an Unreal build. Highest risks remain UHT/UBT/compiler errors, unexecuted numerical Automation assertions, unmeasured coupled-contact convergence, unmeasured dynamic-unsprung behavior, incomplete real collision-manifold persistence, deferred topology-changing suspension fracture, incomplete hydraulic/ABS/fluid-boil behavior, and provisional real-world calibration. Aero adds the specific risk that one resultant point cannot represent front/rear balance over large attitude changes.
 
 ## Exact continuation point
-Resume with **aerodynamic force/moment integration**, while the first UE 5.8 executable verification remains the highest-priority external gate.
+Resume with **aero ownership and canonical runtime integration**:
+1. add `FTAAerodynamicsDefinition` to `UTAVehicleDefinition` with area/Cd/Cl/application point;
+2. compile it into `FTAVehicleRuntimeConfig`;
+3. validate finite/physical ranges and include every effective aero field in `PhysicsConfigHash`;
+4. extend `FTAVehicleStepInput` with environment air density/wind;
+5. call `TAAerodynamics::AddToChassis` before `TAChassisDynamics::Integrate`;
+6. expose aero output on `FTAVehicleStepOutput` and telemetry;
+7. add compile/hash regression tests;
+8. require source-sanity green.
 
-Source-level aero plan:
-1. audit chassis coordinate conventions and current environment inputs;
-2. define a deterministic aero config/state with air density and wind-relative velocity;
-3. calculate drag and lift/downforce from dynamic pressure;
-4. apply aerodynamic forces at authored physical points to create pitch/yaw/roll moments naturally;
-5. author, validate and hash the aero coefficients/application points;
-6. add zero-speed, speed-squared, headwind/tailwind, downforce and off-center moment regressions;
-7. expose key aero channels in telemetry;
-8. require GitHub source-sanity green again.
-
-Do not add an arcade speed-dependent grip multiplier. Tire grip may increase only because physically applied aerodynamic load changes chassis/contact loads.
-
-Do not claim UE build success until the local verification harness actually runs against Unreal Engine 5.8.
+Do not claim UE build success until the verification harness actually runs against UE 5.8.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
