@@ -51,20 +51,41 @@ struct TA_VEHICLE_API FTAPrototypeTireDefinition
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire", meta=(ClampMin="0.10", Units="m"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Geometry", meta=(ClampMin="0.10", Units="m"))
     double UnloadedRadiusM = 0.327;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire", meta=(ClampMin="1.0", Units="N"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="1.0", Units="N"))
     double ReferenceLoadN = 3500.0;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire", meta=(ClampMin="1.0", Units="kPa"))
-    double ReferencePressureKPa = 230.0;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire", meta=(ClampMin="0.1"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="0.1"))
     double DryPeakMu = 1.05;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire", meta=(ClampMin="0.0", Units="mm"))
-    double NewTreadDepthMm = 7.5;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="0.0"))
+    double LoadSensitivityExponent = 0.08;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="1.0", Units="N"))
+    double LongitudinalStiffnessN = 90000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="1.0", Units="N/rad"))
+    double CorneringStiffnessNPerRad = 85000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="0.0", Units="N/rad"))
+    double CamberStiffnessNPerRad = 6000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="0.1"))
+    double SaturationExponent = 2.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="0.0", Units="m"))
+    double PneumaticTrailM = 0.055;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Force", meta=(ClampMin="0.0"))
+    double RollingResistanceCoefficient = 0.012;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Pressure", meta=(ClampMin="1.0", Units="kPa"))
+    double ReferencePressureKPa = 230.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Pressure", meta=(Units="C"))
+    double ReferencePressureTemperatureC = 20.0;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Vertical", meta=(ClampMin="1.0", Units="N/m"))
     double RadialStiffnessNPerM = 220000.0;
@@ -77,6 +98,78 @@ struct TA_VEHICLE_API FTAPrototypeTireDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Vertical", meta=(ClampMin="0.005", Units="m"))
     double MaxRadialDeflectionM = 0.060;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Vertical", meta=(ClampMin="0.0"))
+    double PressureRadialStiffnessExponent = 0.45;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Wear", meta=(ClampMin="0.0", Units="mm"))
+    double NewTreadDepthMm = 7.5;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Wear", meta=(ClampMin="0.0", Units="mm"))
+    double MinimumTreadDepthMm = 0.8;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Grip", meta=(Units="C"))
+    double OptimalSurfaceTemperatureC = 85.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Grip", meta=(ClampMin="0.0"))
+    double ColdGripMultiplier = 0.78;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Grip", meta=(ClampMin="0.0"))
+    double HotGripMultiplier = 0.82;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Grip", meta=(Units="C"))
+    double HotGripTemperatureC = 135.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Grip", meta=(ClampMin="0.0"))
+    double PressureGripSensitivity = 0.20;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Grip", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double WearGripLossAtEnd = 0.15;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(ClampMin="1.0", Units="J/C"))
+    double SurfaceThermalMassJPerC = 4200.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(ClampMin="1.0", Units="J/C"))
+    double CarcassThermalMassJPerC = 12000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(ClampMin="0.0", Units="W/C"))
+    double SurfaceToCarcassConductanceWPerC = 95.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(ClampMin="0.0", Units="W/C"))
+    double CarcassToAmbientConductanceWPerC = 38.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(ClampMin="0.01", Units="s"))
+    double InternalAirTimeConstantSeconds = 35.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double SlipHeatFraction = 0.18;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double RollingHeatFraction = 0.50;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Wear", meta=(ClampMin="1.0", Units="J"))
+    double WearEnergyCapacityJ = 8.0e7;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(Units="C"))
+    double ThermalDegradationStartC = 135.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Thermal", meta=(ClampMin="0.0"))
+    double ThermalDegradationRatePerSecondAt170C = 0.0015;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Slip", meta=(ClampMin="0.01", Units="m/s"))
+    double SlipReferenceVelocityMps = 0.5;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Slip", meta=(ClampMin="0.0", Units="m/s"))
+    double DynamicBlendStartMps = 2.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Slip", meta=(ClampMin="0.0", Units="m/s"))
+    double DynamicBlendEndMps = 5.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Hydro", meta=(ClampMin="0.1", Units="m/s"))
+    double HydroReferenceOnsetSpeedMps = 32.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Tire|Hydro", meta=(ClampMin="0.1", Units="mm"))
+    double HydroReferenceWaterDepthMm = 4.0;
 };
 
 USTRUCT(BlueprintType)
@@ -256,6 +349,45 @@ struct TA_VEHICLE_API FTAEngineTorqueDefinitionPoint
 };
 
 USTRUCT(BlueprintType)
+struct TA_VEHICLE_API FTAEngineThermalAuthoringDefinition
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(Units="C"))
+    double AmbientTemperatureC = 20.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(Units="C"))
+    double InitialCoolantTemperatureC = 90.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(ClampMin="1.0", Units="J/C"))
+    double EffectiveThermalMassJPerC = 70000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(ClampMin="0.0", Units="W"))
+    double BaseHeatGenerationW = 12000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(ClampMin="0.0", Units="W"))
+    double FullLoadAdditionalHeatW = 95000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(ClampMin="0.0", Units="W/C"))
+    double CoolingCapacityWPerC = 1450.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(Units="C"))
+    double DerateStartTemperatureC = 110.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(Units="C"))
+    double DerateFullTemperatureC = 135.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumThermalTorqueFactor = 0.40;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(Units="C"))
+    double DamageStartTemperatureC = 125.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Thermal", meta=(ClampMin="0.0"))
+    double DamageRatePerSecondAt150C = 0.0025;
+};
+
+USTRUCT(BlueprintType)
 struct TA_VEHICLE_API FTAPrototypeDrivetrainDefinition
 {
     GENERATED_BODY()
@@ -274,11 +406,59 @@ struct TA_VEHICLE_API FTAPrototypeDrivetrainDefinition
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Powertrain", meta=(ClampMin="0.01", Units="kg*m^2"))
     double CrankInertiaKgm2 = 0.20;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Friction", meta=(ClampMin="0.0", Units="N*m"))
+    double FrictionConstantNm = 8.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Friction", meta=(ClampMin="0.0"))
+    double FrictionLinearNms = 0.02;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Friction", meta=(ClampMin="0.0"))
+    double FrictionQuadraticNms2 = 0.00002;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|RunState", meta=(ClampMin="0.0", Units="rpm"))
+    double StallRPM = 450.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|RunState", meta=(ClampMin="0.0", Units="rpm"))
+    double CombustionStartRPM = 650.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Starter", meta=(ClampMin="0.0", Units="N*m"))
+    double StarterTorqueNm = 95.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|Starter", meta=(ClampMin="0.0", Units="rpm"))
+    double StarterMaxRPM = 900.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|IdleControl", meta=(ClampMin="0.0"))
+    double IdleControlGainNmPerRPM = 0.08;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine|IdleControl", meta=(ClampMin="0.0", Units="N*m"))
+    double MaxIdleControlTorqueNm = 90.0;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Powertrain")
     TArray<FTAEngineTorqueDefinitionPoint> TorqueCurve;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch", meta=(ClampMin="0.0", Units="N*m"))
     double ClutchMaxTorqueNm = 500.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch", meta=(ClampMin="0.0"))
+    double ClutchCouplingStiffnessNms = 20.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch|Thermal", meta=(ClampMin="1.0", Units="J/C"))
+    double ClutchThermalMassJPerC = 12000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch|Thermal", meta=(ClampMin="0.0", Units="W/C"))
+    double ClutchCoolingWPerC = 18.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch|Thermal", meta=(Units="C"))
+    double ClutchAmbientTemperatureC = 20.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch|Thermal", meta=(Units="C"))
+    double ClutchFadeStartTemperatureC = 220.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch|Thermal", meta=(Units="C"))
+    double ClutchFadeEndTemperatureC = 420.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Clutch|Wear", meta=(ClampMin="1.0", Units="J"))
+    double ClutchWearEnergyCapacityJ = 1.0e8;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Gearbox")
     TArray<double> ForwardGearRatios;
@@ -291,6 +471,12 @@ struct TA_VEHICLE_API FTAPrototypeDrivetrainDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Gearbox", meta=(ClampMin="0.1", ClampMax="1.0"))
     double MechanicalEfficiency = 0.96;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Driveline|Compliance", meta=(ClampMin="0.0", Units="N*m/rad"))
+    double DrivelineTorsionalStiffnessNmPerRad = 2500.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Driveline|Compliance", meta=(ClampMin="0.0"))
+    double DrivelineTorsionalDampingNmsPerRad = 25.0;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Drivetrain")
     bool bRearWheelDrive = true;
@@ -331,6 +517,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Drivetrain")
     FTAPrototypeDrivetrainDefinition Drivetrain;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Thermal")
+    FTAEngineThermalAuthoringDefinition EngineThermal;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Structure")
     FTAVehicleStructureAuthoringDefinition Structure;
