@@ -246,6 +246,12 @@ struct TA_VEHICLE_API FTAFrontSuspensionDefinition
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Front|Damper", meta=(ClampMin="0.0", Units="N*s/m"))
     double ReboundDampingNsPerM = 6500.0;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Front|Stops", meta=(ClampMin="0.0", Units="N/m"))
+    double BumpStopRateNPerM = 180000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Front|Stops", meta=(ClampMin="0.0", Units="N/m"))
+    double DroopStopRateNPerM = 120000.0;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Front|AntiRoll", meta=(ClampMin="0.0", Units="N/m"))
     double AntiRollCouplingRateNPerM = 12000.0;
 
@@ -329,6 +335,12 @@ struct TA_VEHICLE_API FTARearSuspensionDefinition
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|Damper", meta=(ClampMin="0.0", Units="N*s/m"))
     double ReboundDampingNsPerM = 5200.0;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|Stops", meta=(ClampMin="0.0", Units="N/m"))
+    double BumpStopRateNPerM = 180000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|Stops", meta=(ClampMin="0.0", Units="N/m"))
+    double DroopStopRateNPerM = 120000.0;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|AntiRoll", meta=(ClampMin="0.0", Units="N/m"))
     double AntiRollCouplingRateNPerM = 9000.0;
 
@@ -346,6 +358,30 @@ struct TA_VEHICLE_API FTAEngineTorqueDefinitionPoint
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Engine", meta=(Units="N*m"))
     double TorqueNm = 0.0;
+};
+
+USTRUCT(BlueprintType)
+struct TA_VEHICLE_API FTACoolingSystemAuthoringDefinition
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Cooling", meta=(ClampMin="0.0", Units="kg"))
+    double InitialCoolantMassKg = 6.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Cooling|Damage", meta=(ClampMin="0.0", Units="J"))
+    double PunctureThresholdEnergyJ = 2500.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Cooling|Damage", meta=(ClampMin="0.0", Units="J"))
+    double FullLeakEnergyJ = 20000.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Cooling|Damage", meta=(ClampMin="0.0", Units="mm^2"))
+    double MaxLeakAreaMm2 = 20.0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Cooling|Leak", meta=(ClampMin="0.0"))
+    double LeakMassFlowKgPerSecPerMm2 = 0.003;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Cooling|Damage", meta=(ClampMin="0.0", ClampMax="1.0"))
+    double MinimumAirflowEfficiency01 = 0.15;
 };
 
 USTRUCT(BlueprintType)
@@ -520,6 +556,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Thermal")
     FTAEngineThermalAuthoringDefinition EngineThermal;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Cooling")
+    FTACoolingSystemAuthoringDefinition Cooling;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Structure")
     FTAVehicleStructureAuthoringDefinition Structure;
