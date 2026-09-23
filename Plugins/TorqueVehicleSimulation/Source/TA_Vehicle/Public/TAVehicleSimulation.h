@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TADamageTypes.h"
 #include "TAPowertrainSolver.h"
 #include "TATireSolver.h"
 
@@ -48,9 +49,13 @@ struct TA_VEHICLE_API FTAVehicleRuntimeConfig
     TArray<FTATireRuntimeConfig> Tires;
 
     FTAEngineRuntimeConfig Engine;
+    FTAEngineThermalConfig EngineThermal;
+
     FTAClutchRuntimeConfig Clutch;
     FTAGearboxRuntimeConfig Gearbox;
     FTADrivelineComplianceConfig Driveline;
+
+    FTARadiatorDamageConfig Radiator;
 };
 
 struct TA_VEHICLE_API FTAVehicleRuntimeState
@@ -58,8 +63,12 @@ struct TA_VEHICLE_API FTAVehicleRuntimeState
     uint64 SimulationTick = 0;
 
     FTAEngineRuntimeState Engine;
+    FTAEngineThermalState EngineThermal;
+
     FTAClutchRuntimeState Clutch;
     FTADrivelineComplianceState Driveline;
+
+    FTARadiatorDamageState Radiator;
 
     int32 SelectedGear = 0;
 
@@ -79,6 +88,12 @@ struct TA_VEHICLE_API FTAVehicleStepOutput
     double TotalAligningMomentNm = 0.0;
 
     double EngineRPM = 0.0;
+    double EngineCoolantTemperatureC = 0.0;
+    double EngineThermalTorqueFactor = 1.0;
+
+    double CoolingEfficiency01 = 1.0;
+    double CoolantMassKg = 0.0;
+
     double ClutchSlipRadPerSec = 0.0;
 
     double LeftDrivenWheelTorqueNm = 0.0;
