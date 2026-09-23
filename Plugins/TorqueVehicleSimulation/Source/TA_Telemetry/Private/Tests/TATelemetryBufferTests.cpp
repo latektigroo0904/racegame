@@ -256,6 +256,18 @@ bool FTATelemetryFunctionalDamageCaptureTest::RunTest(
     State.SuspensionDamage[0].AntiRollLinkEfficiency01 =
         0.15;
 
+    State.Wheels[0].BrakeThermal.TemperatureC =
+        525.0;
+
+    State.Wheels[0].BrakeThermal.ThermalTorqueFactor01 =
+        0.72;
+
+    State.Wheels[0].BrakeThermal.Wear01 =
+        0.35;
+
+    State.Wheels[0].BrakeThermal.WearTorqueFactor01 =
+        0.91;
+
     FTAVehicleStepOutput Output;
 
     const FTAVehicleTelemetrySample Sample =
@@ -354,6 +366,34 @@ bool FTATelemetryFunctionalDamageCaptureTest::RunTest(
             0.15,
             1.0e-9));
 
+    TestTrue(
+        TEXT("Front-left brake temperature maps"),
+        FMath::IsNearlyEqual(
+            Sample.BrakeTemperatureC[0],
+            525.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-left brake fade factor maps"),
+        FMath::IsNearlyEqual(
+            Sample.BrakeThermalTorqueFactor01[0],
+            0.72,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-left brake wear maps"),
+        FMath::IsNearlyEqual(
+            Sample.BrakeWear01[0],
+            0.35,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-left brake wear torque factor maps"),
+        FMath::IsNearlyEqual(
+            Sample.BrakeWearTorqueFactor01[0],
+            0.91,
+            1.0e-9));
+
     return true;
 }
 
@@ -385,6 +425,10 @@ bool FTATelemetryFunctionalDamageCsvTest::RunTest(
     Sample.SuspensionStopEfficiency01[0] = 0.9;
     Sample.AntiRollLinkDamage01[0] = 1.0;
     Sample.AntiRollLinkEfficiency01[0] = 0.0;
+    Sample.BrakeTemperatureC[0] = 600.0;
+    Sample.BrakeThermalTorqueFactor01[0] = 0.5;
+    Sample.BrakeWear01[0] = 0.4;
+    Sample.BrakeWearTorqueFactor01[0] = 0.9;
 
     TestTrue(
         TEXT("Damage sample pushes"),
@@ -420,6 +464,18 @@ bool FTATelemetryFunctionalDamageCsvTest::RunTest(
     TestTrue(
         TEXT("CSV exposes front-left anti-roll link health channel"),
         Csv.Contains(TEXT("arblink_fl")));
+
+    TestTrue(
+        TEXT("CSV exposes front-left brake temperature channel"),
+        Csv.Contains(TEXT("braketemp_fl_c")));
+
+    TestTrue(
+        TEXT("CSV exposes front-left brake fade channel"),
+        Csv.Contains(TEXT("brakefade_fl")));
+
+    TestTrue(
+        TEXT("CSV exposes front-left brake wear channel"),
+        Csv.Contains(TEXT("brakewear_fl")));
 
     return true;
 }
