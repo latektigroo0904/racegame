@@ -342,6 +342,13 @@ bool TAVehicleSimulation::Step(
 
         WheelState.LastTireOutput = TireOutput;
 
+        TATireSolver::UpdateThermalPressureAndWear(
+            Config.Tires[Index],
+            TireInput,
+            TireOutput,
+            DeltaTimeSeconds,
+            WheelState.TireState);
+
         const FTAWheelContactInput& Contact =
             Input.WheelContacts[Index];
 
