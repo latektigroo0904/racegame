@@ -1,6 +1,6 @@
 # Powertrain Solver v0.1
 
-Status: prototype specification
+Status: prototype specification  
 Updated: 2026-09-23
 
 ## 1. Objective
@@ -34,13 +34,12 @@ T_combustion
 - T_clutch_reaction
 ```
 
-RPM is a display/authoring representation:
+RPM:
 ```
 RPM = omega * 60 / (2*pi)
 ```
 
 ## 3. Combustion torque
-Prototype:
 ```
 T_combustion =
 TorqueMap(RPM, normalizedLoad)
@@ -51,12 +50,7 @@ TorqueMap(RPM, normalizedLoad)
 
 The authored torque map describes crankshaft output before driveline losses.
 
-Throttle pedal is not identical to engine load. The solver applies:
-- pedal map;
-- throttle-body response;
-- idle controller;
-- boost availability;
-- engine protection.
+Throttle pedal is not identical to engine load. The solver applies pedal map, throttle response, idle control, boost availability and protection logic.
 
 ## 4. Engine friction
 Use a tunable combination:
@@ -67,22 +61,15 @@ C0
 + C2 * omega^2
 ```
 
-Sign opposes crank rotation.
+The friction torque opposes crank rotation. This supports realistic coast-down and engine braking without a fixed negative-torque constant.
 
-This enables realistic coast-down and engine braking without a fixed negative torque constant.
-
-## 5. Idle control
-Below target idle speed:
+## 5. Idle, starter and stall
+Idle control is finite and bounded:
 ```
 T_idle = controller(RPM_target - RPM)
 ```
 
-Controller output is limited and blended with driver throttle.
-
-A damaged/stalled engine must not receive infinite anti-stall torque.
-
-## 6. Starter/stall
-States:
+Engine states:
 ```
 Stopped
 Cranking
@@ -91,13 +78,9 @@ Stalled
 Seized
 ```
 
-Starter applies finite torque below a maximum starter speed.
+Starter torque is finite. A loaded engine may stall.
 
-Engine stalls when combustion cannot sustain crank speed against load/friction.
-
-## 7. Turbocharger v0.1
-Do not model CFD.
-
+## 6. Turbocharger v0.1
 State:
 ```
 TurboSpeedNormalized
@@ -105,29 +88,26 @@ BoostPressure
 WastegatePosition
 ```
 
-First-order spool model:
+First-order spool seed:
 ```
 dS/dt =
 (ExhaustEnergyTarget - S) / TauSpool
 - WastegateLoss
 ```
 
-Boost derives from turbo state, RPM and compressor calibration.
-
 Requirements:
-- visible lag;
+- lag;
 - boost decay on lift;
 - wastegate control;
 - thermal/damage hooks;
 - no instantaneous torque multiplier.
 
-## 8. Rev limiter
-Electronic limiter can reduce combustion torque above limiter threshold.
+## 7. Rev limiter
+Electronic limiter reduces combustion torque above its threshold.
 
 It does **not** prevent mechanical over-rev caused by wheel-driven crankshaft speed after an incorrect downshift.
 
-## 9. Clutch
-Define slip:
+## 8. Clutch
 ```
 omega_slip = omega_engine - omega_gearbox_input
 ```
@@ -137,21 +117,14 @@ Requested clutch torque:
 T_raw = K_clutch * omega_slip
 ```
 
-Clamp:
+Capacity:
 ```
 |T_clutch| <= T_capacity
 ```
 
-Capacity depends on:
-- pedal engagement;
-- clamp force;
-- friction coefficient;
-- temperature;
-- wear/damage.
+Capacity depends on engagement, clamp/friction calibration, temperature, wear and damage.
 
-Torque sign opposes slip.
-
-## 10. Clutch energy and temperature
+## 9. Clutch heat and wear
 Slip power:
 ```
 P_slip = abs(T_clutch * omega_slip)
@@ -162,44 +135,57 @@ Thermal integration:
 dE/dt = P_slip - Cooling
 ```
 
-Temperature changes friction/fade and accelerates wear.
+Wear integrates friction work through a calibrated energy budget.
 
 Failure progression:
 ```
 Normal → Hot → Fading → Slipping → Failed
 ```
 
-## 11. Gearbox
-For selected ratio `G`:
+## 10. Gearbox ratio convention
+Torque Atlas uses conventional reduction ratio:
 ```
-omega_out ≈ omega_in * G
-T_out ≈ T_in * G * efficiency
+G = omega_input / omega_output
 ```
 
-Prototype includes:
-- neutral;
-- reverse;
-- six forward gears;
-- finite input/output inertia;
-- shift interruption;
-- gear damage hook.
+Therefore:
+```
+omega_output = omega_input / G
+T_output ≈ T_input * G * efficiency
+```
 
-Full synchronizer cone simulation is deferred, but invalid shift requests must be representable and later extensible.
+This corrects an earlier draft equation that incorrectly multiplied angular speed by the reduction ratio.
+
+Gear convention:
+- -1 reverse;
+- 0 neutral;
+- 1..N forward.
+
+Prototype includes six forward gears, reverse, neutral and shift/damage hooks.
+
+## 11. Final drive
+Final-drive ratio is solved separately from the selected gearbox ratio:
+```
+omega_axle = omega_gearbox_output / G_final
+T_axle ≈ T_gearbox_output * G_final * efficiency
+```
+
+Keeping gearbox and final drive transforms separate improves telemetry, part swapping and damage modelling.
 
 ## 12. Mechanical over-rev
-During clutch engagement after a downshift:
-1. compute wheel-imposed gearbox input speed;
-2. clutch attempts synchronization;
-3. reaction torque accelerates crankshaft;
-4. RPM may exceed electronic redline;
+During a wrong downshift:
+1. wheel speed implies differential/final-drive speed;
+2. gearbox ratio implies gearbox-input speed;
+3. clutch attempts synchronization;
+4. crankshaft can be accelerated beyond electronic redline;
 5. over-rev damage accumulates.
 
-Do not clamp engine RPM to redline.
+Do not clamp crankshaft RPM to redline.
 
 ## 13. Driveline compliance
 Avoid a perfectly rigid algebraic drivetrain.
 
-Prototype introduces torsional shaft state:
+State:
 ```
 theta_twist
 omega_relative
@@ -207,29 +193,27 @@ omega_relative
 
 Torque:
 ```
-T_shaft = K_torsion * theta_twist + C_torsion * omega_relative
+T_shaft =
+K_torsion * theta_twist
++ C_torsion * omega_relative
 ```
 
-Use for:
-- gearbox-output to differential input;
-- optional half-shaft compliance later.
-
-This creates driveline lash/oscillation in a controlled way.
+This can represent gearbox-output shaft compliance and later half-shaft compliance.
 
 ## 14. Open differential v0.1
-Conserve input torque and permit wheel-speed difference.
+An open differential permits left/right wheel-speed difference and tends to transmit equal side torque in the ideal quasi-static case.
 
-For equal ideal outputs:
-```
-T_left ≈ T_right
-```
+Prototype approximation:
+- requested input torque is split into equal side torque;
+- common transmitted torque is bounded by the lower available wheel reaction capacity;
+- untransmitted torque is explicitly reported rather than silently discarded.
 
-Actual transmitted wheel torque is limited by tire reaction and drivetrain constraints.
+This is intentionally temporary. The full version should couple carrier, side-gear and wheel inertias rather than treating the differential as a static splitter.
 
-Do not implement an open diff as a simple 50/50 wheel-speed lock.
+Do **not** implement an open differential as a 50/50 wheel-speed lock.
 
 ## 15. Future differential backends
-Interface must allow:
+Interface must support:
 - clutch LSD;
 - helical/torque-biasing;
 - viscous;
@@ -238,29 +222,29 @@ Interface must allow:
 
 ## 16. Solver ordering per vehicle substep
 1. sample wheel angular states;
-2. propagate gearbox/differential kinematic targets;
-3. update driver throttle/clutch/gear command;
+2. propagate differential/final-drive/gearbox kinematic targets;
+3. update driver throttle, clutch and gear command;
 4. update engine combustion/friction/turbo;
-5. solve clutch torque;
-6. solve gearbox and driveline compliance;
+5. solve clutch reaction;
+6. solve gearbox/final-drive transforms and compliant shafts;
 7. solve differential torque distribution;
 8. apply axle torques to driven wheels;
 9. integrate rotational inertias;
-10. compute thermal/wear/damage updates.
+10. update thermal/wear/damage state.
 
-Because tire reaction and driveline torque interact, the final implementation may require 2–4 local iterations; measure before increasing globally.
+Tire reaction and driveline torque are coupled. The implementation may require a small local iterative solve; measure before increasing global iteration count.
 
 ## 17. Damage hooks
-Powertrain receives state modifiers from:
-- engine cooling;
+Powertrain modifiers come from:
+- cooling;
 - oil pressure;
-- crank/internal damage;
-- clutch condition;
-- gearbox condition;
-- driveshaft/CV condition;
-- differential condition.
+- engine internals;
+- clutch;
+- gearbox;
+- driveshaft/CV;
+- differential.
 
-A damaged component changes physical parameters rather than only multiplying a generic HP value.
+Damage changes physical parameters, not a generic HP scalar.
 
 ## 18. TA-P01 baseline
 Provisional authored values:
@@ -282,28 +266,28 @@ Gear ratios:
 Final drive 3.90
 ```
 
-Values are calibration starting points, not final claims.
+Values are calibration seeds, not final claims.
 
-## 19. Unit/regression tests
-Required:
-- no-load free rev;
+## 19. Required tests
+- free rev;
 - engine coast-down;
 - idle stabilization;
 - clutch launch;
-- clutch sustained slip/overheat;
+- clutch thermal abuse;
 - stall against brake;
-- each gear ratio speed relationship;
+- gear-ratio speed/torque transforms;
 - wrong-gear over-rev;
 - neutral decoupling;
-- open-diff wheel-speed difference;
+- open-diff split traction;
 - torque/energy sign sanity;
-- driveline oscillation remains bounded.
+- bounded driveline oscillation.
 
-## 20. Acceptance targets
-The v0.1 solver is acceptable when:
-- launch can occur without artificial speed clamps;
-- stall and clutch slip emerge from torque balance;
-- shift/downshift effects are physically plausible;
-- over-rev can happen mechanically;
-- identical fixed-step tests remain repeatable within numerical tolerance;
-- all car-specific calibration resides in data, not solver branches.
+## 20. Acceptance
+v0.1 is acceptable when:
+- launch occurs from torque balance rather than a speed assist;
+- clutch slip and stall emerge naturally;
+- ratio transforms are dimensionally and physically consistent;
+- mechanical over-rev is possible;
+- split-traction open-diff behaviour is plausible;
+- fixed-step tests repeat within numerical tolerance;
+- car-specific calibration remains data-driven.
