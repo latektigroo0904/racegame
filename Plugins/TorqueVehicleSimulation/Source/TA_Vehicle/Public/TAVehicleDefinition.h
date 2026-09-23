@@ -134,6 +134,12 @@ struct TA_VEHICLE_API FTAFrontSuspensionDefinition
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Front|Travel", meta=(Units="m"))
     double MaxTravelM = 0.09;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Front|Solver", meta=(ClampMin="1", ClampMax="512"))
+    int32 MaxSolverIterations = 80;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Front|Solver", meta=(ClampMin="0.00001", Units="m"))
+    double PositionToleranceM = 0.0005;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Front|Spring", meta=(ClampMin="0.0", Units="N/m"))
     double SpringRateNPerM = 100000.0;
 
@@ -210,6 +216,12 @@ struct TA_VEHICLE_API FTARearSuspensionDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|Travel", meta=(Units="m"))
     double MaxTravelM = 0.09;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|Solver", meta=(ClampMin="1", ClampMax="512"))
+    int32 MaxSolverIterations = 180;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|Solver", meta=(ClampMin="0.00001", Units="m"))
+    double PositionToleranceM = 0.001;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rear|Spring", meta=(ClampMin="0.0", Units="N/m"))
     double SpringRateNPerM = 50000.0;
