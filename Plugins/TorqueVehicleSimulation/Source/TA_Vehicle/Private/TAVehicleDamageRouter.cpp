@@ -34,6 +34,12 @@ namespace
         case ETADamageSignalType::StructuralFracture:
             return Route.bAcceptStructuralFracture;
 
+        case ETADamageSignalType::FluidPressureLoss:
+            return Route.bAcceptFluidPressureLoss;
+
+        case ETADamageSignalType::ElectricalDisconnection:
+            return Route.bAcceptElectricalDisconnection;
+
         default:
             return false;
         }
@@ -83,6 +89,23 @@ namespace
                     Route.FullCrushDisplacementM),
                 0.0,
                 1.0);
+        }
+
+        if (Signal.Type == ETADamageSignalType::FluidPressureLoss ||
+            Signal.Type == ETADamageSignalType::ElectricalDisconnection)
+        {
+            if (!FMath::IsFinite(
+                    Signal.ScalarValue))
+            {
+                return 0.0;
+            }
+
+            return Signal.ScalarValue > 0.0
+                ? FMath::Clamp(
+                    Signal.ScalarValue,
+                    0.0,
+                    1.0)
+                : 1.0;
         }
 
         return 0.0;
@@ -327,6 +350,100 @@ namespace
         return true;
     }
 
+    bool ApplyElectricalBusSignal(
+        const FTAVehicleDamageRoute& Route,
+        const FTADamageSignal& Signal,
+        FTAVehicleRuntimeState& InOutVehicleState)
+    {
+        const double Severity01 =
+            CalculateFunctionalDamageSeverity01(
+                Route,
+                Signal);
+
+        if (Severity01 <= 0.0)
+        {
+            return false;
+        }
+
+        FTAElectricalFunctionalDamageState& Damage =
+            InOutVehicleState.ElectricalDamage;
+
+        Damage.Damage01 =
+            FMath::Max(
+                Damage.Damage01,
+                Severity01);
+
+        const double TargetStarterEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumStarterEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        const double TargetEngineControlEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumEngineControlEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        Damage.StarterEfficiency01 =
+            FMath::Min(
+                Damage.StarterEfficiency01,
+                TargetStarterEfficiency01);
+
+        Damage.EngineControlEfficiency01 =
+            FMath::Min(
+                Damage.EngineControlEfficiency01,
+                TargetEngineControlEfficiency01);
+
+        return true;
+    }
+
+    bool ApplyFuelDeliverySignal(
+        const FTAVehicleDamageRoute& Route,
+        const FTADamageSignal& Signal,
+        FTAVehicleRuntimeState& InOutVehicleState)
+    {
+        const double Severity01 =
+            CalculateFunctionalDamageSeverity01(
+                Route,
+                Signal);
+
+        if (Severity01 <= 0.0)
+        {
+            return false;
+        }
+
+        FTAFuelDeliveryFunctionalDamageState& Damage =
+            InOutVehicleState.FuelDeliveryDamage;
+
+        Damage.Damage01 =
+            FMath::Max(
+                Damage.Damage01,
+                Severity01);
+
+        const double TargetDeliveryEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumFuelDeliveryEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        Damage.DeliveryEfficiency01 =
+            FMath::Min(
+                Damage.DeliveryEfficiency01,
+                TargetDeliveryEfficiency01);
+
+        return true;
+    }
+
     bool ApplyRadiatorSignal(
         const FTAVehicleDamageRoute& Route,
         const FTAVehicleRuntimeConfig& VehicleConfig,
@@ -442,6 +559,15 @@ bool TAVehicleDamageRouter::ValidateConfig(
             !FMath::IsFinite(Route.MinimumAntiRollLinkEfficiency01) ||
             Route.MinimumAntiRollLinkEfficiency01 < 0.0 ||
             Route.MinimumAntiRollLinkEfficiency01 > 1.0 ||
+            !FMath::IsFinite(Route.MinimumStarterEfficiency01) ||
+            Route.MinimumStarterEfficiency01 < 0.0 ||
+            Route.MinimumStarterEfficiency01 > 1.0 ||
+            !FMath::IsFinite(Route.MinimumEngineControlEfficiency01) ||
+            Route.MinimumEngineControlEfficiency01 < 0.0 ||
+            Route.MinimumEngineControlEfficiency01 > 1.0 ||
+            !FMath::IsFinite(Route.MinimumFuelDeliveryEfficiency01) ||
+            Route.MinimumFuelDeliveryEfficiency01 < 0.0 ||
+            Route.MinimumFuelDeliveryEfficiency01 > 1.0 ||
             (Route.Consumer == ETAVehicleDamageConsumerType::SuspensionCorner &&
              Route.MinimumSpringEfficiency01 <= 0.0) ||
             ((Route.Consumer == ETAVehicleDamageConsumerType::WheelHub ||
@@ -568,6 +694,32 @@ bool TAVehicleDamageRouter::RouteSignals(
             if (bApplied)
             {
                 ++OutOutput.AntiRollLinkSignalsApplied;
+            }
+            break;
+
+        case ETAVehicleDamageConsumerType::ElectricalBus:
+            bApplied =
+                ApplyElectricalBusSignal(
+                    *Route,
+                    Signal,
+                    InOutVehicleState);
+
+            if (bApplied)
+            {
+                ++OutOutput.ElectricalBusSignalsApplied;
+            }
+            break;
+
+        case ETAVehicleDamageConsumerType::FuelDelivery:
+            bApplied =
+                ApplyFuelDeliverySignal(
+                    *Route,
+                    Signal,
+                    InOutVehicleState);
+
+            if (bApplied)
+            {
+                ++OutOutput.FuelDeliverySignalsApplied;
             }
             break;
 
