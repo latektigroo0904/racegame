@@ -108,6 +108,111 @@ double TAPowertrainSolver::CalculateCombustionTorqueNm(
         * StateFactor);
 }
 
+void TAPowertrainSolver::InitializeEngineThermalState(
+    const FTAEngineThermalConfig& Config,
+    FTAEngineThermalState& OutState)
+{
+    OutState = FTAEngineThermalState{};
+    OutState.CoolantTemperatureC =
+        FMath::Max(Config.AmbientTemperatureC, Config.InitialCoolantTemperatureC);
+}
+
+void TAPowertrainSolver::UpdateEngineThermalState(
+    const FTAEngineThermalConfig& Config,
+    const double Throttle01,
+    const double EngineRPM,
+    const double CoolingEfficiency01,
+    const double DeltaTimeSeconds,
+    FTAEngineThermalState& InOutThermalState,
+    FTAEngineRuntimeState& InOutEngineState)
+{
+    if (DeltaTimeSeconds <= 0.0)
+    {
+        return;
+    }
+
+    const double Throttle = FMath::Clamp(Throttle01, 0.0, 1.0);
+    const double CoolingEfficiency =
+        FMath::Clamp(CoolingEfficiency01, 0.0, 1.0);
+
+    const double RPMFactor =
+        FMath::Clamp(
+            EngineRPM / FMath::Max(1.0, InOutEngineState.RunState == ETAEngineRunState::Running ? 7000.0 : 1.0),
+            0.0,
+            1.5);
+
+    const double GeneratedHeatW =
+        FMath::Max(0.0, Config.BaseHeatGenerationW)
+        + FMath::Max(0.0, Config.FullLoadAdditionalHeatW)
+        * Throttle
+        * FMath::Max(0.25, RPMFactor);
+
+    const double TemperatureDeltaFromAmbient =
+        FMath::Max(
+            0.0,
+            InOutThermalState.CoolantTemperatureC - Config.AmbientTemperatureC);
+
+    const double RejectedHeatW =
+        FMath::Max(0.0, Config.CoolingCapacityWPerC)
+        * CoolingEfficiency
+        * TemperatureDeltaFromAmbient;
+
+    if (Config.EffectiveThermalMassJPerC > UE_DOUBLE_SMALL_NUMBER)
+    {
+        InOutThermalState.CoolantTemperatureC +=
+            ((GeneratedHeatW - RejectedHeatW) * DeltaTimeSeconds)
+            / Config.EffectiveThermalMassJPerC;
+    }
+
+    InOutThermalState.CoolantTemperatureC =
+        FMath::Max(
+            Config.AmbientTemperatureC,
+            InOutThermalState.CoolantTemperatureC);
+
+    const double DerateRange =
+        FMath::Max(
+            1.0,
+            Config.DerateFullTemperatureC - Config.DerateStartTemperatureC);
+
+    const double DerateAlpha =
+        FMath::Clamp(
+            (InOutThermalState.CoolantTemperatureC - Config.DerateStartTemperatureC)
+            / DerateRange,
+            0.0,
+            1.0);
+
+    InOutEngineState.ThermalTorqueFactor =
+        FMath::Lerp(
+            1.0,
+            FMath::Clamp(Config.MinimumThermalTorqueFactor, 0.0, 1.0),
+            DerateAlpha);
+
+    if (InOutThermalState.CoolantTemperatureC > Config.DamageStartTemperatureC)
+    {
+        const double Severity =
+            FMath::Clamp(
+                (InOutThermalState.CoolantTemperatureC - Config.DamageStartTemperatureC)
+                / FMath::Max(1.0, 150.0 - Config.DamageStartTemperatureC),
+                0.0,
+                2.0);
+
+        InOutThermalState.ThermalDamage01 =
+            FMath::Clamp(
+                InOutThermalState.ThermalDamage01
+                + Severity
+                * FMath::Max(0.0, Config.DamageRatePerSecondAt150C)
+                * DeltaTimeSeconds,
+                0.0,
+                1.0);
+
+        InOutEngineState.DamageTorqueFactor =
+            FMath::Clamp(
+                1.0 - 0.85 * InOutThermalState.ThermalDamage01,
+                0.10,
+                1.0);
+    }
+}
+
 double TAPowertrainSolver::CalculateEngineFrictionTorqueNm(
     const FTAEngineRuntimeConfig& Config,
     const double AngularSpeedRadPerSec)
