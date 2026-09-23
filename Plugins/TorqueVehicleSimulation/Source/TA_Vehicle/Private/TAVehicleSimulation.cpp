@@ -240,17 +240,38 @@ bool TAVehicleSimulation::Step(
         DeltaTimeSeconds,
         InOutState.Radiator);
 
-    const double CombustionTorqueNm =
+    const double BaseCombustionTorqueNm =
         TAPowertrainSolver::CalculateCombustionTorqueNm(
             Config.Engine,
             InOutState.Engine,
             Throttle01);
 
-    const double StarterTorqueNm =
+    const double CombustionTorqueNm =
+        BaseCombustionTorqueNm
+        * FMath::Clamp(
+            InOutState.ElectricalDamage
+                .EngineControlEfficiency01,
+            0.0,
+            1.0)
+        * FMath::Clamp(
+            InOutState.FuelDeliveryDamage
+                .DeliveryEfficiency01,
+            0.0,
+            1.0);
+
+    const double BaseStarterTorqueNm =
         TAPowertrainSolver::CalculateStarterTorqueNm(
             Config.Engine,
             InOutState.Engine,
             Input.Controls.bStarterEngaged);
+
+    const double StarterTorqueNm =
+        BaseStarterTorqueNm
+        * FMath::Clamp(
+            InOutState.ElectricalDamage
+                .StarterEfficiency01,
+            0.0,
+            1.0);
 
     InOutState.Engine.AngularSpeedRadPerSec =
         TAPowertrainSolver::IntegrateEngineAngularSpeed(
