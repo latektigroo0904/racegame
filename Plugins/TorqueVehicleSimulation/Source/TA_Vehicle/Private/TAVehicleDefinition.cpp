@@ -443,6 +443,18 @@ namespace
         Out.Solver.MaxPlasticRestChangeFractionPerStep =
             Authored.MaxPlasticRestChangeFractionPerStep;
 
+        Out.ImpactDistribution.DistributionRadiusM =
+            Authored.ImpactDistributionRadiusM;
+
+        Out.ImpactDistribution.DistanceFalloffExponent =
+            Authored.ImpactDistanceFalloffExponent;
+
+        Out.ImpactDistribution.DeformationImpulseFraction01 =
+            Authored.DeformationImpulseFraction01;
+
+        Out.ImpactDistribution.MaxNodeDeltaVelocityMps =
+            Authored.MaxNodeDeltaVelocityMps;
+
         Out.InitialNodes.SetNum(
             Authored.Nodes.Num());
 
@@ -702,6 +714,22 @@ namespace
         Hash = HashCombineFast(
             Hash,
             GetTypeHash(Structure.Constraints.Num()));
+
+        Hash = HashDouble(
+            Hash,
+            Structure.ImpactDistribution.DistributionRadiusM);
+
+        Hash = HashDouble(
+            Hash,
+            Structure.ImpactDistribution.DistanceFalloffExponent);
+
+        Hash = HashDouble(
+            Hash,
+            Structure.ImpactDistribution.DeformationImpulseFraction01);
+
+        Hash = HashDouble(
+            Hash,
+            Structure.ImpactDistribution.MaxNodeDeltaVelocityMps);
 
         for (const FTAStructureNode& Node :
              Structure.InitialNodes)
