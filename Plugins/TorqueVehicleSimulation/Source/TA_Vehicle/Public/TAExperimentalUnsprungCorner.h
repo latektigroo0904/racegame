@@ -52,6 +52,13 @@ struct TA_VEHICLE_API FTAExperimentalUnsprungCornerOutput
     double TireNormalForceN = 0.0;
     double ChassisSuspensionReactionN = 0.0;
 
+    double GeneralizedTireForceN = 0.0;
+    double GeneralizedGravityForceN = 0.0;
+    double GeneralizedChassisInertialForceN = 0.0;
+
+    // Positive means net force toward bump along the unsprung travel axis.
+    double GeneralizedForceBalanceN = 0.0;
+
     double RequestedTireDeflectionM = 0.0;
     double TireRadialDeflectionM = 0.0;
 
