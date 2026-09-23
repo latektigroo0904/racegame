@@ -70,3 +70,23 @@
 **Status:** accepted  
 **Decision:** source map formats are converted into a stable GeoForge schema before Unreal export. Raw OSM/source tags are not gameplay APIs.  
 **Reason:** source independence, regeneration, validation, licensing provenance and regional rule packs.
+
+## ADR-017 — Definition, instance and live state are separate domains
+**Status:** accepted  
+**Decision:** vehicle authored definition, persistent owned-vehicle state and high-frequency simulation state are separate data models.  
+**Reason:** prevents save/configuration concerns from contaminating the deterministic solver and makes migrations explicit.
+
+## ADR-018 — Compile Unreal assets into native runtime configuration
+**Status:** accepted  
+**Decision:** `UPrimaryDataAsset` vehicle data is validated and compiled into native immutable runtime configuration before simulation. The high-frequency solver does not read mutable UObjects.  
+**Reason:** threading safety, performance, deterministic testing and cleaner multiplayer/replay hashing.
+
+## ADR-019 — Hybrid suspension kinematics
+**Status:** accepted for prototype  
+**Decision:** undamaged suspension may use a precomputed kinematic lookup derived from hardpoints; damaged/modified geometry switches to runtime geometric solving.  
+**Reason:** preserves performance while allowing structural pickup displacement to produce real alignment changes.
+
+## ADR-020 — Incremental plugin-module activation
+**Status:** accepted  
+**Decision:** Unreal plugin modules are added to the plugin descriptor only when their code/dependencies exist.  
+**Reason:** maintain a buildable repository skeleton instead of committing placeholder module references that immediately break UBT discovery.
