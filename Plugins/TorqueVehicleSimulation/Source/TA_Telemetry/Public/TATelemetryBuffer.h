@@ -21,6 +21,13 @@ struct TA_TELEMETRY_API FTAVehicleTelemetrySample
     double CoolantTemperatureC = 0.0;
     double CoolingEfficiency01 = 1.0;
 
+    double ElectricalDamage01 = 0.0;
+    double StarterEfficiency01 = 1.0;
+    double EngineControlEfficiency01 = 1.0;
+
+    double FuelDeliveryDamage01 = 0.0;
+    double FuelDeliveryEfficiency01 = 1.0;
+
     FVector3d ChassisLinearVelocityWorldMps = FVector3d::ZeroVector;
     FVector3d ChassisAngularVelocityWorldRadPerSec = FVector3d::ZeroVector;
 
