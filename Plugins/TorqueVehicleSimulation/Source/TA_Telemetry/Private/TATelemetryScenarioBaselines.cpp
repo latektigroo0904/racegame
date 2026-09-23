@@ -39,6 +39,59 @@ namespace
             Envelope);
     }
 
+    void AddProfile(
+        FTATelemetryScenarioProfileConfig& Config,
+        const ETATelemetryMetric Metric,
+        const int32 WheelIndex,
+        const double MinObservedLow,
+        const double MinObservedHigh,
+        const double MaxObservedLow,
+        const double MaxObservedHigh,
+        const double SteadyLow,
+        const double SteadyHigh,
+        const double StartFraction01 = 0.0,
+        const double EndFraction01 = 1.0,
+        const double SteadyStateFraction01 = 0.25)
+    {
+        FTATelemetryMetricProfile Profile;
+
+        Profile.Metric =
+            Metric;
+
+        Profile.WheelIndex =
+            WheelIndex;
+
+        Profile.StartFraction01 =
+            StartFraction01;
+
+        Profile.EndFraction01 =
+            EndFraction01;
+
+        Profile.SteadyStateFraction01 =
+            SteadyStateFraction01;
+
+        Profile.MinimumEnvelope.MinInclusive =
+            MinObservedLow;
+
+        Profile.MinimumEnvelope.MaxInclusive =
+            MinObservedHigh;
+
+        Profile.MaximumEnvelope.MinInclusive =
+            MaxObservedLow;
+
+        Profile.MaximumEnvelope.MaxInclusive =
+            MaxObservedHigh;
+
+        Profile.SteadyStateEnvelope.MinInclusive =
+            SteadyLow;
+
+        Profile.SteadyStateEnvelope.MaxInclusive =
+            SteadyHigh;
+
+        Config.Metrics.Add(
+            Profile);
+    }
+
     void InitializeBaseline(
         FTATelemetryScenarioBaseline& OutBaseline,
         const ETARegressionScenarioKind Kind,
@@ -75,6 +128,21 @@ namespace
 
         OutBaseline.Regression.MinimumRequiredSamples =
             MinimumRequiredSamples;
+
+        OutBaseline.Profile.ScenarioId =
+            ScenarioId;
+
+        OutBaseline.Profile.BaselineVersion =
+            OutBaseline.BaselineVersion;
+
+        OutBaseline.Profile.bTrustedBaseline =
+            OutBaseline.bTrustedBaseline;
+
+        OutBaseline.Profile.ExpectedPhysicsConfigHash =
+            ExpectedPhysicsConfigHash;
+
+        OutBaseline.Profile.MinimumRequiredSamples =
+            MinimumRequiredSamples;
     }
 
     void BuildStaticSettle(
@@ -108,6 +176,20 @@ namespace
             0.75,
             1.0);
 
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::ChassisVerticalSpeedMps,
+            INDEX_NONE,
+            -8.0,
+            8.0,
+            -8.0,
+            8.0,
+            -0.75,
+            0.75,
+            0.0,
+            1.0,
+            0.25);
+
         for (int32 Wheel = 0;
              Wheel < TAPrototypeTelemetryWheelCount;
              ++Wheel)
@@ -131,6 +213,34 @@ namespace
                 Wheel,
                 0.75,
                 1.0);
+
+            AddProfile(
+                Out.Profile,
+                ETATelemetryMetric::WheelVerticalLoadN,
+                Wheel,
+                0.0,
+                15000.0,
+                0.0,
+                15000.0,
+                250.0,
+                12000.0,
+                0.0,
+                1.0,
+                0.25);
+
+            AddProfile(
+                Out.Profile,
+                ETATelemetryMetric::TireRadialDeflectionM,
+                Wheel,
+                0.0,
+                0.080,
+                0.0,
+                0.080,
+                0.0001,
+                0.080,
+                0.0,
+                1.0,
+                0.25);
         }
     }
 
@@ -184,6 +294,39 @@ namespace
             0.0,
             5.0,
             3);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::ChassisForwardSpeedMps,
+            INDEX_NONE,
+            -1.0,
+            5.0,
+            0.10,
+            120.0,
+            0.10,
+            120.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::TotalLongitudinalForceN,
+            INDEX_NONE,
+            -20000.0,
+            20000.0,
+            50.0,
+            40000.0,
+            -20000.0,
+            40000.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::ChassisYawRateRadPerSec,
+            INDEX_NONE,
+            -3.0,
+            3.0,
+            -3.0,
+            3.0,
+            -1.0,
+            1.0);
     }
 
     void BuildBraking(
@@ -226,6 +369,31 @@ namespace
                 8.0,
                 Wheel);
         }
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::ChassisForwardSpeedMps,
+            INDEX_NONE,
+            -0.5,
+            15.5,
+            14.0,
+            16.5,
+            0.0,
+            14.9,
+            0.0,
+            1.0,
+            0.25);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::ChassisYawRateRadPerSec,
+            INDEX_NONE,
+            -3.0,
+            3.0,
+            -3.0,
+            3.0,
+            -1.0,
+            1.0);
     }
 
     void BuildConstantSteer(
@@ -261,6 +429,39 @@ namespace
             ETATelemetryMetric::TotalLateralForceN,
             ETATelemetryStatistic::AbsoluteMaximum,
             50.0,
+            50000.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::SteeringRackDisplacementM,
+            INDEX_NONE,
+            -0.060,
+            0.060,
+            -0.060,
+            0.060,
+            -0.060,
+            0.060);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::ChassisYawRateRadPerSec,
+            INDEX_NONE,
+            -5.0,
+            5.0,
+            -5.0,
+            5.0,
+            -5.0,
+            5.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::TotalLateralForceN,
+            INDEX_NONE,
+            -50000.0,
+            50000.0,
+            -50000.0,
+            50000.0,
+            -50000.0,
             50000.0);
     }
 
@@ -308,6 +509,39 @@ namespace
             ETATelemetryStatistic::AbsoluteMaximum,
             0.0,
             3.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::SuspensionTravelM,
+            1,
+            -0.15,
+            0.15,
+            -0.15,
+            0.15,
+            -0.15,
+            0.15);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::WheelVerticalLoadN,
+            1,
+            0.0,
+            15000.0,
+            0.0,
+            15000.0,
+            250.0,
+            15000.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::TireRadialDeflectionM,
+            1,
+            0.0,
+            0.080,
+            0.0,
+            0.080,
+            0.0,
+            0.080);
     }
 
     void BuildSyntheticCrash(
@@ -359,6 +593,61 @@ namespace
             Out.Regression,
             ETATelemetryMetric::CoolingEfficiency01,
             ETATelemetryStatistic::Minimum,
+            0.0,
+            1.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::ChassisYawRateRadPerSec,
+            INDEX_NONE,
+            -20.0,
+            20.0,
+            -20.0,
+            20.0,
+            -20.0,
+            20.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::WheelToeRad,
+            1,
+            -0.75,
+            0.75,
+            -0.75,
+            0.75,
+            -0.75,
+            0.75);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::WheelCamberRad,
+            1,
+            -0.75,
+            0.75,
+            -0.75,
+            0.75,
+            -0.75,
+            0.75);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::TireLateralForceN,
+            1,
+            -50000.0,
+            50000.0,
+            -50000.0,
+            50000.0,
+            -50000.0,
+            50000.0);
+
+        AddProfile(
+            Out.Profile,
+            ETATelemetryMetric::CoolingEfficiency01,
+            INDEX_NONE,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
             0.0,
             1.0);
     }
@@ -454,14 +743,23 @@ bool TATelemetryScenarioBaselines::ValidateBaseline(
         Baseline.BaselineVersion <= 0 ||
         Baseline.Regression.ScenarioId
             != Baseline.ScenarioId ||
+        Baseline.Profile.ScenarioId
+            != Baseline.ScenarioId ||
+        Baseline.Profile.BaselineVersion
+            != Baseline.BaselineVersion ||
+        Baseline.Profile.bTrustedBaseline
+            != Baseline.bTrustedBaseline ||
         !TATelemetryRegression::ValidateConfig(
-            Baseline.Regression))
+            Baseline.Regression) ||
+        !TATelemetryRegression::ValidateProfileConfig(
+            Baseline.Profile))
     {
         return false;
     }
 
     if (Baseline.bTrustedBaseline &&
-        Baseline.Regression.ExpectedPhysicsConfigHash == 0)
+        (Baseline.Regression.ExpectedPhysicsConfigHash == 0 ||
+         Baseline.Profile.ExpectedPhysicsConfigHash == 0))
     {
         return false;
     }
