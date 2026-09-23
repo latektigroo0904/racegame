@@ -247,6 +247,8 @@ struct TA_VEHICLE_API FTAPrototypeDrivetrainDefinition
 {
     GENERATED_BODY()
 
+    FTAPrototypeDrivetrainDefinition();
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Powertrain", meta=(ClampMin="100.0", Units="rpm"))
     double IdleRPM = 850.0;
 
@@ -263,7 +265,7 @@ struct TA_VEHICLE_API FTAPrototypeDrivetrainDefinition
     double ClutchMaxTorqueNm = 500.0;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Gearbox")
-    TArray<double> ForwardGearRatios = { 3.45, 2.15, 1.52, 1.16, 0.92, 0.76 };
+    TArray<double> ForwardGearRatios;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Gearbox")
     double ReverseGearRatio = 3.20;
