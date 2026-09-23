@@ -103,6 +103,58 @@ double TATireSolver::CalculateHydroFraction01(
     return FMath::Clamp(SpeedFactor * DepthStrength, 0.0, 1.0);
 }
 
+double TATireSolver::EstimateLongitudinalForceCapacityN(
+    const FTATireRuntimeConfig& Config,
+    const FTATireRuntimeState& State,
+    const FTATireSolveInput& Input)
+{
+    const double Fz = FMath::Max(0.0, Input.VerticalLoadN);
+    if (Fz <= UE_DOUBLE_SMALL_NUMBER)
+    {
+        return 0.0;
+    }
+
+    const double HydroFraction =
+        CalculateHydroFraction01(Config, State, Input);
+
+    const double RoadSupportedLoadN =
+        Fz * (1.0 - HydroFraction);
+
+    if (RoadSupportedLoadN <= UE_DOUBLE_SMALL_NUMBER)
+    {
+        return 0.0;
+    }
+
+    const double ReferenceLoadN =
+        FMath::Max(1.0, Config.ReferenceLoadN);
+
+    const double LoadRatio =
+        FMath::Max(0.05, RoadSupportedLoadN / ReferenceLoadN);
+
+    const double LoadSensitiveMu =
+        Config.DryPeakMu
+        * FMath::Pow(LoadRatio, -Config.LoadSensitivityExponent);
+
+    const double SurfaceMultiplier =
+        TASurface::CalculateBaselineFrictionMultiplier(Input.Surface);
+
+    const double DamageGripFactor =
+        1.0 - 0.5 * FMath::Clamp(State.Damage01, 0.0, 1.0);
+
+    const double ThermalDamageFactor =
+        1.0 - 0.35 * FMath::Clamp(State.ThermalDegradation01, 0.0, 1.0);
+
+    const double EffectiveMu =
+        FMath::Max(
+            0.0,
+            LoadSensitiveMu
+            * SurfaceMultiplier
+            * DamageGripFactor
+            * ThermalDamageFactor);
+
+    return EffectiveMu * RoadSupportedLoadN;
+}
+
 FTATireSolveOutput TATireSolver::Solve(
     const FTATireRuntimeConfig& Config,
     const FTATireRuntimeState& State,
