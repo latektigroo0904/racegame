@@ -130,7 +130,7 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 "%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,"
                 "%.9g,%.9g,%.9g,%.9g,"
-                "%.9g,%.9g,%.9g,"
+                "%.9g,%.9g,"
                 "%.9g,%.9g,%.9g"),
             static_cast<unsigned long long>(
                 Sample->SimulationTick),
