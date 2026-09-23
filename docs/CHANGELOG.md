@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-09-23 — Fluid and electrical functional damage session
+
+Added:
+- persistent electrical-bus damage state with starter and engine-control efficiency;
+- persistent fuel-delivery damage state;
+- typed `ElectricalBus` and `FuelDelivery` consumers;
+- route acceptance for `ElectricalDisconnection` and `FluidPressureLoss`;
+- crash-displacement routing into electrical/fuel consequences;
+- authored signal flags and minimum efficiency calibration;
+- complete physics-hash coverage for new routes;
+- runtime starter and combustion-torque consequences;
+- global electrical/fuel telemetry and regression metrics;
+- source regressions for partial/full disconnect/pressure loss, starter failure, combustion loss, route authoring/hash and crash integration;
+- `docs/38-FLUID-ELECTRICAL-FUNCTIONAL-DAMAGE-V01.md`.
+
+Verification:
+- latest complete fluid/electrical code/test commit `f48b8c6...` passed GitHub source-sanity;
+- telemetry CSV contract after the change was audited at global 26/26 and per-wheel 26/26 placeholder/value counts;
+- Unreal Engine 5.8 build/Automation remains unexecuted.
+
 ## 2026-09-23 — Suspension functional damage and brake thermal session
 
 Suspension functional damage:
