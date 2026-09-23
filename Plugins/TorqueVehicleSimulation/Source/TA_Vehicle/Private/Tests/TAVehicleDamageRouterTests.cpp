@@ -456,4 +456,254 @@ bool FTAVehicleDamageRouterInvalidHubRouteTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDamageRouterSuspensionCornerTest,
+    "TorqueAtlas.Damage.VehicleRouter.SuspensionCornerFunctionalDamage",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDamageRouterSuspensionCornerTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig VehicleConfig =
+        MakeFunctionalDamageVehicleConfig();
+
+    FTAVehicleRuntimeState State =
+        MakeVehicleState(VehicleConfig);
+
+    FTAVehicleDamageRoutingConfig Routing;
+
+    FTAVehicleDamageRoute Route;
+    Route.TargetComponentIndex = 10;
+    Route.Consumer =
+        ETAVehicleDamageConsumerType::SuspensionCorner;
+    Route.WheelIndex = 0;
+    Route.FullDamageEnergyJ = 10000.0;
+    Route.MinimumSpringEfficiency01 = 0.20;
+    Route.MinimumDampingEfficiency01 = 0.0;
+    Route.MinimumStopEfficiency01 = 0.50;
+
+    Routing.Routes.Add(Route);
+
+    FTADamageSignal Impact;
+    Impact.TargetComponentIndex = 10;
+    Impact.Type = ETADamageSignalType::ImpactEnergy;
+    Impact.ScalarValue = 5000.0;
+
+    FTAVehicleDamageRoutingOutput Output;
+
+    TestTrue(
+        TEXT("Suspension-corner route succeeds"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&Impact, 1),
+            State,
+            Output));
+
+    const FTASuspensionFunctionalDamageState& Damage =
+        State.SuspensionDamage[0];
+
+    TestTrue(
+        TEXT("Half-energy impact produces half suspension severity"),
+        FMath::IsNearlyEqual(
+            Damage.SpringDamperDamage01,
+            0.5,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Spring efficiency degrades toward authored minimum"),
+        FMath::IsNearlyEqual(
+            Damage.SpringEfficiency01,
+            0.60,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Damping efficiency degrades toward zero"),
+        FMath::IsNearlyEqual(
+            Damage.DampingEfficiency01,
+            0.50,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Stop efficiency degrades toward authored minimum"),
+        FMath::IsNearlyEqual(
+            Damage.StopEfficiency01,
+            0.75,
+            1.0e-9));
+
+    TestEqual(
+        TEXT("Suspension route count increments"),
+        Output.SuspensionCornerSignalsApplied,
+        1);
+
+    FTADamageSignal SmallerImpact =
+        Impact;
+
+    SmallerImpact.ScalarValue =
+        1000.0;
+
+    TestTrue(
+        TEXT("Smaller later suspension impact routes"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&SmallerImpact, 1),
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Smaller later hit does not heal spring efficiency"),
+        FMath::IsNearlyEqual(
+            State.SuspensionDamage[0].SpringEfficiency01,
+            0.60,
+            1.0e-9));
+
+    Route.bAcceptStructuralFracture =
+        true;
+
+    Routing.Routes[0] =
+        Route;
+
+    FTADamageSignal Fracture =
+        Impact;
+
+    Fracture.Type =
+        ETADamageSignalType::StructuralFracture;
+
+    TestTrue(
+        TEXT("Suspension-support fracture routes"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&Fracture, 1),
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Fracture reaches configured residual spring support"),
+        FMath::IsNearlyEqual(
+            State.SuspensionDamage[0].SpringEfficiency01,
+            0.20,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Fracture removes configured damping"),
+        FMath::IsNearlyEqual(
+            State.SuspensionDamage[0].DampingEfficiency01,
+            0.0,
+            1.0e-9));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDamageRouterAntiRollLinkTest,
+    "TorqueAtlas.Damage.VehicleRouter.AntiRollLinkFunctionalDamage",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDamageRouterAntiRollLinkTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAVehicleRuntimeConfig VehicleConfig =
+        MakeFunctionalDamageVehicleConfig();
+
+    FTAVehicleRuntimeState State =
+        MakeVehicleState(VehicleConfig);
+
+    FTAVehicleDamageRoutingConfig Routing;
+
+    FTAVehicleDamageRoute Route;
+    Route.TargetComponentIndex = 11;
+    Route.Consumer =
+        ETAVehicleDamageConsumerType::AntiRollLink;
+    Route.WheelIndex = 1;
+    Route.FullDamageEnergyJ = 10000.0;
+    Route.MinimumAntiRollLinkEfficiency01 = 0.0;
+    Route.bAcceptStructuralFracture = true;
+
+    Routing.Routes.Add(Route);
+
+    FTADamageSignal Impact;
+    Impact.TargetComponentIndex = 11;
+    Impact.Type = ETADamageSignalType::ImpactEnergy;
+    Impact.ScalarValue = 5000.0;
+
+    FTAVehicleDamageRoutingOutput Output;
+
+    TestTrue(
+        TEXT("Anti-roll-link route succeeds"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&Impact, 1),
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Half-energy impact halves anti-roll link efficiency"),
+        FMath::IsNearlyEqual(
+            State.SuspensionDamage[1]
+                .AntiRollLinkEfficiency01,
+            0.5,
+            1.0e-9));
+
+    TestEqual(
+        TEXT("Anti-roll route count increments"),
+        Output.AntiRollLinkSignalsApplied,
+        1);
+
+    FTADamageSignal Fracture =
+        Impact;
+
+    Fracture.Type =
+        ETADamageSignalType::StructuralFracture;
+
+    TestTrue(
+        TEXT("Anti-roll-link fracture routes"),
+        TAVehicleDamageRouter::RouteSignals(
+            Routing,
+            VehicleConfig,
+            MakeArrayView(&Fracture, 1),
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("Fracture can fully disconnect anti-roll link"),
+        FMath::IsNearlyEqual(
+            State.SuspensionDamage[1]
+                .AntiRollLinkEfficiency01,
+            0.0,
+            1.0e-9));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDamageRouterRejectsZeroSpringSupportTest,
+    "TorqueAtlas.Damage.VehicleRouter.RejectsZeroSpringSupport",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDamageRouterRejectsZeroSpringSupportTest::RunTest(
+    const FString& Parameters)
+{
+    FTAVehicleDamageRoutingConfig Routing;
+
+    FTAVehicleDamageRoute Route;
+    Route.TargetComponentIndex = 12;
+    Route.Consumer =
+        ETAVehicleDamageConsumerType::SuspensionCorner;
+    Route.WheelIndex = 0;
+    Route.MinimumSpringEfficiency01 = 0.0;
+
+    Routing.Routes.Add(Route);
+
+    TestFalse(
+        TEXT("Current kinematic suspension path rejects zero spring support"),
+        TAVehicleDamageRouter::ValidateConfig(
+            Routing));
+
+    return true;
+}
+
 #endif
