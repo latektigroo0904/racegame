@@ -776,4 +776,400 @@ bool FTAVehicleDefinitionRejectsInvalidHubRouteWheelTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionCompleteTireAuthoringTest,
+    "TorqueAtlas.Vehicle.Definition.CompilesCompleteTireCalibration",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionCompleteTireAuthoringTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    Definition->Tire.LoadSensitivityExponent =
+        0.11;
+
+    Definition->Tire.LongitudinalStiffnessN =
+        101000.0;
+
+    Definition->Tire.CorneringStiffnessNPerRad =
+        93000.0;
+
+    Definition->Tire.CamberStiffnessNPerRad =
+        7100.0;
+
+    Definition->Tire.SurfaceThermalMassJPerC =
+        5100.0;
+
+    Definition->Tire.CarcassThermalMassJPerC =
+        14500.0;
+
+    Definition->Tire.DynamicBlendStartMps =
+        1.5;
+
+    Definition->Tire.DynamicBlendEndMps =
+        4.5;
+
+    Definition->Tire.HydroReferenceOnsetSpeedMps =
+        29.0;
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Complete tire calibration compiles"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    const FTATireRuntimeConfig& Tire =
+        Config.VehicleRuntime.Tires[0];
+
+    TestTrue(
+        TEXT("Load sensitivity reaches runtime"),
+        FMath::IsNearlyEqual(
+            Tire.LoadSensitivityExponent,
+            0.11,
+            1.0e-12));
+
+    TestTrue(
+        TEXT("Longitudinal stiffness reaches runtime"),
+        FMath::IsNearlyEqual(
+            Tire.LongitudinalStiffnessN,
+            101000.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Cornering stiffness reaches runtime"),
+        FMath::IsNearlyEqual(
+            Tire.CorneringStiffnessNPerRad,
+            93000.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Camber stiffness reaches runtime"),
+        FMath::IsNearlyEqual(
+            Tire.CamberStiffnessNPerRad,
+            7100.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Surface thermal mass reaches runtime"),
+        FMath::IsNearlyEqual(
+            Tire.SurfaceThermalMassJPerC,
+            5100.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Carcass thermal mass reaches runtime"),
+        FMath::IsNearlyEqual(
+            Tire.CarcassThermalMassJPerC,
+            14500.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Dynamic blend range reaches runtime"),
+        FMath::IsNearlyEqual(
+            Tire.DynamicBlendStartMps,
+            1.5,
+            1.0e-12)
+        && FMath::IsNearlyEqual(
+            Tire.DynamicBlendEndMps,
+            4.5,
+            1.0e-12));
+
+    TestTrue(
+        TEXT("Hydro reference speed reaches runtime"),
+        FMath::IsNearlyEqual(
+            Tire.HydroReferenceOnsetSpeedMps,
+            29.0,
+            1.0e-12));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionCompletePowertrainAuthoringTest,
+    "TorqueAtlas.Vehicle.Definition.CompilesCompletePowertrainCalibration",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionCompletePowertrainAuthoringTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    Definition->Drivetrain.FrictionConstantNm =
+        11.0;
+
+    Definition->Drivetrain.FrictionLinearNms =
+        0.031;
+
+    Definition->Drivetrain.StarterTorqueNm =
+        120.0;
+
+    Definition->Drivetrain.ClutchCouplingStiffnessNms =
+        27.0;
+
+    Definition->Drivetrain.ClutchWearEnergyCapacityJ =
+        1.5e8;
+
+    Definition->Drivetrain.DrivelineTorsionalStiffnessNmPerRad =
+        3200.0;
+
+    Definition->EngineThermal.EffectiveThermalMassJPerC =
+        82000.0;
+
+    Definition->EngineThermal.CoolingCapacityWPerC =
+        1710.0;
+
+    TestTrue(
+        TEXT("Default authored torque curve is populated"),
+        Definition->Drivetrain.TorqueCurve.Num() >= 2);
+
+    Definition->Drivetrain.TorqueCurve[3].TorqueNm =
+        455.0;
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Complete powertrain calibration compiles"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    const FTAVehicleRuntimeConfig& Runtime =
+        Config.VehicleRuntime;
+
+    TestTrue(
+        TEXT("Engine friction reaches runtime"),
+        FMath::IsNearlyEqual(
+            Runtime.Engine.FrictionConstantNm,
+            11.0,
+            1.0e-12)
+        && FMath::IsNearlyEqual(
+            Runtime.Engine.FrictionLinearNms,
+            0.031,
+            1.0e-12));
+
+    TestTrue(
+        TEXT("Starter torque reaches runtime"),
+        FMath::IsNearlyEqual(
+            Runtime.Engine.StarterTorqueNm,
+            120.0,
+            1.0e-12));
+
+    TestEqual(
+        TEXT("Authored torque curve point count is preserved"),
+        Runtime.Engine.TorqueCurve.Num(),
+        Definition->Drivetrain.TorqueCurve.Num());
+
+    TestTrue(
+        TEXT("Authored torque curve drives runtime solver"),
+        FMath::IsNearlyEqual(
+            TAPowertrainSolver::EvaluateTorqueCurveNm(
+                Runtime.Engine,
+                4000.0),
+            455.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Clutch coupling stiffness reaches runtime"),
+        FMath::IsNearlyEqual(
+            Runtime.Clutch.CouplingStiffnessNms,
+            27.0,
+            1.0e-12));
+
+    TestTrue(
+        TEXT("Clutch wear capacity reaches runtime"),
+        FMath::IsNearlyEqual(
+            Runtime.Clutch.WearEnergyCapacityJ,
+            1.5e8,
+            1.0e-3));
+
+    TestTrue(
+        TEXT("Driveline compliance reaches runtime"),
+        FMath::IsNearlyEqual(
+            Runtime.Driveline.TorsionalStiffnessNmPerRad,
+            3200.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Engine thermal mass reaches runtime"),
+        FMath::IsNearlyEqual(
+            Runtime.EngineThermal.EffectiveThermalMassJPerC,
+            82000.0,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Cooling capacity reaches runtime"),
+        FMath::IsNearlyEqual(
+            Runtime.EngineThermal.CoolingCapacityWPerC,
+            1710.0,
+            1.0e-9));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionCalibrationHashCoverageTest,
+    "TorqueAtlas.Vehicle.Definition.TirePowertrainCalibrationChangesHash",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionCalibrationHashCoverageTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAVehicleCompiledConfig Baseline;
+    FTAValidationResult BaselineValidation;
+
+    TestTrue(
+        TEXT("Baseline vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            Baseline,
+            BaselineValidation));
+
+    Definition->Tire.SurfaceThermalMassJPerC +=
+        123.0;
+
+    FTAVehicleCompiledConfig TireModified;
+    FTAValidationResult TireValidation;
+
+    TestTrue(
+        TEXT("Tire-modified vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            TireModified,
+            TireValidation));
+
+    TestTrue(
+        TEXT("Tire thermal calibration changes physics hash"),
+        TireModified.PhysicsConfigHash
+            != Baseline.PhysicsConfigHash);
+
+    Definition->Drivetrain.FrictionConstantNm +=
+        2.0;
+
+    FTAVehicleCompiledConfig EngineModified;
+    FTAValidationResult EngineValidation;
+
+    TestTrue(
+        TEXT("Engine-modified vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            EngineModified,
+            EngineValidation));
+
+    TestTrue(
+        TEXT("Engine friction calibration changes physics hash"),
+        EngineModified.PhysicsConfigHash
+            != TireModified.PhysicsConfigHash);
+
+    Definition->Drivetrain.TorqueCurve[2].TorqueNm +=
+        7.0;
+
+    FTAVehicleCompiledConfig CurveModified;
+    FTAValidationResult CurveValidation;
+
+    TestTrue(
+        TEXT("Torque-curve-modified vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            CurveModified,
+            CurveValidation));
+
+    TestTrue(
+        TEXT("Torque curve changes physics hash"),
+        CurveModified.PhysicsConfigHash
+            != EngineModified.PhysicsConfigHash);
+
+    Definition->EngineThermal.CoolingCapacityWPerC +=
+        50.0;
+
+    FTAVehicleCompiledConfig ThermalModified;
+    FTAValidationResult ThermalValidation;
+
+    TestTrue(
+        TEXT("Thermal-modified vehicle compiles"),
+        Definition->BuildCompiledConfig(
+            ThermalModified,
+            ThermalValidation));
+
+    TestTrue(
+        TEXT("Engine thermal calibration changes physics hash"),
+        ThermalModified.PhysicsConfigHash
+            != CurveModified.PhysicsConfigHash);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionRejectsInvalidTireCalibrationTest,
+    "TorqueAtlas.Vehicle.Definition.RejectsInvalidTireCalibration",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionRejectsInvalidTireCalibrationTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    Definition->Tire.DynamicBlendStartMps =
+        5.0;
+
+    Definition->Tire.DynamicBlendEndMps =
+        2.0;
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestFalse(
+        TEXT("Reversed dynamic-blend range is rejected"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Invalid tire calibration emits errors"),
+        Validation.HasErrors());
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionRejectsInvalidTorqueCurveTest,
+    "TorqueAtlas.Vehicle.Definition.RejectsInvalidTorqueCurve",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionRejectsInvalidTorqueCurveTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    TestTrue(
+        TEXT("Default torque curve has enough points"),
+        Definition->Drivetrain.TorqueCurve.Num() >= 2);
+
+    Definition->Drivetrain.TorqueCurve[1].RPM =
+        Definition->Drivetrain.TorqueCurve[0].RPM;
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestFalse(
+        TEXT("Duplicate/non-increasing torque-curve RPM is rejected"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestTrue(
+        TEXT("Invalid torque curve emits errors"),
+        Validation.HasErrors());
+
+    return true;
+}
+
 #endif
