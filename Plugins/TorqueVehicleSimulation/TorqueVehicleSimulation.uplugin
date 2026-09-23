@@ -15,12 +15,22 @@
       "LoadingPhase": "Default"
     },
     {
-      "Name": "TA_Vehicle",
+      "Name": "TA_Surface",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "TA_Tire",
       "Type": "Runtime",
       "LoadingPhase": "Default"
     },
     {
       "Name": "TA_Powertrain",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "TA_Vehicle",
       "Type": "Runtime",
       "LoadingPhase": "Default"
     }
