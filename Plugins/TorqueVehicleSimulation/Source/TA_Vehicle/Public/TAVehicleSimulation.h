@@ -123,6 +123,20 @@ struct TA_VEHICLE_API FTASuspensionFunctionalDamageState
     double AntiRollLinkEfficiency01 = 1.0;
 };
 
+struct TA_VEHICLE_API FTAElectricalFunctionalDamageState
+{
+    double Damage01 = 0.0;
+
+    double StarterEfficiency01 = 1.0;
+    double EngineControlEfficiency01 = 1.0;
+};
+
+struct TA_VEHICLE_API FTAFuelDeliveryFunctionalDamageState
+{
+    double Damage01 = 0.0;
+    double DeliveryEfficiency01 = 1.0;
+};
+
 struct TA_VEHICLE_API FTAVehicleRuntimeState
 {
     uint64 SimulationTick = 0;
@@ -138,6 +152,8 @@ struct TA_VEHICLE_API FTAVehicleRuntimeState
     FTARadiatorDamageState Radiator;
 
     FTASteeringRackFunctionalDamageState SteeringRackDamage;
+    FTAElectricalFunctionalDamageState ElectricalDamage;
+    FTAFuelDeliveryFunctionalDamageState FuelDeliveryDamage;
 
     int32 SelectedGear = 0;
 
