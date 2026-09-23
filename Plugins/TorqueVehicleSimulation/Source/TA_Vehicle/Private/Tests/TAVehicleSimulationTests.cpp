@@ -9,6 +9,9 @@ namespace
     {
         FTAVehicleRuntimeConfig Config;
 
+        Config.Chassis.GravityWorldMps2 = FVector3d::ZeroVector;
+        Config.Chassis.MassKg = Config.ReferenceMassKg;
+
         Config.Wheels.SetNum(4);
         Config.Tires.SetNum(4);
 
@@ -36,6 +39,11 @@ namespace
             Contact.LongitudinalVelocityMps = 0.0;
             Contact.LateralVelocityMps = 0.0;
         }
+
+        Input.WheelContacts[0].ContactPointWorldM = FVector3d( 1.31, -0.775, -0.45);
+        Input.WheelContacts[1].ContactPointWorldM = FVector3d( 1.31,  0.775, -0.45);
+        Input.WheelContacts[2].ContactPointWorldM = FVector3d(-1.31, -0.765, -0.45);
+        Input.WheelContacts[3].ContactPointWorldM = FVector3d(-1.31,  0.765, -0.45);
 
         return Input;
     }
