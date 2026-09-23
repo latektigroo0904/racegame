@@ -135,6 +135,8 @@ bool FTATelemetryScenarioCrashCoverageTest::RunTest(
     bool bHasCamber = false;
     bool bHasTireForce = false;
     bool bHasCooling = false;
+    bool bHasSteeringDamage = false;
+    bool bHasHubDamage = false;
 
     for (const FTATelemetryMetricEnvelope& Envelope :
          Baseline.Regression.Envelopes)
@@ -154,6 +156,14 @@ bool FTATelemetryScenarioCrashCoverageTest::RunTest(
         bHasCooling |=
             Envelope.Metric ==
                 ETATelemetryMetric::CoolingEfficiency01;
+
+        bHasSteeringDamage |=
+            Envelope.Metric ==
+                ETATelemetryMetric::SteeringRackDamage01;
+
+        bHasHubDamage |=
+            Envelope.Metric ==
+                ETATelemetryMetric::WheelHubDamage01;
     }
 
     TestTrue(
@@ -171,6 +181,14 @@ bool FTATelemetryScenarioCrashCoverageTest::RunTest(
     TestTrue(
         TEXT("Crash scenario watches cooling consequence"),
         bHasCooling);
+
+    TestTrue(
+        TEXT("Crash scenario watches steering-rack functional damage"),
+        bHasSteeringDamage);
+
+    TestTrue(
+        TEXT("Crash scenario watches wheel-hub functional damage"),
+        bHasHubDamage);
 
     return true;
 }
