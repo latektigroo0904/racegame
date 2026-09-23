@@ -17,7 +17,7 @@ double TAPowertrainSolver::IntegrateEngineAngularSpeed(
     const double ExternalLoadTorqueNm,
     const double DeltaTimeSeconds)
 {
-    if (Config.CrankInertiaKgm2 <= UE_DOUBLE_SMALL_NUMBER || DeltaTimeSeconds <= 0.0)
+    if (Config.CrankInertiaKgm2 <= SMALL_NUMBER || DeltaTimeSeconds <= 0.0)
     {
         return FMath::Max(0.0, CurrentAngularSpeedRadPerSec);
     }
