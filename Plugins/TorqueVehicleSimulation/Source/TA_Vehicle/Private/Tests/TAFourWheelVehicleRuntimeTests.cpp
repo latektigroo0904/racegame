@@ -97,7 +97,7 @@ namespace
             MakeFrontRightGeometry();
 
         Config.FrontAxle.LeftSuspension.SpringRateNPerM = 100000.0;
-        Config.FrontAxle.LeftSuspension.StaticSpringCompressionM = 0.0872;
+        Config.FrontAxle.LeftSuspension.StaticSpringCompressionM = 0.0810;
         Config.FrontAxle.LeftSuspension.BumpDampingNsPerM = 4500.0;
         Config.FrontAxle.LeftSuspension.ReboundDampingNsPerM = 6500.0;
         Config.FrontAxle.RightSuspension =
@@ -114,7 +114,7 @@ namespace
             MakeRearRightGeometry();
 
         Config.RearAxle.LeftSuspension.SpringRateNPerM = 50000.0;
-        Config.RearAxle.LeftSuspension.StaticSpringCompressionM = 0.0908;
+        Config.RearAxle.LeftSuspension.StaticSpringCompressionM = 0.0987;
         Config.RearAxle.LeftSuspension.BumpDampingNsPerM = 3800.0;
         Config.RearAxle.LeftSuspension.ReboundDampingNsPerM = 5200.0;
         Config.RearAxle.RightSuspension =
@@ -254,6 +254,12 @@ bool FTAFourWheelStaticSupportTest::RunTest(const FString& Parameters)
         TEXT("Reference-height first step has small vertical velocity"),
         FMath::Abs(
             State.Vehicle.Chassis.LinearVelocityWorldMps.Z)
+            < 0.01);
+
+    TestTrue(
+        TEXT("Symmetric COM/axle fixture has small pitch response at rest"),
+        FMath::Abs(
+            State.Vehicle.Chassis.AngularVelocityWorldRadPerSec.Y)
             < 0.01);
 
     return true;
