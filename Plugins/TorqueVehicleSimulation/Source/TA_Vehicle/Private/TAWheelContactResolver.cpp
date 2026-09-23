@@ -133,6 +133,114 @@ namespace
         return FMath::Clamp(Ratio, 0.05, 3.0);
     }
 
+    struct FCompliantTravelEvaluation
+    {
+        bool bValid = false;
+
+        double TravelM = 0.0;
+        double SignedContactDistanceM = 0.0;
+        double ForceResidualN = 0.0;
+
+        FTADoubleWishboneSolveOutput Geometry;
+
+        FTASuspensionRuntimeState SuspensionState;
+        FTASuspensionForceOutput SuspensionForce;
+
+        FTATireVerticalForceOutput TireVertical;
+    };
+
+    bool EvaluateCompliantTravel(
+        const FTAChassisState& Chassis,
+        const FTADoubleWishboneSolverConfig& GeometryConfig,
+        const FTASuspensionRuntimeConfig& SuspensionConfig,
+        const FTATireRuntimeConfig& TireConfig,
+        const FTASuspensionRuntimeState& PreviousSuspensionState,
+        const FTATireRuntimeState& TireState,
+        const double RackDisplacementM,
+        const FTADoubleWishboneDamageOffsets& DamageOffsets,
+        const FVector3d& RoadPointWorldM,
+        const FVector3d& RoadNormalWorld,
+        const double TravelM,
+        const double DeltaTimeSeconds,
+        FCompliantTravelEvaluation& OutEvaluation)
+    {
+        FTravelEvaluation GeometryEvaluation;
+
+        if (!EvaluateTravel(
+                Chassis,
+                GeometryConfig,
+                TireConfig.UnloadedRadiusM,
+                RackDisplacementM,
+                DamageOffsets,
+                RoadPointWorldM,
+                RoadNormalWorld,
+                TravelM,
+                GeometryEvaluation))
+        {
+            return false;
+        }
+
+        OutEvaluation = FCompliantTravelEvaluation{};
+        OutEvaluation.bValid = true;
+        OutEvaluation.TravelM = TravelM;
+        OutEvaluation.SignedContactDistanceM =
+            GeometryEvaluation.SignedContactDistanceM;
+        OutEvaluation.Geometry =
+            GeometryEvaluation.Geometry;
+
+        OutEvaluation.SuspensionState =
+            PreviousSuspensionState;
+
+        OutEvaluation.SuspensionState.TravelM =
+            TravelM;
+
+        OutEvaluation.SuspensionState.TravelVelocityMps =
+            PreviousSuspensionState.bTravelInitialized
+            ? (TravelM - PreviousSuspensionState.TravelM)
+                / DeltaTimeSeconds
+            : 0.0;
+
+        OutEvaluation.SuspensionState.MotionRatio =
+            EstimateMotionRatio(
+                GeometryConfig,
+                RackDisplacementM,
+                DamageOffsets,
+                TravelM,
+                GeometryEvaluation.Geometry.DamperLengthM);
+
+        OutEvaluation.SuspensionForce =
+            TASuspensionRuntime::CalculateForce(
+                SuspensionConfig,
+                OutEvaluation.SuspensionState);
+
+        const double RequestedDeflectionM =
+            FMath::Max(
+                0.0,
+                -GeometryEvaluation.SignedContactDistanceM);
+
+        const double DeflectionVelocityMps =
+            TireState.bRadialStateInitialized
+            ? (RequestedDeflectionM
+                - TireState.RadialDeflectionM)
+                / DeltaTimeSeconds
+            : 0.0;
+
+        OutEvaluation.TireVertical =
+            TATireSolver::CalculateVerticalForce(
+                TireConfig,
+                TireState,
+                RequestedDeflectionM,
+                DeflectionVelocityMps);
+
+        OutEvaluation.ForceResidualN =
+            OutEvaluation.TireVertical.NormalForceN
+            - FMath::Max(
+                0.0,
+                OutEvaluation.SuspensionForce.TotalForceN);
+
+        return true;
+    }
+
     void PopulateWorldKinematics(
         const FTAChassisState& Chassis,
         const FTADoubleWishboneSolveOutput& Geometry,
@@ -436,6 +544,288 @@ bool TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
             FMath::Max(
                 0.0,
                 OutContact.SuspensionForce.TotalForceN);
+
+        OutContact.SuspensionForceWorldN =
+            RoadNormal
+            * OutContact.VerticalLoadN;
+    }
+
+    return true;
+}
+
+bool TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
+    const FTAChassisState& Chassis,
+    const FTADoubleWishboneSolverConfig& GeometryConfig,
+    const FTASuspensionRuntimeConfig& SuspensionConfig,
+    const FTATireRuntimeConfig& TireConfig,
+    const double RackDisplacementM,
+    const FTADoubleWishboneDamageOffsets& DamageOffsets,
+    const FTARoadPlane& Road,
+    const double DeltaTimeSeconds,
+    FTADoubleWishboneState& InOutGeometryState,
+    FTASuspensionRuntimeState& InOutSuspensionState,
+    FTATireRuntimeState& InOutTireState,
+    FTAResolvedWheelContact& OutContact)
+{
+    OutContact = FTAResolvedWheelContact{};
+    OutContact.Surface = Road.Surface;
+
+    if (DeltaTimeSeconds <= 0.0 ||
+        TireConfig.UnloadedRadiusM <= UE_DOUBLE_SMALL_NUMBER ||
+        !TADoubleWishboneSolver::ValidateConfig(
+            GeometryConfig))
+    {
+        return false;
+    }
+
+    const FVector3d RoadNormal =
+        Road.NormalWorld.GetSafeNormal();
+
+    if (RoadNormal.IsNearlyZero())
+    {
+        return false;
+    }
+
+    OutContact.RoadNormalWorld =
+        RoadNormal;
+
+    const FVector3d ChassisUp =
+        Chassis.OrientationWorld.RotateVector(
+            FVector3d(0.0, 0.0, 1.0)).GetSafeNormal();
+
+    if (FVector3d::DotProduct(
+            ChassisUp,
+            RoadNormal) < 0.20)
+    {
+        return false;
+    }
+
+    FCompliantTravelEvaluation LowEvaluation;
+    FCompliantTravelEvaluation HighEvaluation;
+
+    if (!EvaluateCompliantTravel(
+            Chassis,
+            GeometryConfig,
+            SuspensionConfig,
+            TireConfig,
+            InOutSuspensionState,
+            InOutTireState,
+            RackDisplacementM,
+            DamageOffsets,
+            Road.PointWorldM,
+            RoadNormal,
+            GeometryConfig.MinTravelM,
+            DeltaTimeSeconds,
+            LowEvaluation) ||
+        !EvaluateCompliantTravel(
+            Chassis,
+            GeometryConfig,
+            SuspensionConfig,
+            TireConfig,
+            InOutSuspensionState,
+            InOutTireState,
+            RackDisplacementM,
+            DamageOffsets,
+            Road.PointWorldM,
+            RoadNormal,
+            GeometryConfig.MaxTravelM,
+            DeltaTimeSeconds,
+            HighEvaluation))
+    {
+        return false;
+    }
+
+    FCompliantTravelEvaluation FinalEvaluation;
+    bool bAirborne = false;
+    bool bTravelClamped = false;
+
+    if (LowEvaluation.SignedContactDistanceM > 0.0)
+    {
+        FinalEvaluation = LowEvaluation;
+        bAirborne = true;
+        bTravelClamped = true;
+    }
+    else if (
+        LowEvaluation.ForceResidualN
+        * HighEvaluation.ForceResidualN <= 0.0)
+    {
+        FCompliantTravelEvaluation Low =
+            LowEvaluation;
+
+        FCompliantTravelEvaluation High =
+            HighEvaluation;
+
+        for (int32 Iteration = 0;
+             Iteration < 28;
+             ++Iteration)
+        {
+            const double MidTravelM =
+                0.5
+                * (Low.TravelM + High.TravelM);
+
+            FCompliantTravelEvaluation Mid;
+
+            if (!EvaluateCompliantTravel(
+                    Chassis,
+                    GeometryConfig,
+                    SuspensionConfig,
+                    TireConfig,
+                    InOutSuspensionState,
+                    InOutTireState,
+                    RackDisplacementM,
+                    DamageOffsets,
+                    Road.PointWorldM,
+                    RoadNormal,
+                    MidTravelM,
+                    DeltaTimeSeconds,
+                    Mid))
+            {
+                return false;
+            }
+
+            if (FMath::Abs(Mid.ForceResidualN) <= 2.0 ||
+                FMath::Abs(
+                    High.TravelM - Low.TravelM)
+                    <= 1.0e-6)
+            {
+                FinalEvaluation = Mid;
+                break;
+            }
+
+            if (Low.ForceResidualN
+                * Mid.ForceResidualN <= 0.0)
+            {
+                High = Mid;
+            }
+            else
+            {
+                Low = Mid;
+            }
+
+            FinalEvaluation =
+                FMath::Abs(Low.ForceResidualN)
+                    < FMath::Abs(High.ForceResidualN)
+                ? Low
+                : High;
+        }
+    }
+    else
+    {
+        bTravelClamped = true;
+
+        FinalEvaluation =
+            FMath::Abs(LowEvaluation.ForceResidualN)
+                < FMath::Abs(HighEvaluation.ForceResidualN)
+            ? LowEvaluation
+            : HighEvaluation;
+    }
+
+    FTADoubleWishboneSolveInput FinalSolveInput;
+    FinalSolveInput.TravelM =
+        FinalEvaluation.TravelM;
+    FinalSolveInput.RackDisplacementM =
+        RackDisplacementM;
+    FinalSolveInput.Damage =
+        DamageOffsets;
+
+    FTADoubleWishboneSolveOutput FinalGeometry;
+
+    if (!TADoubleWishboneSolver::Solve(
+            GeometryConfig,
+            FinalSolveInput,
+            InOutGeometryState,
+            FinalGeometry))
+    {
+        return false;
+    }
+
+    InOutSuspensionState =
+        FinalEvaluation.SuspensionState;
+
+    InOutSuspensionState.bTravelInitialized =
+        true;
+
+    InOutSuspensionState.WheelCenterOffsetM =
+        FinalGeometry.WheelCenterLocalM
+        - GeometryConfig.Hardpoints.WheelCenterReference;
+
+    InOutSuspensionState.CamberRad =
+        FinalGeometry.CamberRad;
+
+    InOutSuspensionState.ToeRad =
+        FinalGeometry.ToeRad;
+
+    InOutSuspensionState.bKinematicCacheValid =
+        !HasMeaningfulDamage(DamageOffsets)
+        && FMath::Abs(RackDisplacementM)
+            <= 1.0e-8;
+
+    TATireSolver::CommitVerticalState(
+        FinalEvaluation.TireVertical,
+        InOutTireState);
+
+    OutContact.bInContact =
+        !bAirborne
+        && (FinalEvaluation.TireVertical.NormalForceN > 0.0
+            || FinalEvaluation.TireVertical.EffectiveDeflectionM > 0.0);
+
+    OutContact.bTravelClamped =
+        bTravelClamped;
+
+    OutContact.TravelM =
+        FinalEvaluation.TravelM;
+
+    OutContact.TireRadialDeflectionM =
+        FinalEvaluation.TireVertical.EffectiveDeflectionM;
+
+    OutContact.bTireBottomed =
+        FinalEvaluation.TireVertical.bBottomed;
+
+    OutContact.Geometry =
+        FinalGeometry;
+
+    OutContact.SuspensionForce =
+        FinalEvaluation.SuspensionForce;
+
+    PopulateWorldKinematics(
+        Chassis,
+        FinalGeometry,
+        RoadNormal,
+        TireConfig.UnloadedRadiusM,
+        OutContact);
+
+    const double LoadedRadiusM =
+        FMath::Max(
+            0.01,
+            TireConfig.UnloadedRadiusM
+            - OutContact.TireRadialDeflectionM);
+
+    OutContact.ContactPointWorldM =
+        OutContact.WheelCenterWorldM
+        - RoadNormal * LoadedRadiusM;
+
+    const FVector3d ContactVelocityWorldMps =
+        CalculatePointVelocityWorld(
+            Chassis,
+            OutContact.ContactPointWorldM);
+
+    OutContact.LongitudinalVelocityMps =
+        FVector3d::DotProduct(
+            ContactVelocityWorldMps,
+            OutContact.ForwardTangentWorld);
+
+    OutContact.LateralVelocityMps =
+        FVector3d::DotProduct(
+            ContactVelocityWorldMps,
+            OutContact.RightTangentWorld);
+
+    OutContact.PenetrationM =
+        FinalEvaluation.TireVertical.RequestedDeflectionM;
+
+    if (OutContact.bInContact)
+    {
+        OutContact.VerticalLoadN =
+            FinalEvaluation.TireVertical.NormalForceN;
 
         OutContact.SuspensionForceWorldN =
             RoadNormal
