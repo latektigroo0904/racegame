@@ -109,9 +109,16 @@ def strip_cpp_comments_and_literals(text: str) -> str:
 
 
 def check_conflict_markers(path: Path, text: str) -> None:
-    for marker in ("<<<<<<<", "=======", ">>>>>>>"):
-        if marker in text:
-            error(f"{relative(path)} contains merge-conflict marker {marker!r}")
+    marker_pattern = re.compile(
+        r"^(?:<<<<<<<(?: .*)?|=======$|>>>>>>>(?: .*)?)$",
+        re.MULTILINE,
+    )
+    match = marker_pattern.search(text)
+    if match:
+        error(
+            f"{relative(path)} contains merge-conflict marker line "
+            f"{match.group(0)!r}"
+        )
 
 
 def check_cpp_delimiters(path: Path, text: str) -> None:
