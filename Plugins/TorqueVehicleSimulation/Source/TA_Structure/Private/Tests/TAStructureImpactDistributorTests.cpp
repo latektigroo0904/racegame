@@ -318,4 +318,67 @@ bool FTAStructureImpactVelocityLimitTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAStructureImpactEnergyBudgetTest,
+    "TorqueAtlas.Structure.Impact.DeformationEnergyBudget",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAStructureImpactEnergyBudgetTest::RunTest(
+    const FString& Parameters)
+{
+    TArray<FTAStructureNode> Nodes =
+        MakeCubeNodes();
+
+    FTAStructureImpactConfig Config;
+    Config.DistributionRadiusM = 2.0;
+    Config.DeformationImpulseFraction01 = 1.0;
+    Config.MaxNodeDeltaVelocityMps = 1000.0;
+
+    FTAStructureImpactInput Input;
+    Input.ContactPointLocalM =
+        FVector3d(0.7, 0.35, 0.20);
+
+    Input.CollisionImpulseLocalNs =
+        FVector3d(-50000.0, 7000.0, 3000.0);
+
+    Input.MaxDeformationEnergyJ =
+        25.0;
+
+    FTAStructureImpactScratch Scratch;
+    Scratch.Initialize(16);
+
+    FTAStructureImpactOutput Output;
+
+    TestTrue(
+        TEXT("Energy-budgeted structural impact distributes"),
+        TAStructureImpactDistributor::DistributeImpactAsInternalDeformation(
+            Config,
+            Input,
+            Nodes,
+            Scratch,
+            Output));
+
+    TestTrue(
+        TEXT("Energy limiter activates"),
+        Output.EnergyLimitScale01 < 1.0);
+
+    TestTrue(
+        TEXT("Injected deformation energy respects event budget"),
+        Output.InjectedDeformationKineticEnergyJ
+            <= Input.MaxDeformationEnergyJ + 1.0e-6);
+
+    TestTrue(
+        TEXT("Energy limiting preserves zero residual linear impulse"),
+        Output.ResidualLinearImpulseNs.Length()
+            < 1.0e-7);
+
+    TestTrue(
+        TEXT("Energy limiting preserves zero residual angular impulse"),
+        Output.ResidualAngularImpulseNms.Length()
+            < 1.0e-7);
+
+    return true;
+}
+
 #endif
