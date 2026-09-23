@@ -407,6 +407,26 @@ bool FTACrashFunctionalDamageRoutingTest::RunTest(
     PipelineConfig.DamageBridge.MountBindings.Add(
         AntiRollMount);
 
+    FTAStructureMountDamageBinding ElectricalMount;
+    ElectricalMount.TargetComponentIndex = 12;
+    ElectricalMount.NodeIndices = { 0 };
+    ElectricalMount.Weights = { 1.0 };
+    ElectricalMount.DisplacementThresholdsM =
+        { 0.0001 };
+
+    PipelineConfig.DamageBridge.MountBindings.Add(
+        ElectricalMount);
+
+    FTAStructureMountDamageBinding FuelMount;
+    FuelMount.TargetComponentIndex = 13;
+    FuelMount.NodeIndices = { 1 };
+    FuelMount.Weights = { 1.0 };
+    FuelMount.DisplacementThresholdsM =
+        { 0.0001 };
+
+    PipelineConfig.DamageBridge.MountBindings.Add(
+        FuelMount);
+
     FTAVehicleDamageRoute SteeringRoute;
     SteeringRoute.TargetComponentIndex = 8;
     SteeringRoute.Consumer =
@@ -466,6 +486,33 @@ bool FTACrashFunctionalDamageRoutingTest::RunTest(
 
     PipelineConfig.DamageRouting.Routes.Add(
         AntiRollRoute);
+
+    FTAVehicleDamageRoute ElectricalRoute;
+    ElectricalRoute.TargetComponentIndex = 12;
+    ElectricalRoute.Consumer =
+        ETAVehicleDamageConsumerType::ElectricalBus;
+    ElectricalRoute.bAcceptImpactEnergy = false;
+    ElectricalRoute.bAcceptStructuralDisplacement = true;
+    ElectricalRoute.bAcceptStructuralFracture = true;
+    ElectricalRoute.FullCrushDisplacementM = 0.010;
+    ElectricalRoute.MinimumStarterEfficiency01 = 0.20;
+    ElectricalRoute.MinimumEngineControlEfficiency01 = 0.30;
+
+    PipelineConfig.DamageRouting.Routes.Add(
+        ElectricalRoute);
+
+    FTAVehicleDamageRoute FuelRoute;
+    FuelRoute.TargetComponentIndex = 13;
+    FuelRoute.Consumer =
+        ETAVehicleDamageConsumerType::FuelDelivery;
+    FuelRoute.bAcceptImpactEnergy = false;
+    FuelRoute.bAcceptStructuralDisplacement = true;
+    FuelRoute.bAcceptStructuralFracture = true;
+    FuelRoute.FullCrushDisplacementM = 0.010;
+    FuelRoute.MinimumFuelDeliveryEfficiency01 = 0.10;
+
+    PipelineConfig.DamageRouting.Routes.Add(
+        FuelRoute);
 
     FTAStructureDamageBridgeState BridgeState;
 
@@ -563,6 +610,31 @@ bool FTACrashFunctionalDamageRoutingTest::RunTest(
     TestTrue(
         TEXT("Typed anti-roll-link route was applied"),
         CrashOutput.Routing.AntiRollLinkSignalsApplied
+            >= 1);
+
+    TestTrue(
+        TEXT("Crash degrades electrical starter authority"),
+        VehicleState.ElectricalDamage.StarterEfficiency01
+            < 1.0);
+
+    TestTrue(
+        TEXT("Crash degrades electrical engine-control authority"),
+        VehicleState.ElectricalDamage.EngineControlEfficiency01
+            < 1.0);
+
+    TestTrue(
+        TEXT("Crash degrades fuel delivery"),
+        VehicleState.FuelDeliveryDamage.DeliveryEfficiency01
+            < 1.0);
+
+    TestTrue(
+        TEXT("Typed electrical route was applied"),
+        CrashOutput.Routing.ElectricalBusSignalsApplied
+            >= 1);
+
+    TestTrue(
+        TEXT("Typed fuel-delivery route was applied"),
+        CrashOutput.Routing.FuelDeliverySignalsApplied
             >= 1);
 
     return true;
