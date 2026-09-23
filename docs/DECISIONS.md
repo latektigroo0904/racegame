@@ -216,3 +216,29 @@
 **Decision:** explicit unsprung vertical mass/travel integration exists first as an isolated tested primitive. The canonical contact path remains tire/suspension equilibrium until the dynamic model is validated and coupled without force double-counting.  
 **Reason:** wheel-hop dynamics add another state and force path; introducing them only after a stable compliant-contact baseline reduces numerical risk.
 
+
+
+## ADR-046 — Geometric crash damage and functional damage remain separate truth paths
+**Status:** accepted 2026-09-23  
+**Decision:** continuous structural node displacement is the only source of suspension pickup/alignment deformation. Typed damage consumers may reduce steering authority, add free play, reduce hub brake/drive efficiency, add bearing drag, damage cooling/fluid/electrical systems, or trigger discrete failures, but must not add a second generic camber/toe damage scalar.  
+**Reason:** avoids double-counting the same crash deformation and preserves physically traceable geometry.
+
+## ADR-047 — Functional mechanical damage is monotonic until repair
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** steering-rack and wheel-hub damage consumers accumulate worst-seen functional degradation; later lower-severity events cannot restore authority/efficiency or reduce free play/drag. Repair will be an explicit separate system.  
+**Reason:** impact events cannot physically heal damaged components.
+
+## ADR-048 — Structural/damage authoring is part of physics configuration identity
+**Status:** accepted 2026-09-23  
+**Decision:** `PhysicsConfigHash` includes structure solver parameters, impact distribution, node/constraint content, damage-bridge mappings, mount thresholds, route signal acceptance/calibration and suspension structure bindings.  
+**Reason:** crash/handling regression, replay diagnostics and multiplayer compatibility require different effective damage physics to produce different configuration identities.
+
+## ADR-049 — Regression baselines have explicit provisional versus trusted status
+**Status:** accepted 2026-09-23  
+**Decision:** proving-ground scenario presets may exist with broad provisional ranges before runtime execution, but a trusted baseline requires an explicit non-zero physics-config hash and reviewed UE-generated traces.  
+**Reason:** guessed source-level ranges must never be mistaken for validated vehicle calibration.
+
+## ADR-050 — Full vehicle telemetry owns the canonical regression ring buffer
+**Status:** accepted 2026-09-23  
+**Decision:** `FTATelemetryRingBuffer` refers only to the full vehicle/scenario telemetry buffer. The earlier lightweight buffer is retained as `FTACompactTelemetryRingBuffer`.  
+**Reason:** removes a C++ type-name collision and makes scenario/regression telemetry unambiguous.
