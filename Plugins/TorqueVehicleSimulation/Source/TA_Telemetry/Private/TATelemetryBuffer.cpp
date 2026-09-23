@@ -1,5 +1,6 @@
 #include "TATelemetryBuffer.h"
 #include "TAFrontAxleRuntime.h"
+#include "TAFourWheelVehicleRuntime.h"
 
 bool FTATelemetryRingBuffer::Initialize(const int32 InCapacity)
 {
@@ -56,6 +57,118 @@ const FTAVehicleTelemetrySample* FTATelemetryRingBuffer::GetChronological(
     return &Samples[PhysicalIndex];
 }
 
+FString FTATelemetryRingBuffer::ExportCsv() const
+{
+    FString Csv;
+
+    Csv += TEXT(
+        "tick,engine_rpm,gear,"
+        "vx_mps,vy_mps,vz_mps,"
+        "wx_radps,wy_radps,wz_radps,"
+        "fx_total_n,fy_total_n,"
+        "rack_m,steer_fl_rad,steer_fr_rad,"
+        "bumpsteer_fl_rad,bumpsteer_fr_rad,ackermann_delta_rad");
+
+    const TCHAR* WheelNames[TAPrototypeTelemetryWheelCount] =
+    {
+        TEXT("fl"),
+        TEXT("fr"),
+        TEXT("rl"),
+        TEXT("rr")
+    };
+
+    for (int32 Wheel = 0;
+         Wheel < TAPrototypeTelemetryWheelCount;
+         ++Wheel)
+    {
+        Csv.Appendf(
+            TEXT(
+                ",load_%s_n,travel_%s_m,camber_%s_rad,toe_%s_rad,"
+                "slipratio_%s,slipangle_%s_rad,"
+                "tirefx_%s_n,tirefy_%s_n,"
+                "tiretemp_%s_c,tirepressure_%s_kpa,tirewear_%s"),
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel],
+            WheelNames[Wheel]);
+    }
+
+    Csv += TEXT("\n");
+
+    for (int32 SampleIndex = 0;
+         SampleIndex < Count;
+         ++SampleIndex)
+    {
+        const FTAVehicleTelemetrySample* Sample =
+            GetChronological(SampleIndex);
+
+        if (!Sample)
+        {
+            continue;
+        }
+
+        Csv.Appendf(
+            TEXT(
+                "%llu,%.9g,%d,"
+                "%.9g,%.9g,%.9g,"
+                "%.9g,%.9g,%.9g,"
+                "%.9g,%.9g,"
+                "%.9g,%.9g,%.9g,"
+                "%.9g,%.9g,%.9g"),
+            static_cast<unsigned long long>(
+                Sample->SimulationTick),
+            Sample->EngineRPM,
+            Sample->SelectedGear,
+            Sample->ChassisLinearVelocityWorldMps.X,
+            Sample->ChassisLinearVelocityWorldMps.Y,
+            Sample->ChassisLinearVelocityWorldMps.Z,
+            Sample->ChassisAngularVelocityWorldRadPerSec.X,
+            Sample->ChassisAngularVelocityWorldRadPerSec.Y,
+            Sample->ChassisAngularVelocityWorldRadPerSec.Z,
+            Sample->TotalLongitudinalForceN,
+            Sample->TotalLateralForceN,
+            Sample->SteeringRackDisplacementM,
+            Sample->FrontLeftSteeringAngleRad,
+            Sample->FrontRightSteeringAngleRad,
+            Sample->FrontLeftBumpSteerRad,
+            Sample->FrontRightBumpSteerRad,
+            Sample->FrontAckermannDeltaRad);
+
+        for (int32 Wheel = 0;
+             Wheel < TAPrototypeTelemetryWheelCount;
+             ++Wheel)
+        {
+            Csv.Appendf(
+                TEXT(
+                    ",%.9g,%.9g,%.9g,%.9g,"
+                    "%.9g,%.9g,%.9g,%.9g,"
+                    "%.9g,%.9g,%.9g"),
+                Sample->WheelVerticalLoadN[Wheel],
+                Sample->SuspensionTravelM[Wheel],
+                Sample->WheelCamberRad[Wheel],
+                Sample->WheelToeRad[Wheel],
+                Sample->WheelSlipRatio[Wheel],
+                Sample->WheelSlipAngleRad[Wheel],
+                Sample->TireLongitudinalForceN[Wheel],
+                Sample->TireLateralForceN[Wheel],
+                Sample->TireSurfaceTemperatureC[Wheel],
+                Sample->TirePressureKPa[Wheel],
+                Sample->TireWear01[Wheel]);
+        }
+
+        Csv += TEXT("\n");
+    }
+
+    return Csv;
+}
+
 FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
     const FTAVehicleRuntimeState& State,
     const FTAVehicleStepOutput& Output)
@@ -104,6 +217,18 @@ FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
 
         Sample.TireLateralForceN[Index] =
             Tire.LateralForceN;
+
+        const FTATireRuntimeState& TireState =
+            State.Wheels[Index].TireState;
+
+        Sample.TireSurfaceTemperatureC[Index] =
+            TireState.SurfaceTemperatureC;
+
+        Sample.TirePressureKPa[Index] =
+            TireState.PressureKPa;
+
+        Sample.TireWear01[Index] =
+            TireState.Wear01;
     }
 
     return Sample;
@@ -131,4 +256,58 @@ void TATelemetry::ApplyFrontAxleSample(
 
     InOutSample.FrontAckermannDeltaRad =
         FrontAxle.AckermannDeltaRad;
+}
+
+
+void TATelemetry::ApplyFourWheelSample(
+    const FTAFourWheelStepOutput& FourWheel,
+    FTAVehicleTelemetrySample& InOutSample)
+{
+    ApplyFrontAxleSample(
+        FourWheel.FrontAxle,
+        InOutSample);
+
+    const FTAResolvedWheelContact* FrontContacts[2] =
+    {
+        &FourWheel.FrontAxle.LeftContact,
+        &FourWheel.FrontAxle.RightContact
+    };
+
+    for (int32 Index = 0; Index < 2; ++Index)
+    {
+        InOutSample.WheelVerticalLoadN[Index] =
+            FrontContacts[Index]->VerticalLoadN;
+
+        InOutSample.SuspensionTravelM[Index] =
+            FrontContacts[Index]->TravelM;
+
+        InOutSample.WheelCamberRad[Index] =
+            FrontContacts[Index]->Geometry.CamberRad;
+
+        InOutSample.WheelToeRad[Index] =
+            FrontContacts[Index]->Geometry.ToeRad;
+    }
+
+    const FTAResolvedMultiLinkContact* RearContacts[2] =
+    {
+        &FourWheel.RearAxle.LeftContact,
+        &FourWheel.RearAxle.RightContact
+    };
+
+    for (int32 Index = 0; Index < 2; ++Index)
+    {
+        const int32 WheelIndex = Index + 2;
+
+        InOutSample.WheelVerticalLoadN[WheelIndex] =
+            RearContacts[Index]->VerticalLoadN;
+
+        InOutSample.SuspensionTravelM[WheelIndex] =
+            RearContacts[Index]->TravelM;
+
+        InOutSample.WheelCamberRad[WheelIndex] =
+            RearContacts[Index]->Geometry.CamberRad;
+
+        InOutSample.WheelToeRad[WheelIndex] =
+            RearContacts[Index]->Geometry.ToeRad;
+    }
 }
