@@ -27,6 +27,7 @@ struct TA_VEHICLE_API FTAResolvedWheelContact
 
     FVector3d ForwardTangentWorld = FVector3d(1.0, 0.0, 0.0);
     FVector3d RightTangentWorld = FVector3d(0.0, 1.0, 0.0);
+    FVector3d RoadNormalWorld = FVector3d(0.0, 0.0, 1.0);
 
     double VerticalLoadN = 0.0;
     double LongitudinalVelocityMps = 0.0;
@@ -58,6 +59,11 @@ namespace TAWheelContactResolver
         FTADoubleWishboneState& InOutGeometryState,
         FTASuspensionRuntimeState& InOutSuspensionState,
         FTAResolvedWheelContact& OutContact);
+
+    TA_VEHICLE_API void ApplyAntiRollBarToPair(
+        const FTAAntiRollBarConfig& Config,
+        FTAResolvedWheelContact& InOutLeftContact,
+        FTAResolvedWheelContact& InOutRightContact);
 
     TA_VEHICLE_API FTAWheelContactInput BuildVehicleWheelContactInput(
         const FTAResolvedWheelContact& Contact);
