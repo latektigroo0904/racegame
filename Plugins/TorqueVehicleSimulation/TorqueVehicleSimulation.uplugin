@@ -43,6 +43,11 @@
       "Name": "TA_Vehicle",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "TA_Telemetry",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
     }
   ]
 }
