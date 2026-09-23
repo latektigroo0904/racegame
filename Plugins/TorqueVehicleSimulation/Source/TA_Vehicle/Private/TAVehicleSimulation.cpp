@@ -375,6 +375,19 @@ bool TAVehicleSimulation::Step(
             Contact.ContactPointWorldM,
             ChassisForces);
 
+        const FVector3d ContactNormalWorld =
+            FVector3d::CrossProduct(
+                ForwardWorld,
+                RightWorld).GetSafeNormal();
+
+        if (!ContactNormalWorld.IsNearlyZero())
+        {
+            TAChassisDynamics::AddTorqueWorld(
+                ContactNormalWorld
+                    * TireOutput.AligningMomentNm,
+                ChassisForces);
+        }
+
         OutOutput.TotalLongitudinalForceN +=
             LongitudinalForceN;
 
