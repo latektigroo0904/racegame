@@ -21,5 +21,8 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Validate shell verification runner syntax
+        run: bash -n Scripts/verify-unreal.sh
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
