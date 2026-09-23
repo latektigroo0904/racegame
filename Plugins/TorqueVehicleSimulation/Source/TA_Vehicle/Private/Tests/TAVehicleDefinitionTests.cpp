@@ -2110,4 +2110,213 @@ bool FTAVehicleDefinitionRejectsInvalidBrakeThermalTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionFuelElectricalRoutesTest,
+    "TorqueAtlas.Vehicle.Definition.CompilesFuelElectricalDamageRoutes",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionFuelElectricalRoutesTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(1.10, 0.20, -0.25);
+    Node.MassKg =
+        12.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleDamageRouteAuthoringDefinition Electrical;
+    Electrical.TargetComponentIndex =
+        12;
+    Electrical.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::ElectricalBus;
+    Electrical.bAcceptImpactEnergy =
+        false;
+    Electrical.bAcceptStructuralDisplacement =
+        false;
+    Electrical.bAcceptElectricalDisconnection =
+        true;
+    Electrical.MinimumStarterEfficiency01 =
+        0.15;
+    Electrical.MinimumEngineControlEfficiency01 =
+        0.25;
+
+    Definition->Structure.DamageRoutes.Add(
+        Electrical);
+
+    FTAVehicleDamageRouteAuthoringDefinition Fuel;
+    Fuel.TargetComponentIndex =
+        13;
+    Fuel.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::FuelDelivery;
+    Fuel.bAcceptImpactEnergy =
+        false;
+    Fuel.bAcceptStructuralDisplacement =
+        false;
+    Fuel.bAcceptFluidPressureLoss =
+        true;
+    Fuel.MinimumFuelDeliveryEfficiency01 =
+        0.10;
+
+    Definition->Structure.DamageRoutes.Add(
+        Fuel);
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Fuel/electrical damage routes compile"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    TestEqual(
+        TEXT("Two fuel/electrical routes compile"),
+        Config.StructureRuntime.DamageRouting.Routes.Num(),
+        2);
+
+    const FTAVehicleDamageRoute& CompiledElectrical =
+        Config.StructureRuntime.DamageRouting.Routes[0];
+
+    TestTrue(
+        TEXT("Electrical consumer type is preserved"),
+        CompiledElectrical.Consumer
+            == ETAVehicleDamageConsumerType::ElectricalBus);
+
+    TestTrue(
+        TEXT("Electrical disconnection acceptance is preserved"),
+        CompiledElectrical.bAcceptElectricalDisconnection);
+
+    TestTrue(
+        TEXT("Electrical minima are preserved"),
+        FMath::IsNearlyEqual(
+            CompiledElectrical.MinimumStarterEfficiency01,
+            0.15,
+            1.0e-9)
+        && FMath::IsNearlyEqual(
+            CompiledElectrical.MinimumEngineControlEfficiency01,
+            0.25,
+            1.0e-9));
+
+    const FTAVehicleDamageRoute& CompiledFuel =
+        Config.StructureRuntime.DamageRouting.Routes[1];
+
+    TestTrue(
+        TEXT("Fuel-delivery consumer type is preserved"),
+        CompiledFuel.Consumer
+            == ETAVehicleDamageConsumerType::FuelDelivery);
+
+    TestTrue(
+        TEXT("Fluid-pressure-loss acceptance is preserved"),
+        CompiledFuel.bAcceptFluidPressureLoss);
+
+    TestTrue(
+        TEXT("Fuel-delivery minimum is preserved"),
+        FMath::IsNearlyEqual(
+            CompiledFuel.MinimumFuelDeliveryEfficiency01,
+            0.10,
+            1.0e-9));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionFuelElectricalHashTest,
+    "TorqueAtlas.Vehicle.Definition.FuelElectricalCalibrationChangesHash",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionFuelElectricalHashTest::RunTest(
+    const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAStructureNodeAuthoringDefinition Node;
+    Node.PositionVehicleLocalM =
+        FVector(1.10, 0.20, -0.25);
+    Node.MassKg =
+        12.0;
+
+    Definition->Structure.Nodes.Add(
+        Node);
+
+    FTAVehicleDamageRouteAuthoringDefinition Route;
+    Route.TargetComponentIndex =
+        12;
+    Route.Consumer =
+        ETAVehicleDamageConsumerAuthoringType::ElectricalBus;
+    Route.bAcceptElectricalDisconnection =
+        true;
+    Route.MinimumStarterEfficiency01 =
+        0.20;
+
+    Definition->Structure.DamageRoutes.Add(
+        Route);
+
+    FTAVehicleCompiledConfig Baseline;
+    FTAValidationResult BaselineValidation;
+
+    TestTrue(
+        TEXT("Baseline electrical route compiles"),
+        Definition->BuildCompiledConfig(
+            Baseline,
+            BaselineValidation));
+
+    Definition->Structure.DamageRoutes[0]
+        .MinimumStarterEfficiency01 =
+        0.35;
+
+    FTAVehicleCompiledConfig StarterModified;
+    FTAValidationResult StarterValidation;
+
+    TestTrue(
+        TEXT("Starter-calibration-modified route compiles"),
+        Definition->BuildCompiledConfig(
+            StarterModified,
+            StarterValidation));
+
+    TestTrue(
+        TEXT("Starter damage calibration changes physics hash"),
+        StarterModified.PhysicsConfigHash
+            != Baseline.PhysicsConfigHash);
+
+    Definition->Structure.DamageRoutes[0]
+        .Consumer =
+        ETAVehicleDamageConsumerAuthoringType::FuelDelivery;
+
+    Definition->Structure.DamageRoutes[0]
+        .bAcceptElectricalDisconnection =
+        false;
+
+    Definition->Structure.DamageRoutes[0]
+        .bAcceptFluidPressureLoss =
+        true;
+
+    Definition->Structure.DamageRoutes[0]
+        .MinimumFuelDeliveryEfficiency01 =
+        0.40;
+
+    FTAVehicleCompiledConfig FuelModified;
+    FTAValidationResult FuelValidation;
+
+    TestTrue(
+        TEXT("Fuel route compiles"),
+        Definition->BuildCompiledConfig(
+            FuelModified,
+            FuelValidation));
+
+    TestTrue(
+        TEXT("Consumer signal flags and fuel calibration change physics hash"),
+        FuelModified.PhysicsConfigHash
+            != StarterModified.PhysicsConfigHash);
+
+    return true;
+}
+
 #endif
