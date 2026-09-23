@@ -109,6 +109,14 @@ namespace TAPowertrainSolver
         double GearboxInputTorqueNm,
         double GearRatio);
 
+    TA_POWERTRAIN_API double CalculateFinalDriveOutputSpeedRadPerSec(
+        const FTAGearboxRuntimeConfig& Config,
+        double GearboxOutputSpeedRadPerSec);
+
+    TA_POWERTRAIN_API double CalculateFinalDriveOutputTorqueNm(
+        const FTAGearboxRuntimeConfig& Config,
+        double GearboxOutputTorqueNm);
+
     TA_POWERTRAIN_API double CalculateCompliantShaftTorqueNm(
         const FTADrivelineComplianceConfig& Config,
         const FTADrivelineComplianceState& State,
