@@ -93,14 +93,35 @@ namespace
         Out.ReferenceLoadN =
             Authored.ReferenceLoadN;
 
-        Out.ReferencePressureKPa =
-            Authored.ReferencePressureKPa;
-
         Out.DryPeakMu =
             Authored.DryPeakMu;
 
-        Out.NewTreadDepthMm =
-            Authored.NewTreadDepthMm;
+        Out.LoadSensitivityExponent =
+            Authored.LoadSensitivityExponent;
+
+        Out.LongitudinalStiffnessN =
+            Authored.LongitudinalStiffnessN;
+
+        Out.CorneringStiffnessNPerRad =
+            Authored.CorneringStiffnessNPerRad;
+
+        Out.CamberStiffnessNPerRad =
+            Authored.CamberStiffnessNPerRad;
+
+        Out.SaturationExponent =
+            Authored.SaturationExponent;
+
+        Out.PneumaticTrailM =
+            Authored.PneumaticTrailM;
+
+        Out.RollingResistanceCoefficient =
+            Authored.RollingResistanceCoefficient;
+
+        Out.ReferencePressureKPa =
+            Authored.ReferencePressureKPa;
+
+        Out.ReferencePressureTemperatureC =
+            Authored.ReferencePressureTemperatureC;
 
         Out.RadialStiffnessNPerM =
             Authored.RadialStiffnessNPerM;
@@ -113,6 +134,78 @@ namespace
 
         Out.MaxRadialDeflectionM =
             Authored.MaxRadialDeflectionM;
+
+        Out.PressureRadialStiffnessExponent =
+            Authored.PressureRadialStiffnessExponent;
+
+        Out.NewTreadDepthMm =
+            Authored.NewTreadDepthMm;
+
+        Out.MinimumTreadDepthMm =
+            Authored.MinimumTreadDepthMm;
+
+        Out.OptimalSurfaceTemperatureC =
+            Authored.OptimalSurfaceTemperatureC;
+
+        Out.ColdGripMultiplier =
+            Authored.ColdGripMultiplier;
+
+        Out.HotGripMultiplier =
+            Authored.HotGripMultiplier;
+
+        Out.HotGripTemperatureC =
+            Authored.HotGripTemperatureC;
+
+        Out.PressureGripSensitivity =
+            Authored.PressureGripSensitivity;
+
+        Out.WearGripLossAtEnd =
+            Authored.WearGripLossAtEnd;
+
+        Out.SurfaceThermalMassJPerC =
+            Authored.SurfaceThermalMassJPerC;
+
+        Out.CarcassThermalMassJPerC =
+            Authored.CarcassThermalMassJPerC;
+
+        Out.SurfaceToCarcassConductanceWPerC =
+            Authored.SurfaceToCarcassConductanceWPerC;
+
+        Out.CarcassToAmbientConductanceWPerC =
+            Authored.CarcassToAmbientConductanceWPerC;
+
+        Out.InternalAirTimeConstantSeconds =
+            Authored.InternalAirTimeConstantSeconds;
+
+        Out.SlipHeatFraction =
+            Authored.SlipHeatFraction;
+
+        Out.RollingHeatFraction =
+            Authored.RollingHeatFraction;
+
+        Out.WearEnergyCapacityJ =
+            Authored.WearEnergyCapacityJ;
+
+        Out.ThermalDegradationStartC =
+            Authored.ThermalDegradationStartC;
+
+        Out.ThermalDegradationRatePerSecondAt170C =
+            Authored.ThermalDegradationRatePerSecondAt170C;
+
+        Out.SlipReferenceVelocityMps =
+            Authored.SlipReferenceVelocityMps;
+
+        Out.DynamicBlendStartMps =
+            Authored.DynamicBlendStartMps;
+
+        Out.DynamicBlendEndMps =
+            Authored.DynamicBlendEndMps;
+
+        Out.HydroReferenceOnsetSpeedMps =
+            Authored.HydroReferenceOnsetSpeedMps;
+
+        Out.HydroReferenceWaterDepthMm =
+            Authored.HydroReferenceWaterDepthMm;
     }
 
     uint32 HashTireConfig(
@@ -144,6 +237,19 @@ namespace
         Hash = HashDouble(Hash, Tire.HotGripTemperatureC);
         Hash = HashDouble(Hash, Tire.PressureGripSensitivity);
         Hash = HashDouble(Hash, Tire.WearGripLossAtEnd);
+        Hash = HashDouble(Hash, Tire.SurfaceThermalMassJPerC);
+        Hash = HashDouble(Hash, Tire.CarcassThermalMassJPerC);
+        Hash = HashDouble(Hash, Tire.SurfaceToCarcassConductanceWPerC);
+        Hash = HashDouble(Hash, Tire.CarcassToAmbientConductanceWPerC);
+        Hash = HashDouble(Hash, Tire.InternalAirTimeConstantSeconds);
+        Hash = HashDouble(Hash, Tire.SlipHeatFraction);
+        Hash = HashDouble(Hash, Tire.RollingHeatFraction);
+        Hash = HashDouble(Hash, Tire.WearEnergyCapacityJ);
+        Hash = HashDouble(Hash, Tire.ThermalDegradationStartC);
+        Hash = HashDouble(Hash, Tire.ThermalDegradationRatePerSecondAt170C);
+        Hash = HashDouble(Hash, Tire.SlipReferenceVelocityMps);
+        Hash = HashDouble(Hash, Tire.DynamicBlendStartMps);
+        Hash = HashDouble(Hash, Tire.DynamicBlendEndMps);
         Hash = HashDouble(Hash, Tire.HydroReferenceOnsetSpeedMps);
         Hash = HashDouble(Hash, Tire.HydroReferenceWaterDepthMm);
         return Hash;
@@ -1336,6 +1442,30 @@ FTARearSuspensionDefinition::FTARearSuspensionDefinition()
         FVector(-1.48, 0.71, -0.38);
 }
 
+FTAPrototypeDrivetrainDefinition::FTAPrototypeDrivetrainDefinition()
+{
+    TorqueCurve =
+    {
+        { 1000.0, 150.0 },
+        { 2000.0, 310.0 },
+        { 3000.0, 400.0 },
+        { 4000.0, 410.0 },
+        { 5000.0, 405.0 },
+        { 6000.0, 365.0 },
+        { 7000.0, 300.0 }
+    };
+
+    ForwardGearRatios =
+    {
+        3.45,
+        2.15,
+        1.52,
+        1.16,
+        0.92,
+        0.76
+    };
+}
+
 bool UTAVehicleDefinition::BuildCompiledConfig(
     FTAVehicleCompiledConfig& OutConfig,
     FTAValidationResult& OutValidation) const
@@ -1556,8 +1686,111 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     VehicleRuntime.Engine.CrankInertiaKgm2 =
         Drivetrain.CrankInertiaKgm2;
 
+    VehicleRuntime.Engine.FrictionConstantNm =
+        Drivetrain.FrictionConstantNm;
+
+    VehicleRuntime.Engine.FrictionLinearNms =
+        Drivetrain.FrictionLinearNms;
+
+    VehicleRuntime.Engine.FrictionQuadraticNms2 =
+        Drivetrain.FrictionQuadraticNms2;
+
+    VehicleRuntime.Engine.StallRPM =
+        Drivetrain.StallRPM;
+
+    VehicleRuntime.Engine.CombustionStartRPM =
+        Drivetrain.CombustionStartRPM;
+
+    VehicleRuntime.Engine.StarterTorqueNm =
+        Drivetrain.StarterTorqueNm;
+
+    VehicleRuntime.Engine.StarterMaxRPM =
+        Drivetrain.StarterMaxRPM;
+
+    VehicleRuntime.Engine.IdleControlGainNmPerRPM =
+        Drivetrain.IdleControlGainNmPerRPM;
+
+    VehicleRuntime.Engine.MaxIdleControlTorqueNm =
+        Drivetrain.MaxIdleControlTorqueNm;
+
+    VehicleRuntime.Engine.TorqueCurve.Reset(
+        Drivetrain.TorqueCurve.Num());
+
+    for (const FTAEngineTorqueDefinitionPoint& Point :
+         Drivetrain.TorqueCurve)
+    {
+        FTAEngineTorquePoint RuntimePoint;
+        RuntimePoint.RPM =
+            Point.RPM;
+        RuntimePoint.TorqueNm =
+            Point.TorqueNm;
+
+        VehicleRuntime.Engine.TorqueCurve.Add(
+            RuntimePoint);
+    }
+
+    VehicleRuntime.EngineThermal.AmbientTemperatureC =
+        EngineThermal.AmbientTemperatureC;
+
+    VehicleRuntime.EngineThermal.InitialCoolantTemperatureC =
+        EngineThermal.InitialCoolantTemperatureC;
+
+    VehicleRuntime.EngineThermal.EffectiveThermalMassJPerC =
+        EngineThermal.EffectiveThermalMassJPerC;
+
+    VehicleRuntime.EngineThermal.BaseHeatGenerationW =
+        EngineThermal.BaseHeatGenerationW;
+
+    VehicleRuntime.EngineThermal.FullLoadAdditionalHeatW =
+        EngineThermal.FullLoadAdditionalHeatW;
+
+    VehicleRuntime.EngineThermal.CoolingCapacityWPerC =
+        EngineThermal.CoolingCapacityWPerC;
+
+    VehicleRuntime.EngineThermal.DerateStartTemperatureC =
+        EngineThermal.DerateStartTemperatureC;
+
+    VehicleRuntime.EngineThermal.DerateFullTemperatureC =
+        EngineThermal.DerateFullTemperatureC;
+
+    VehicleRuntime.EngineThermal.MinimumThermalTorqueFactor =
+        EngineThermal.MinimumThermalTorqueFactor;
+
+    VehicleRuntime.EngineThermal.DamageStartTemperatureC =
+        EngineThermal.DamageStartTemperatureC;
+
+    VehicleRuntime.EngineThermal.DamageRatePerSecondAt150C =
+        EngineThermal.DamageRatePerSecondAt150C;
+
     VehicleRuntime.Clutch.MaxTorqueCapacityNm =
         Drivetrain.ClutchMaxTorqueNm;
+
+    VehicleRuntime.Clutch.CouplingStiffnessNms =
+        Drivetrain.ClutchCouplingStiffnessNms;
+
+    VehicleRuntime.Clutch.ThermalMassJPerC =
+        Drivetrain.ClutchThermalMassJPerC;
+
+    VehicleRuntime.Clutch.CoolingWPerC =
+        Drivetrain.ClutchCoolingWPerC;
+
+    VehicleRuntime.Clutch.AmbientTemperatureC =
+        Drivetrain.ClutchAmbientTemperatureC;
+
+    VehicleRuntime.Clutch.FadeStartTemperatureC =
+        Drivetrain.ClutchFadeStartTemperatureC;
+
+    VehicleRuntime.Clutch.FadeEndTemperatureC =
+        Drivetrain.ClutchFadeEndTemperatureC;
+
+    VehicleRuntime.Clutch.WearEnergyCapacityJ =
+        Drivetrain.ClutchWearEnergyCapacityJ;
+
+    VehicleRuntime.Driveline.TorsionalStiffnessNmPerRad =
+        Drivetrain.DrivelineTorsionalStiffnessNmPerRad;
+
+    VehicleRuntime.Driveline.TorsionalDampingNmsPerRad =
+        Drivetrain.DrivelineTorsionalDampingNmsPerRad;
 
     VehicleRuntime.Gearbox.ForwardGearRatios =
         Drivetrain.ForwardGearRatios;
