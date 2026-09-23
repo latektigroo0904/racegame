@@ -21,6 +21,10 @@ struct TA_VEHICLE_API FTAResolvedMultiLinkContact
     FVector3d RoadNormalWorld = FVector3d(0.0, 0.0, 1.0);
 
     double VerticalLoadN = 0.0;
+
+    double TireRadialDeflectionM = 0.0;
+    bool bTireBottomed = false;
+
     double LongitudinalVelocityMps = 0.0;
     double LateralVelocityMps = 0.0;
 
@@ -44,6 +48,19 @@ namespace TAMultiLinkContactResolver
         double DeltaTimeSeconds,
         FTAMultiLinkRuntimeState& InOutGeometryState,
         FTASuspensionRuntimeState& InOutSuspensionState,
+        FTAResolvedMultiLinkContact& OutContact);
+
+    TA_VEHICLE_API bool ResolveCompliantRoadContact(
+        const FTAChassisState& Chassis,
+        const FTAMultiLinkSolverConfig& GeometryConfig,
+        const FTASuspensionRuntimeConfig& SuspensionConfig,
+        const FTATireRuntimeConfig& TireConfig,
+        const FTAMultiLinkDamageOffsets& DamageOffsets,
+        const FTARoadPlane& Road,
+        double DeltaTimeSeconds,
+        FTAMultiLinkRuntimeState& InOutGeometryState,
+        FTASuspensionRuntimeState& InOutSuspensionState,
+        FTATireRuntimeState& InOutTireState,
         FTAResolvedMultiLinkContact& OutContact);
 
     TA_VEHICLE_API void ApplyAntiRollBarToPair(
