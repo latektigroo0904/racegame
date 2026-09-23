@@ -202,12 +202,10 @@ namespace
                     MaxValue,
                     Value);
 
-            if (FMath::Abs(Value)
-                > FMath::Abs(AbsoluteMaximumValue))
-            {
-                AbsoluteMaximumValue =
-                    Value;
-            }
+            AbsoluteMaximumValue =
+                FMath::Max(
+                    AbsoluteMaximumValue,
+                    FMath::Abs(Value));
 
             Sum +=
                 Value;
