@@ -57,6 +57,16 @@ bool TACollisionStructureCoupling::ApplyCollisionImpact(
     StructureInput.CollisionImpulseLocalNs =
         CollisionImpulseLocalNs;
 
+    if (Input.AvailableImpactEnergyJ > 0.0)
+    {
+        StructureInput.MaxDeformationEnergyJ =
+            Input.AvailableImpactEnergyJ
+            * FMath::Clamp(
+                Config.StructureImpact.MaxDeformationEnergyFraction01,
+                0.0,
+                1.0);
+    }
+
     OutOutput.bInternalDeformationApplied =
         TAStructureImpactDistributor::DistributeImpactAsInternalDeformation(
             Config.StructureImpact,
