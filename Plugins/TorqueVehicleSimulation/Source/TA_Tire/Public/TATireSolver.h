@@ -20,7 +20,33 @@ struct TA_TIRE_API FTATireRuntimeConfig
     double RollingResistanceCoefficient = 0.012;
 
     double ReferencePressureKPa = 230.0;
+    double ReferencePressureTemperatureC = 20.0;
+
     double NewTreadDepthMm = 7.5;
+    double MinimumTreadDepthMm = 0.8;
+
+    double OptimalSurfaceTemperatureC = 85.0;
+    double ColdGripMultiplier = 0.78;
+    double HotGripMultiplier = 0.82;
+    double HotGripTemperatureC = 135.0;
+
+    double PressureGripSensitivity = 0.20;
+    double WearGripLossAtEnd = 0.15;
+
+    double SurfaceThermalMassJPerC = 4200.0;
+    double CarcassThermalMassJPerC = 12000.0;
+
+    double SurfaceToCarcassConductanceWPerC = 95.0;
+    double CarcassToAmbientConductanceWPerC = 38.0;
+
+    double InternalAirTimeConstantSeconds = 35.0;
+
+    double SlipHeatFraction = 0.18;
+    double RollingHeatFraction = 0.50;
+
+    double WearEnergyCapacityJ = 8.0e7;
+    double ThermalDegradationStartC = 135.0;
+    double ThermalDegradationRatePerSecondAt170C = 0.0015;
 
     double SlipReferenceVelocityMps = 0.5;
     double DynamicBlendStartMps = 2.0;
@@ -85,6 +111,21 @@ namespace TATireSolver
         const FTATireRuntimeConfig& Config,
         const FTATireRuntimeState& State,
         const FTATireSolveInput& Input);
+
+    TA_TIRE_API double CalculateTemperatureGripFactor(
+        const FTATireRuntimeConfig& Config,
+        double SurfaceTemperatureC);
+
+    TA_TIRE_API double CalculatePressureGripFactor(
+        const FTATireRuntimeConfig& Config,
+        double PressureKPa);
+
+    TA_TIRE_API void UpdateThermalPressureAndWear(
+        const FTATireRuntimeConfig& Config,
+        const FTATireSolveInput& Input,
+        const FTATireSolveOutput& Output,
+        double DeltaTimeSeconds,
+        FTATireRuntimeState& InOutState);
 
     TA_TIRE_API double EstimateLongitudinalForceCapacityN(
         const FTATireRuntimeConfig& Config,
