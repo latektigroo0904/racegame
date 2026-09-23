@@ -1,6 +1,7 @@
 #include "TATelemetryBuffer.h"
 #include "TAFrontAxleRuntime.h"
 #include "TAFourWheelVehicleRuntime.h"
+#include "TAVehicleRuntime.h"
 
 bool FTATelemetryRingBuffer::Initialize(const int32 InCapacity)
 {
@@ -62,7 +63,7 @@ FString FTATelemetryRingBuffer::ExportCsv() const
     FString Csv;
 
     Csv += TEXT(
-        "tick,engine_rpm,gear,"
+        "tick,physics_config_hash,engine_rpm,gear,"
         "vx_mps,vy_mps,vz_mps,"
         "wx_radps,wy_radps,wz_radps,"
         "fx_total_n,fy_total_n,"
@@ -86,7 +87,8 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 ",load_%s_n,travel_%s_m,camber_%s_rad,toe_%s_rad,"
                 "slipratio_%s,slipangle_%s_rad,"
                 "tirefx_%s_n,tirefy_%s_n,"
-                "tiretemp_%s_c,tirepressure_%s_kpa,tirewear_%s"),
+                "tiretemp_%s_c,tirepressure_%s_kpa,tirewear_%s,tiredeflection_%s_m"),
+            WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
             WheelNames[Wheel],
@@ -116,7 +118,7 @@ FString FTATelemetryRingBuffer::ExportCsv() const
 
         Csv.Appendf(
             TEXT(
-                "%llu,%.9g,%d,"
+                "%llu,%u,%.9g,%d,"
                 "%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,%.9g,"
                 "%.9g,%.9g,"
@@ -124,6 +126,7 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 "%.9g,%.9g,%.9g"),
             static_cast<unsigned long long>(
                 Sample->SimulationTick),
+            Sample->PhysicsConfigHash,
             Sample->EngineRPM,
             Sample->SelectedGear,
             Sample->ChassisLinearVelocityWorldMps.X,
@@ -149,7 +152,7 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 TEXT(
                     ",%.9g,%.9g,%.9g,%.9g,"
                     "%.9g,%.9g,%.9g,%.9g,"
-                    "%.9g,%.9g,%.9g"),
+                    "%.9g,%.9g,%.9g,%.9g"),
                 Sample->WheelVerticalLoadN[Wheel],
                 Sample->SuspensionTravelM[Wheel],
                 Sample->WheelCamberRad[Wheel],
@@ -160,7 +163,8 @@ FString FTATelemetryRingBuffer::ExportCsv() const
                 Sample->TireLateralForceN[Wheel],
                 Sample->TireSurfaceTemperatureC[Wheel],
                 Sample->TirePressureKPa[Wheel],
-                Sample->TireWear01[Wheel]);
+                Sample->TireWear01[Wheel],
+                Sample->TireRadialDeflectionM[Wheel]);
         }
 
         Csv += TEXT("\n");
@@ -229,6 +233,9 @@ FTAVehicleTelemetrySample TATelemetry::CaptureVehicleSample(
 
         Sample.TireWear01[Index] =
             TireState.Wear01;
+
+        Sample.TireRadialDeflectionM[Index] =
+            TireState.RadialDeflectionM;
     }
 
     return Sample;
@@ -286,6 +293,9 @@ void TATelemetry::ApplyFourWheelSample(
 
         InOutSample.WheelToeRad[Index] =
             FrontContacts[Index]->Geometry.ToeRad;
+
+        InOutSample.TireRadialDeflectionM[Index] =
+            FrontContacts[Index]->TireRadialDeflectionM;
     }
 
     const FTAResolvedMultiLinkContact* RearContacts[2] =
@@ -309,5 +319,16 @@ void TATelemetry::ApplyFourWheelSample(
 
         InOutSample.WheelToeRad[WheelIndex] =
             RearContacts[Index]->Geometry.ToeRad;
+
+        InOutSample.TireRadialDeflectionM[WheelIndex] =
+            RearContacts[Index]->TireRadialDeflectionM;
     }
+}
+
+void TATelemetry::ApplyCompiledConfigMetadata(
+    const FTAVehicleCompiledConfig& Config,
+    FTAVehicleTelemetrySample& InOutSample)
+{
+    InOutSample.PhysicsConfigHash =
+        Config.PhysicsConfigHash;
 }
