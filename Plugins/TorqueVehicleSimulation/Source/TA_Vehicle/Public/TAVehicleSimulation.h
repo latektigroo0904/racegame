@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TAChassisDynamics.h"
 #include "TADamageTypes.h"
 #include "TAPowertrainSolver.h"
 #include "TATireSolver.h"
@@ -20,6 +21,10 @@ struct TA_VEHICLE_API FTAWheelContactInput
     double LongitudinalVelocityMps = 0.0;
     double LateralVelocityMps = 0.0;
     double CamberRad = 0.0;
+
+    FVector3d ContactPointWorldM = FVector3d::ZeroVector;
+    FVector3d ForwardDirectionWorld = FVector3d(1.0, 0.0, 0.0);
+    FVector3d RightDirectionWorld = FVector3d(0.0, 1.0, 0.0);
 
     FTASurfaceSample Surface;
 };
@@ -47,6 +52,8 @@ struct TA_VEHICLE_API FTAVehicleRuntimeConfig
 {
     double ReferenceMassKg = 1420.0;
 
+    FTAChassisConfig Chassis;
+
     TArray<FTAWheelRuntimeConfig> Wheels;
     TArray<FTATireRuntimeConfig> Tires;
 
@@ -63,6 +70,8 @@ struct TA_VEHICLE_API FTAVehicleRuntimeConfig
 struct TA_VEHICLE_API FTAVehicleRuntimeState
 {
     uint64 SimulationTick = 0;
+
+    FTAChassisState Chassis;
 
     FTAEngineRuntimeState Engine;
     FTAEngineThermalState EngineThermal;
