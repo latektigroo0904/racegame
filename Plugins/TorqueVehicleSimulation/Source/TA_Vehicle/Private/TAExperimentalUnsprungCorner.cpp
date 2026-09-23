@@ -307,6 +307,7 @@ namespace
     }
 
     void BuildOutput(
+        const FTAExperimentalUnsprungCornerConfig& Config,
         const FTAExperimentalUnsprungCornerInput& Input,
         const FCornerForceEvaluation& Evaluation,
         const FTAUnsprungVerticalOutput& UnsprungOutput,
@@ -349,6 +350,15 @@ namespace
         OutOutput.ChassisSuspensionForceWorldN =
             Evaluation.TravelAxisWorld
             * Evaluation.SuspensionReactionN;
+
+        const FVector3d DamperChassisLocalM =
+            Config.Geometry.Hardpoints.DamperChassis
+            + Input.Damage.DamperChassis;
+
+        OutOutput.ChassisSuspensionApplicationPointWorldM =
+            Input.Chassis.PositionWorldM
+            + Input.Chassis.OrientationWorld.RotateVector(
+                DamperChassisLocalM);
 
         OutOutput.Geometry =
             Evaluation.Geometry;
@@ -406,6 +416,12 @@ namespace
         // to the chassis.
         Contact.SuspensionForceWorldN =
             OutOutput.ChassisSuspensionForceWorldN;
+
+        Contact.bHasSuspensionForceApplicationPoint =
+            true;
+
+        Contact.SuspensionForceApplicationPointWorldM =
+            OutOutput.ChassisSuspensionApplicationPointWorldM;
 
         Contact.Surface =
             Input.Road.Surface;
@@ -502,6 +518,7 @@ bool TAExperimentalUnsprungCorner::InitializeFromQuasiStatic(
     FTAUnsprungVerticalOutput UnsprungOutput;
 
     BuildOutput(
+        Config,
         Input,
         Evaluation,
         UnsprungOutput,
@@ -615,6 +632,7 @@ bool TAExperimentalUnsprungCorner::Step(
         InOutState.Tire);
 
     BuildOutput(
+        Config,
         Input,
         FinalEvaluation,
         LastUnsprungOutput,
