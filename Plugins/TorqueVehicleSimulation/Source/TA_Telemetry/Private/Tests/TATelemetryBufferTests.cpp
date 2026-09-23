@@ -108,7 +108,7 @@ bool FTATelemetryCsvExportTest::RunTest(const FString& Parameters)
 
     TestTrue(
         TEXT("CSV contains tick header"),
-        Csv.Contains(TEXT("tick,engine_rpm")));
+        Csv.Contains(TEXT("tick,physics_config_hash,engine_rpm")));
 
     TestTrue(
         TEXT("CSV contains four-wheel load channel"),
@@ -198,6 +198,149 @@ bool FTATelemetryFourWheelMappingTest::RunTest(const FString& Parameters)
         TEXT("Physics config hash maps into telemetry"),
         Sample.PhysicsConfigHash,
         0x1234ABCDu);
+
+    return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTATelemetryFunctionalDamageCaptureTest,
+    "TorqueAtlas.Telemetry.FunctionalDamageCapture",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTATelemetryFunctionalDamageCaptureTest::RunTest(
+    const FString& Parameters)
+{
+    FTAVehicleRuntimeState State;
+
+    State.Wheels.SetNum(4);
+    State.WheelHubDamage.SetNum(4);
+
+    State.SteeringRackDamage.Damage01 =
+        0.60;
+
+    State.SteeringRackDamage.CommandAuthority01 =
+        0.55;
+
+    State.SteeringRackDamage.FreePlayM =
+        0.004;
+
+    State.WheelHubDamage[1].Damage01 =
+        0.70;
+
+    State.WheelHubDamage[1].BrakeEfficiency01 =
+        0.45;
+
+    State.WheelHubDamage[1].DriveEfficiency01 =
+        0.25;
+
+    State.WheelHubDamage[1].BearingDragTorqueNm =
+        52.0;
+
+    FTAVehicleStepOutput Output;
+
+    const FTAVehicleTelemetrySample Sample =
+        TATelemetry::CaptureVehicleSample(
+            State,
+            Output);
+
+    TestTrue(
+        TEXT("Steering damage severity maps"),
+        FMath::IsNearlyEqual(
+            Sample.SteeringRackDamage01,
+            0.60,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Steering authority maps"),
+        FMath::IsNearlyEqual(
+            Sample.SteeringCommandAuthority01,
+            0.55,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Steering free-play maps"),
+        FMath::IsNearlyEqual(
+            Sample.SteeringRackFreePlayM,
+            0.004,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-right hub damage severity maps"),
+        FMath::IsNearlyEqual(
+            Sample.WheelHubDamage01[1],
+            0.70,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-right hub brake efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.WheelHubBrakeEfficiency01[1],
+            0.45,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-right hub drive efficiency maps"),
+        FMath::IsNearlyEqual(
+            Sample.WheelHubDriveEfficiency01[1],
+            0.25,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Front-right hub bearing drag maps"),
+        FMath::IsNearlyEqual(
+            Sample.WheelHubBearingDragTorqueNm[1],
+            52.0,
+            1.0e-9));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTATelemetryFunctionalDamageCsvTest,
+    "TorqueAtlas.Telemetry.FunctionalDamageCsvChannels",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTATelemetryFunctionalDamageCsvTest::RunTest(
+    const FString& Parameters)
+{
+    FTATelemetryRingBuffer Buffer;
+
+    TestTrue(
+        TEXT("Buffer initializes"),
+        Buffer.Initialize(1));
+
+    FTAVehicleTelemetrySample Sample;
+    Sample.SteeringRackDamage01 = 0.5;
+    Sample.SteeringCommandAuthority01 = 0.6;
+    Sample.SteeringRackFreePlayM = 0.003;
+    Sample.WheelHubDamage01[1] = 0.7;
+    Sample.WheelHubBrakeEfficiency01[1] = 0.4;
+    Sample.WheelHubDriveEfficiency01[1] = 0.2;
+    Sample.WheelHubBearingDragTorqueNm[1] = 50.0;
+
+    TestTrue(
+        TEXT("Damage sample pushes"),
+        Buffer.Push(Sample));
+
+    const FString Csv =
+        Buffer.ExportCsv();
+
+    TestTrue(
+        TEXT("CSV exposes steering damage channel"),
+        Csv.Contains(TEXT("rack_damage")));
+
+    TestTrue(
+        TEXT("CSV exposes steering authority channel"),
+        Csv.Contains(TEXT("rack_authority")));
+
+    TestTrue(
+        TEXT("CSV exposes front-right hub damage channel"),
+        Csv.Contains(TEXT("hubdamage_fr")));
+
+    TestTrue(
+        TEXT("CSV exposes front-right hub drag channel"),
+        Csv.Contains(TEXT("hubdrag_fr_nm")));
 
     return true;
 }
