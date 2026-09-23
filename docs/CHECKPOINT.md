@@ -1,9 +1,9 @@
 # Active Development Checkpoint
 
-Updated: 2026-09-23
+Updated: 2026-09-24
 
 ## Current phase
-**Proof-of-Physics v2: canonical aerodynamic force application and machine-readable aero regression reporting are source-level closed. The remaining primary closure is authored-aero ownership in `UTAVehicleDefinition` plus the canonical asset compile/hash call site. UE 5.8 executable verification remains the external acceptance gate.**
+**Proof-of-Physics v2: canonical aerodynamic force application and machine-readable aero regression reporting are source-level closed. The remaining primary source edit is authored-aero ownership in `UTAVehicleDefinition` plus the canonical asset compile/hash call site; an exact ready-to-apply patch is now versioned. Telemetry ownership has been explicitly resolved for the current phase. UE 5.8 executable verification remains the external acceptance gate.**
 
 Canonical repository: `latektigroo0904/racegame`. Current content/runtime versions remain SchemaVersion 2, PhysicsVersion 2 and DamageModelVersion 2.
 
@@ -26,16 +26,26 @@ Established:
 - effective aero hash coordinate-invariance regression;
 - `TAVehicleAerodynamicsAssetCompiler::CompileValidatedAndHash` transactional asset adapter;
 - asset-compiler regressions using frozen non-default values and non-zero COM;
-- `TAAeroRegressionReport` machine-readable summary over exact applied compact telemetry, with JSON-lines and CSV export.
+- `TAAeroRegressionReport` machine-readable summary over exact applied compact telemetry, with JSON-lines and CSV export;
+- exact vehicle-definition closure patch versioned as `patches/41-aero-vehicle-definition-callsite.patch`.
 
 Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
 
+## Telemetry ownership decision
+`docs/41-TELEMETRY-OWNERSHIP-ADR-V01.md` is accepted for Proof-of-Physics v2:
+- `FTATelemetrySample` is the canonical compact applied-step physics evidence stream, including exact applied aero;
+- `FTAVehicleTelemetrySample` remains the broad diagnostic/state-correlation stream;
+- aero is not duplicated into the broad stream during this phase;
+- telemetry never re-solves physics;
+- structural consolidation is deferred until UE 5.8 executable evidence exists and consumers/export schemas can be migrated with golden-output tests.
+
 ## Work completed this session
-1. Re-audited the canonical checkpoint and current `UTAVehicleDefinition`/`BuildCompiledConfig` source.
-2. Confirmed the primary gap is still concrete: the asset class ends at `Structure`, while final `PhysicsConfigHash` is assigned after structure hashing with no aero adapter call.
-3. Confirmed the existing `TAVehicleAerodynamicsAssetCompiler` already owns the correct transaction boundary: validate/compile effective COM-local runtime/hash without mutating the hash on invalid authoring.
-4. Added `docs/40-AERO-ASSET-CALLSITE-PATCH-MANIFEST-V01.md`, freezing the exact minimal call-site patch, validation code, ordering, frozen non-default regression fixture and acceptance criteria.
-5. Explicitly prohibited duplicate raw-coordinate hashing and duplicate COM subtraction at the future call site.
+1. Re-audited the real repository tree and located the canonical vehicle source under `Plugins/TorqueVehicleSimulation/Source/TA_Vehicle`.
+2. Re-read `UTAVehicleDefinition`, `BuildCompiledConfig`, the aero asset compiler and the final hash assignment; confirmed the missing property/call site is still the only canonical aero ownership gap.
+3. Versioned `patches/41-aero-vehicle-definition-callsite.patch`, containing the exact header include/property, `Vehicle.InvalidAerodynamics` validation, asset-compiler include and single post-base-hash `CompileValidatedAndHash` call.
+4. Audited both telemetry families directly from source.
+5. Accepted `docs/41-TELEMETRY-OWNERSHIP-ADR-V01.md`: retain compact applied-physics telemetry and broad diagnostic telemetry as explicit separate layers for Proof-of-Physics v2 rather than duplicating aero or performing a risky pre-build schema merge.
+6. Refreshed this checkpoint.
 
 ## Decisions and assumptions
 1. Vehicle asset aero authoring uses vehicle-origin-local coordinates; runtime application point is COM-local.
@@ -48,34 +58,37 @@ Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero gr
 8. `TAVehicleAerodynamicsAssetCompiler` is the single intended asset call site for validate/compile/hash.
 9. Failed asset aero compilation is transactional.
 10. Single-resultant aero remains Proof-of-Physics scope; map-based front/rear balance and active aero remain deferred pending executable evidence.
+11. Compact telemetry owns exact applied-step physics evidence; broad telemetry owns high-dimensional diagnostic/state correlation for this phase.
+12. No aero-field duplication into broad telemetry until a deliberate adapter/schema migration is justified by verified consumers.
 
 ## Risks
 Highest general risks remain UHT/UBT/compiler errors, unexecuted numerical Automation assertions, unmeasured coupled-contact convergence, unmeasured dynamic-unsprung behavior, incomplete real collision-manifold persistence, deferred topology-changing suspension fracture, incomplete hydraulic/ABS/fluid-boil behavior, and provisional real-world calibration.
 
-Aero-specific risks:
-- runtime defaults still mask the missing `UTAVehicleDefinition` property/call site until canonical integration is completed;
-- canonical `PhysicsConfigHash` still excludes aero at the vehicle-definition call site;
+Aero/telemetry-specific risks:
+- runtime defaults still mask the missing `UTAVehicleDefinition` property/call site until the versioned patch is applied to the canonical source files;
+- canonical `PhysicsConfigHash` still excludes aero until that patch is applied;
 - source-level report/tests have not executed under UE 5.8;
-- a future call site must not hash aero twice: the adapter already advances the supplied hash on success;
+- the call site must not hash aero twice: the adapter already advances the supplied hash on success;
 - double COM subtraction or raw-coordinate hashing would corrupt reproducibility;
-- there are two telemetry sample families; future consolidation should be deliberate rather than silently duplicating channels.
+- two telemetry families intentionally remain, so ownership discipline is required to prevent field drift;
+- the current GitHub connector exposes whole-file replacement rather than a line-patch primitive; the canonical vehicle files are large enough that safe in-place replacement was not performed from a truncated retrieval. The exact patch is committed instead of risking destructive replacement.
 
 ## Deliverables completed this session
-- `docs/40-AERO-ASSET-CALLSITE-PATCH-MANIFEST-V01.md`;
-- frozen exact property/validation/compile/hash ordering;
-- frozen asset-level acceptance fixture and regression matrix;
+- `patches/41-aero-vehicle-definition-callsite.patch`;
+- `docs/41-TELEMETRY-OWNERSHIP-ADR-V01.md`;
+- direct source audit of the canonical vehicle-definition/hash path and both telemetry families;
 - refreshed active checkpoint.
 
 ## Exact continuation point
-Resume with the **canonical vehicle-definition call-site closure**, using `docs/40-AERO-ASSET-CALLSITE-PATCH-MANIFEST-V01.md` as the patch contract:
-1. add `TAAerodynamicsDefinition.h` and `FTAAerodynamicsDefinition Aerodynamics` to `UTAVehicleDefinition`;
-2. add `Vehicle.InvalidAerodynamics` validation before the early validation return;
-3. include `TAVehicleAerodynamicsAssetCompiler.h` in the implementation;
-4. call `CompileValidatedAndHash` exactly once after the base hash is assembled and before assigning `OutConfig.PhysicsConfigHash`;
-5. extend asset-level tests for non-default propagation, invalid validation, hash sensitivity, coordinate invariance and deterministic no-double-hash behavior;
-6. run source-sanity, then UE 5.8 verification when an engine environment is available.
+Resume with the **canonical vehicle-definition source edit**:
+1. apply `patches/41-aero-vehicle-definition-callsite.patch` to the canonical source using a safe patch-capable workspace/tool;
+2. verify `FTAAerodynamicsDefinition Aerodynamics` is Blueprint-authorable and `Vehicle.InvalidAerodynamics` is emitted before the early validation return;
+3. verify `CompileValidatedAndHash` is called exactly once after the existing base/structure hash and before `OutConfig.PhysicsConfigHash = Hash`;
+4. add/extend asset-level tests for non-default propagation, invalid validation, hash sensitivity, coordinate invariance and deterministic no-double-hash behavior;
+5. run source-sanity and inspect includes/module dependencies;
+6. run UE 5.8 UHT/UBT and `Automation RunTest TorqueAtlas.` when an engine environment is available.
 
-After that closure, audit whether the two telemetry sample families should be consolidated or retained as explicit compact-vs-broad layers. Do not start a new major physics subsystem until the canonical vehicle-definition aero property/call site and tests are source-level closed. Do not claim UE build success until the verification harness actually runs against UE 5.8.
+After the aero asset closure is actually applied, keep the telemetry split defined by ADR 41 until executable verification. The next major physics subsystem should not start before the canonical vehicle-definition aero property/call site and asset tests are source-level closed.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
