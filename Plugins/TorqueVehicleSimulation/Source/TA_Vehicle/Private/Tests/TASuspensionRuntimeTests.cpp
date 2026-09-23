@@ -110,4 +110,52 @@ bool FTASuspensionForceTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAAntiRollBarTest,
+    "TorqueAtlas.Suspension.Runtime.AntiRollLoadTransfer",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAAntiRollBarTest::RunTest(const FString& Parameters)
+{
+    FTAAntiRollBarConfig Config;
+    Config.CouplingRateNPerM = 20000.0;
+    Config.MaxTransferForceN = 3000.0;
+
+    const FTAAntiRollBarOutput Symmetric =
+        TASuspensionRuntime::CalculateAntiRollBar(
+            Config,
+            0.02,
+            0.02);
+
+    TestTrue(
+        TEXT("Equal travel creates no anti-roll transfer"),
+        FMath::IsNearlyZero(
+            Symmetric.LeftLoadAdjustmentN));
+
+    const FTAAntiRollBarOutput Rolled =
+        TASuspensionRuntime::CalculateAntiRollBar(
+            Config,
+            0.05,
+            -0.01);
+
+    TestTrue(
+        TEXT("More-compressed left side gains load"),
+        Rolled.LeftLoadAdjustmentN > 0.0);
+
+    TestTrue(
+        TEXT("Opposite side loses equal load"),
+        FMath::IsNearlyEqual(
+            Rolled.LeftLoadAdjustmentN,
+            -Rolled.RightLoadAdjustmentN,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Transfer remains bounded"),
+        FMath::Abs(Rolled.LeftLoadAdjustmentN)
+            <= Config.MaxTransferForceN);
+
+    return true;
+}
+
 #endif
