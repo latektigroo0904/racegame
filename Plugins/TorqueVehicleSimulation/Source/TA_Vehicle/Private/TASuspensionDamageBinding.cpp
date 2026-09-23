@@ -118,3 +118,30 @@ bool TASuspensionDamageBinding::ResolveDoubleWishboneDamageOffsets(
             Bindings.DamperChassis,
             OutOffsets.DamperChassis);
 }
+
+
+bool TASuspensionDamageBinding::ResolveMultiLinkDamageOffsets(
+    const TConstArrayView<FTAStructureNode> StructureNodes,
+    const FTAMultiLinkStructuralBindings& Bindings,
+    FTAMultiLinkDamageOffsets& OutOffsets)
+{
+    OutOffsets = FTAMultiLinkDamageOffsets{};
+
+    for (int32 Index = 0;
+         Index < TARearMultiLinkCount;
+         ++Index)
+    {
+        if (!ResolveBindingDisplacement(
+                StructureNodes,
+                Bindings.ChassisPickups[Index],
+                OutOffsets.ChassisPickupOffsets[Index]))
+        {
+            return false;
+        }
+    }
+
+    return ResolveBindingDisplacement(
+        StructureNodes,
+        Bindings.DamperChassis,
+        OutOffsets.DamperChassisOffset);
+}
