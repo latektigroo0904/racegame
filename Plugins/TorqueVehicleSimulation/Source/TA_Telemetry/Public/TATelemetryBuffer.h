@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "TAVehicleSimulation.h"
 
+struct FTAFrontAxleSolveOutput;
+
 constexpr int32 TAPrototypeTelemetryWheelCount = 4;
 
 struct TA_TELEMETRY_API FTAVehicleTelemetrySample
@@ -21,6 +23,13 @@ struct TA_TELEMETRY_API FTAVehicleTelemetrySample
 
     double TotalLongitudinalForceN = 0.0;
     double TotalLateralForceN = 0.0;
+
+    double SteeringRackDisplacementM = 0.0;
+    double FrontLeftSteeringAngleRad = 0.0;
+    double FrontRightSteeringAngleRad = 0.0;
+    double FrontLeftBumpSteerRad = 0.0;
+    double FrontRightBumpSteerRad = 0.0;
+    double FrontAckermannDeltaRad = 0.0;
 
     double WheelSlipRatio[TAPrototypeTelemetryWheelCount] = {};
     double WheelSlipAngleRad[TAPrototypeTelemetryWheelCount] = {};
@@ -68,4 +77,8 @@ namespace TATelemetry
     TA_TELEMETRY_API FTAVehicleTelemetrySample CaptureVehicleSample(
         const FTAVehicleRuntimeState& State,
         const FTAVehicleStepOutput& Output);
+
+    TA_TELEMETRY_API void ApplyFrontAxleSample(
+        const FTAFrontAxleSolveOutput& FrontAxle,
+        FTAVehicleTelemetrySample& InOutSample);
 }
