@@ -52,6 +52,9 @@ namespace
 
             State.WheelHubDamage.SetNum(
                 Config.Wheels.Num());
+
+            State.SuspensionDamage.SetNum(
+                Config.Wheels.Num());
         }
 
         return State;
