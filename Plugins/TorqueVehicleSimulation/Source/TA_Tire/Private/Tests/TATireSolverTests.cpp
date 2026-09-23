@@ -162,4 +162,103 @@ bool FTATireTemperatureGripTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTATireVerticalComplianceTest,
+    "TorqueAtlas.Tire.Vertical.RadialCompliance",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTATireVerticalComplianceTest::RunTest(const FString& Parameters)
+{
+    FTATireRuntimeConfig Config;
+    FTATireRuntimeState State;
+
+    State.PressureKPa =
+        Config.ReferencePressureKPa;
+
+    const FTATireVerticalForceOutput Zero =
+        TATireSolver::CalculateVerticalForce(
+            Config,
+            State,
+            0.0,
+            0.0);
+
+    TestTrue(
+        TEXT("Zero radial deflection gives zero normal force"),
+        FMath::IsNearlyZero(
+            Zero.NormalForceN));
+
+    const FTATireVerticalForceOutput Loaded =
+        TATireSolver::CalculateVerticalForce(
+            Config,
+            State,
+            0.020,
+            0.0);
+
+    TestTrue(
+        TEXT("Positive deflection creates positive normal force"),
+        Loaded.NormalForceN > 0.0);
+
+    const FTATireVerticalForceOutput Compressing =
+        TATireSolver::CalculateVerticalForce(
+            Config,
+            State,
+            0.020,
+            0.50);
+
+    TestTrue(
+        TEXT("Compression velocity adds radial damping force"),
+        Compressing.NormalForceN
+            > Loaded.NormalForceN);
+
+    const FTATireVerticalForceOutput Rebounding =
+        TATireSolver::CalculateVerticalForce(
+            Config,
+            State,
+            0.020,
+            -10.0);
+
+    TestTrue(
+        TEXT("Tire radial model never produces tensile road force"),
+        Rebounding.NormalForceN >= 0.0);
+
+    FTATireRuntimeState Underinflated =
+        State;
+
+    Underinflated.PressureKPa =
+        120.0;
+
+    const FTATireVerticalForceOutput Soft =
+        TATireSolver::CalculateVerticalForce(
+            Config,
+            Underinflated,
+            0.020,
+            0.0);
+
+    TestTrue(
+        TEXT("Underinflation lowers effective radial stiffness"),
+        Soft.EffectiveRadialStiffnessNPerM
+            < Loaded.EffectiveRadialStiffnessNPerM);
+
+    const FTATireVerticalForceOutput Bottomed =
+        TATireSolver::CalculateVerticalForce(
+            Config,
+            State,
+            Config.MaxRadialDeflectionM + 0.02,
+            0.0);
+
+    TestTrue(
+        TEXT("Excess radial deflection flags bottoming"),
+        Bottomed.bBottomed);
+
+    TestTrue(
+        TEXT("Effective radial deflection clamps at configured maximum"),
+        FMath::IsNearlyEqual(
+            Bottomed.EffectiveDeflectionM,
+            Config.MaxRadialDeflectionM,
+            1.0e-9));
+
+    return true;
+}
+
 #endif
