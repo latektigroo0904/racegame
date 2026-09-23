@@ -70,6 +70,7 @@ namespace TAWheelContactResolver
         const FTASuspensionRuntimeConfig& SuspensionConfig,
         const FTATireRuntimeConfig& TireConfig,
         double RackDisplacementM,
+        double AdditionalSuspensionReactionN,
         const FTADoubleWishboneDamageOffsets& DamageOffsets,
         const FTARoadPlane& Road,
         double DeltaTimeSeconds,
