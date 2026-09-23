@@ -44,9 +44,9 @@ struct TA_VEHICLE_API FTAVehicleDamageRoute
     double MaximumBearingDragTorqueNm = 80.0;
 
     // Force-producing suspension assembly degradation.
-    double MinimumSpringEfficiency01 = 0.0;
+    double MinimumSpringEfficiency01 = 0.10;
     double MinimumDampingEfficiency01 = 0.0;
-    double MinimumStopEfficiency01 = 0.0;
+    double MinimumStopEfficiency01 = 1.0;
 
     // Anti-roll drop-link/bar-link degradation.
     double MinimumAntiRollLinkEfficiency01 = 0.0;
