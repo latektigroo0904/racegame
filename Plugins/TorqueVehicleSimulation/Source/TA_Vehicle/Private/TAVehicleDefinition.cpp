@@ -576,6 +576,53 @@ namespace
 
         return Hash;
     }
+    bool ValidateWheelAuthoring(
+        const FTAPrototypeWheelDefinition& Wheel,
+        FTAValidationResult& OutValidation)
+    {
+        FTABrakeThermalConfig BrakeThermal;
+        BrakeThermal.ThermalMassJPerC =
+            Wheel.BrakeThermalMassJPerC;
+        BrakeThermal.CoolingWPerC =
+            Wheel.BrakeCoolingWPerC;
+        BrakeThermal.AmbientTemperatureC =
+            Wheel.BrakeAmbientTemperatureC;
+        BrakeThermal.HeatFraction01 =
+            Wheel.BrakeHeatFraction01;
+        BrakeThermal.FadeStartTemperatureC =
+            Wheel.BrakeFadeStartTemperatureC;
+        BrakeThermal.FadeEndTemperatureC =
+            Wheel.BrakeFadeEndTemperatureC;
+        BrakeThermal.MinimumFadeTorqueFactor01 =
+            Wheel.MinimumBrakeFadeTorqueFactor01;
+        BrakeThermal.WearEnergyCapacityJ =
+            Wheel.BrakeWearEnergyCapacityJ;
+        BrakeThermal.WearTorqueLossAtEnd01 =
+            Wheel.BrakeWearTorqueLossAtEnd01;
+
+        const bool bWheelValid =
+            FMath::IsFinite(Wheel.InertiaKgm2)
+            && Wheel.InertiaKgm2 > 0.0
+            && FMath::IsFinite(Wheel.MaxBrakeTorqueNm)
+            && Wheel.MaxBrakeTorqueNm >= 0.0
+            && TABrakeThermal::ValidateConfig(
+                BrakeThermal);
+
+        if (!bWheelValid)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.InvalidWheelBrakeCalibration"),
+                TEXT(
+                    "Wheel inertia or brake torque/thermal/fade/wear calibration is invalid."));
+
+            return false;
+        }
+
+        return true;
+    }
+
     bool ValidateTireAuthoring(
         const FTAPrototypeTireDefinition& Tire,
         FTAValidationResult& OutValidation)
@@ -2220,6 +2267,10 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
         Tire,
         OutValidation);
 
+    ValidateWheelAuthoring(
+        Wheel,
+        OutValidation);
+
     if (FrontSuspension.MaxTravelM <=
             FrontSuspension.MinTravelM ||
         RearSuspension.MaxTravelM <=
@@ -2352,6 +2403,36 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
 
         VehicleRuntime.Wheels[Index].MaxBrakeTorqueNm =
             Wheel.MaxBrakeTorqueNm;
+
+        FTABrakeThermalConfig& BrakeThermal =
+            VehicleRuntime.Wheels[Index].BrakeThermal;
+
+        BrakeThermal.ThermalMassJPerC =
+            Wheel.BrakeThermalMassJPerC;
+
+        BrakeThermal.CoolingWPerC =
+            Wheel.BrakeCoolingWPerC;
+
+        BrakeThermal.AmbientTemperatureC =
+            Wheel.BrakeAmbientTemperatureC;
+
+        BrakeThermal.HeatFraction01 =
+            Wheel.BrakeHeatFraction01;
+
+        BrakeThermal.FadeStartTemperatureC =
+            Wheel.BrakeFadeStartTemperatureC;
+
+        BrakeThermal.FadeEndTemperatureC =
+            Wheel.BrakeFadeEndTemperatureC;
+
+        BrakeThermal.MinimumFadeTorqueFactor01 =
+            Wheel.MinimumBrakeFadeTorqueFactor01;
+
+        BrakeThermal.WearEnergyCapacityJ =
+            Wheel.BrakeWearEnergyCapacityJ;
+
+        BrakeThermal.WearTorqueLossAtEnd01 =
+            Wheel.BrakeWearTorqueLossAtEnd01;
     }
 
     const bool bRearDriven =
@@ -2944,6 +3025,45 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     Hash = HashDouble(
         Hash,
         VehicleRuntime.Wheels[0].MaxBrakeTorqueNm);
+
+    const FTABrakeThermalConfig& BrakeThermal =
+        VehicleRuntime.Wheels[0].BrakeThermal;
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.ThermalMassJPerC);
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.CoolingWPerC);
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.AmbientTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.HeatFraction01);
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.FadeStartTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.FadeEndTemperatureC);
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.MinimumFadeTorqueFactor01);
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.WearEnergyCapacityJ);
+
+    Hash = HashDouble(
+        Hash,
+        BrakeThermal.WearTorqueLossAtEnd01);
 
     for (const FTAWheelRuntimeConfig& WheelConfig :
          VehicleRuntime.Wheels)
