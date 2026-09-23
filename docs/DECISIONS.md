@@ -300,3 +300,19 @@
 **Status:** accepted 2026-09-23  
 **Decision:** effective anti-roll coupling at an axle is multiplied by the minimum of its left/right link efficiencies.  
 **Reason:** both drop-links are required to transmit anti-roll force through the bar.
+
+
+## ADR-062 — Brake fade and wear multiply the same brake-torque capacity path as hub damage
+**Status:** accepted 2026-09-23  
+**Decision:** effective wheel brake torque is base max torque × hub brake efficiency × brake thermal factor × brake wear factor. These factors are never applied again downstream.  
+**Reason:** keeps mechanical damage, heat fade and wear independent while preventing double application.
+
+## ADR-063 — Brake heat is generated from friction torque times wheel speed
+**Status:** accepted 2026-09-23  
+**Decision:** brake friction power is effective applied brake torque × average absolute wheel angular speed. Brake pressure at zero speed does not generate friction heat.  
+**Reason:** energy generation must follow mechanical work rather than brake-input percentage alone.
+
+## ADR-064 — Brake wear is energy-based
+**Status:** accepted 2026-09-23  
+**Decision:** first-stage brake wear accumulates from generated brake heat energy against an authored wear-energy capacity.  
+**Reason:** braking workload should determine wear more directly than elapsed time or arbitrary per-frame counters.
