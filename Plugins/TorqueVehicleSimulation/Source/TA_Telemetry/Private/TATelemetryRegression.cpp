@@ -311,6 +311,40 @@ namespace
             return TEXT("UnknownStatistic");
         }
     }
+
+    FString EscapeJsonString(
+        const FString& Value)
+    {
+        FString Result;
+        Result.Reserve(Value.Len() + 8);
+
+        for (const TCHAR Character : Value)
+        {
+            switch (Character)
+            {
+            case TEXT('\\'):
+                Result += TEXT("\\\\");
+                break;
+            case TEXT('"'):
+                Result += TEXT("\\"");
+                break;
+            case TEXT('\n'):
+                Result += TEXT("\\n");
+                break;
+            case TEXT('\r'):
+                Result += TEXT("\\r");
+                break;
+            case TEXT('\t'):
+                Result += TEXT("\\t");
+                break;
+            default:
+                Result.AppendChar(Character);
+                break;
+            }
+        }
+
+        return Result;
+    }
 }
 
 bool TATelemetryRegression::ValidateConfig(
@@ -351,6 +385,12 @@ bool TATelemetryRegression::Evaluate(
     OutResult =
         FTATelemetryRegressionResult{};
 
+    OutResult.ScenarioId =
+        Config.ScenarioId;
+
+    OutResult.ExpectedPhysicsConfigHash =
+        Config.ExpectedPhysicsConfigHash;
+
     if (!ValidateConfig(Config))
     {
         OutResult.Failures.Add(
@@ -361,19 +401,6 @@ bool TATelemetryRegression::Evaluate(
 
     OutResult.SampleCount =
         Buffer.Num();
-
-    if (Buffer.Num() <
-        Config.MinimumRequiredSamples)
-    {
-        OutResult.Failures.Add(
-            FString::Printf(
-                TEXT("Scenario %s requires at least %d samples; got %d."),
-                *Config.ScenarioId.ToString(),
-                Config.MinimumRequiredSamples,
-                Buffer.Num()));
-
-        return true;
-    }
 
     uint32 ObservedHash = 0;
     bool bObservedHashInitialized = false;
@@ -410,11 +437,30 @@ bool TATelemetryRegression::Evaluate(
         }
     }
 
+    OutResult.ObservedPhysicsConfigHash =
+        ObservedHash;
+
+    OutResult.bPhysicsConfigHashConsistent =
+        bHashConsistent;
+
     OutResult.bPhysicsConfigHashMatched =
         bHashConsistent
         && (Config.ExpectedPhysicsConfigHash == 0
             || ObservedHash
                 == Config.ExpectedPhysicsConfigHash);
+
+    if (Buffer.Num() <
+        Config.MinimumRequiredSamples)
+    {
+        OutResult.Failures.Add(
+            FString::Printf(
+                TEXT("Scenario %s requires at least %d samples; got %d."),
+                *Config.ScenarioId.ToString(),
+                Config.MinimumRequiredSamples,
+                Buffer.Num()));
+
+        return true;
+    }
 
     if (!bHashConsistent)
     {
@@ -444,6 +490,21 @@ bool TATelemetryRegression::Evaluate(
         FTATelemetryEnvelopeResult EnvelopeResult;
         EnvelopeResult.EnvelopeIndex =
             EnvelopeIndex;
+
+        EnvelopeResult.Metric =
+            Envelope.Metric;
+
+        EnvelopeResult.Statistic =
+            Envelope.Statistic;
+
+        EnvelopeResult.WheelIndex =
+            Envelope.WheelIndex;
+
+        EnvelopeResult.StartFraction01 =
+            Envelope.StartFraction01;
+
+        EnvelopeResult.EndFraction01 =
+            Envelope.EndFraction01;
 
         EnvelopeResult.MinimumAllowed =
             Envelope.MinimumAllowed;
@@ -501,4 +562,112 @@ bool TATelemetryRegression::Evaluate(
         && OutResult.FailedEnvelopeCount == 0;
 
     return true;
+}
+
+
+FString TATelemetryRegression::ExportCsv(
+    const FTATelemetryRegressionResult& Result)
+{
+    FString Csv;
+
+    Csv += TEXT(
+        "scenario_id,expected_physics_config_hash,observed_physics_config_hash,"
+        "hash_consistent,hash_matched,sample_count,"
+        "envelope_index,metric,statistic,wheel_index,"
+        "window_start,window_end,observed_value,"
+        "minimum_allowed,maximum_allowed,pass\n");
+
+    const FString Scenario =
+        Result.ScenarioId.ToString()
+            .Replace(TEXT("\""), TEXT("\"\""));
+
+    for (const FTATelemetryEnvelopeResult& Envelope :
+         Result.EnvelopeResults)
+    {
+        Csv.Appendf(
+            TEXT(
+                "\"%s\",%u,%u,%d,%d,%d,"
+                "%d,%s,%s,%d,"
+                "%.9g,%.9g,%.9g,"
+                "%.9g,%.9g,%d\n"),
+            *Scenario,
+            Result.ExpectedPhysicsConfigHash,
+            Result.ObservedPhysicsConfigHash,
+            Result.bPhysicsConfigHashConsistent ? 1 : 0,
+            Result.bPhysicsConfigHashMatched ? 1 : 0,
+            Result.SampleCount,
+            Envelope.EnvelopeIndex,
+            *MetricToString(Envelope.Metric),
+            *StatisticToString(Envelope.Statistic),
+            Envelope.WheelIndex,
+            Envelope.StartFraction01,
+            Envelope.EndFraction01,
+            Envelope.ObservedValue,
+            Envelope.MinimumAllowed,
+            Envelope.MaximumAllowed,
+            Envelope.bPassed ? 1 : 0);
+    }
+
+    return Csv;
+}
+
+FString TATelemetryRegression::ExportJsonLines(
+    const FTATelemetryRegressionResult& Result)
+{
+    FString JsonLines;
+
+    const FString Scenario =
+        EscapeJsonString(
+            Result.ScenarioId.ToString());
+
+    for (const FTATelemetryEnvelopeResult& Envelope :
+         Result.EnvelopeResults)
+    {
+        JsonLines.Appendf(
+            TEXT(
+                "{\"scenario_id\":\"%s\","
+                "\"expected_physics_config_hash\":%u,"
+                "\"observed_physics_config_hash\":%u,"
+                "\"hash_consistent\":%s,"
+                "\"hash_matched\":%s,"
+                "\"sample_count\":%d,"
+                "\"envelope_index\":%d,"
+                "\"metric\":\"%s\","
+                "\"statistic\":\"%s\","
+                "\"wheel_index\":%d,"
+                "\"window_start\":%.9g,"
+                "\"window_end\":%.9g,"
+                "\"observed_value\":%.9g,"
+                "\"minimum_allowed\":%.9g,"
+                "\"maximum_allowed\":%.9g,"
+                "\"pass\":%s}\n"),
+            *Scenario,
+            Result.ExpectedPhysicsConfigHash,
+            Result.ObservedPhysicsConfigHash,
+            Result.bPhysicsConfigHashConsistent
+                ? TEXT("true")
+                : TEXT("false"),
+            Result.bPhysicsConfigHashMatched
+                ? TEXT("true")
+                : TEXT("false"),
+            Result.SampleCount,
+            Envelope.EnvelopeIndex,
+            *EscapeJsonString(
+                MetricToString(
+                    Envelope.Metric)),
+            *EscapeJsonString(
+                StatisticToString(
+                    Envelope.Statistic)),
+            Envelope.WheelIndex,
+            Envelope.StartFraction01,
+            Envelope.EndFraction01,
+            Envelope.ObservedValue,
+            Envelope.MinimumAllowed,
+            Envelope.MaximumAllowed,
+            Envelope.bPassed
+                ? TEXT("true")
+                : TEXT("false"));
+    }
+
+    return JsonLines;
 }
