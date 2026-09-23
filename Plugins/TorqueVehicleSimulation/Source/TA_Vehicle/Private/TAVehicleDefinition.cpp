@@ -1128,6 +1128,12 @@ namespace
         case ETAVehicleDamageConsumerAuthoringType::AntiRollLink:
             return ETAVehicleDamageConsumerType::AntiRollLink;
 
+        case ETAVehicleDamageConsumerAuthoringType::ElectricalBus:
+            return ETAVehicleDamageConsumerType::ElectricalBus;
+
+        case ETAVehicleDamageConsumerAuthoringType::FuelDelivery:
+            return ETAVehicleDamageConsumerType::FuelDelivery;
+
         case ETAVehicleDamageConsumerAuthoringType::Radiator:
         default:
             return ETAVehicleDamageConsumerType::Radiator;
@@ -1366,6 +1372,12 @@ namespace
             Route.bAcceptStructuralFracture =
                 Source.bAcceptStructuralFracture;
 
+            Route.bAcceptFluidPressureLoss =
+                Source.bAcceptFluidPressureLoss;
+
+            Route.bAcceptElectricalDisconnection =
+                Source.bAcceptElectricalDisconnection;
+
             Route.ImpactEnergyScale =
                 Source.ImpactEnergyScale;
 
@@ -1404,6 +1416,15 @@ namespace
 
             Route.MinimumAntiRollLinkEfficiency01 =
                 Source.MinimumAntiRollLinkEfficiency01;
+
+            Route.MinimumStarterEfficiency01 =
+                Source.MinimumStarterEfficiency01;
+
+            Route.MinimumEngineControlEfficiency01 =
+                Source.MinimumEngineControlEfficiency01;
+
+            Route.MinimumFuelDeliveryEfficiency01 =
+                Source.MinimumFuelDeliveryEfficiency01;
 
             Out.DamageRouting.Routes.Add(
                 Route);
@@ -1993,6 +2014,14 @@ namespace
                 Hash,
                 Route.bAcceptStructuralFracture);
 
+            Hash = HashBool(
+                Hash,
+                Route.bAcceptFluidPressureLoss);
+
+            Hash = HashBool(
+                Hash,
+                Route.bAcceptElectricalDisconnection);
+
             Hash = HashDouble(
                 Hash,
                 Route.ImpactEnergyScale);
@@ -2044,6 +2073,18 @@ namespace
             Hash = HashDouble(
                 Hash,
                 Route.MinimumAntiRollLinkEfficiency01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumStarterEfficiency01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumEngineControlEfficiency01);
+
+            Hash = HashDouble(
+                Hash,
+                Route.MinimumFuelDeliveryEfficiency01);
         }
 
         Hash = HashFrontStructuralBindings(
