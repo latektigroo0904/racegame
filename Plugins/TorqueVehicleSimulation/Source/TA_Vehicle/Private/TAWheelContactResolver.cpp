@@ -229,6 +229,7 @@ bool TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
     FTAResolvedWheelContact& OutContact)
 {
     OutContact = FTAResolvedWheelContact{};
+    OutContact.Surface = Road.Surface;
 
     if (DeltaTimeSeconds <= 0.0 ||
         WheelRadiusM <= UE_DOUBLE_SMALL_NUMBER ||
@@ -466,6 +467,8 @@ FTAWheelContactInput TAWheelContactResolver::BuildVehicleWheelContactInput(
 
     Input.SuspensionForceWorldN =
         Contact.SuspensionForceWorldN;
+
+    Input.Surface = Contact.Surface;
 
     return Input;
 }
