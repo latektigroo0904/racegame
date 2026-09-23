@@ -216,6 +216,41 @@ namespace
     }
 }
 
+FTADoubleWishboneSolverConfig TADoubleWishboneSolver::MirrorAcrossCenterline(
+    const FTADoubleWishboneSolverConfig& RightSideConfig)
+{
+    FTADoubleWishboneSolverConfig Mirrored =
+        RightSideConfig;
+
+    auto MirrorPoint =
+        [](FVector3d& Point)
+        {
+            Point.Y = -Point.Y;
+        };
+
+    FTADoubleWishboneHardpoints& H =
+        Mirrored.Hardpoints;
+
+    MirrorPoint(H.UpperInnerA);
+    MirrorPoint(H.UpperInnerB);
+    MirrorPoint(H.LowerInnerA);
+    MirrorPoint(H.LowerInnerB);
+    MirrorPoint(H.TieRodInner);
+    MirrorPoint(H.DamperChassis);
+    MirrorPoint(H.DamperLowerArmReference);
+    MirrorPoint(H.UpperBallJointReference);
+    MirrorPoint(H.LowerBallJointReference);
+    MirrorPoint(H.TieRodOuterReference);
+    MirrorPoint(H.WheelCenterReference);
+
+    // The rack is one physical object translating in a shared chassis-local axis.
+    // Do not mirror the rack axis.
+    H.SideSign =
+        H.SideSign >= 0.0 ? -1.0 : 1.0;
+
+    return Mirrored;
+}
+
 bool TADoubleWishboneSolver::ValidateConfig(
     const FTADoubleWishboneSolverConfig& Config)
 {
