@@ -108,14 +108,12 @@ void TAStructureSolver::SolveDistanceConstraints(
                 FMath::Max(0.0, Config.MaxPositionCorrectionM);
 
             const FVector3d CorrectionA =
-                FVector3d::ClampMaxSize(
-                    -Direction * (InverseMassA * DeltaLambda),
-                    MaxCorrection);
+                (-Direction * (InverseMassA * DeltaLambda))
+                .GetClampedToMaxSize(MaxCorrection);
 
             const FVector3d CorrectionB =
-                FVector3d::ClampMaxSize(
-                    Direction * (InverseMassB * DeltaLambda),
-                    MaxCorrection);
+                (Direction * (InverseMassB * DeltaLambda))
+                .GetClampedToMaxSize(MaxCorrection);
 
             if (!NodeA.bPinned)
             {
@@ -156,13 +154,18 @@ void TAStructureSolver::UpdatePlasticityAndFracture(
 
         const double AbsStrain = FMath::Abs(Strain);
 
-        if (AbsStrain >= FMath::Max(Constraint.YieldStrain, Constraint.FractureStrain))
+        const double FractureThreshold =
+            FMath::Max(
+                FMath::Max(0.0, Constraint.YieldStrain),
+                FMath::Max(0.0, Constraint.FractureStrain));
+
+        if (AbsStrain >= FractureThreshold)
         {
             Constraint.bBroken = true;
             continue;
         }
 
-        if (AbsStrain <= Constraint.YieldStrain)
+        if (AbsStrain <= FMath::Max(0.0, Constraint.YieldStrain))
         {
             continue;
         }
