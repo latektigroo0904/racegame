@@ -90,3 +90,19 @@
 **Status:** accepted  
 **Decision:** Unreal plugin modules are added to the plugin descriptor only when their code/dependencies exist.  
 **Reason:** maintain a buildable repository skeleton instead of committing placeholder module references that immediately break UBT discovery.
+
+## ADR-021 — Conventional reduction-ratio semantics
+**Status:** accepted 2026-09-23  
+**Decision:** gearbox/final-drive ratios use the conventional reduction definition `G = omega_input / omega_output`; speed divides by ratio and torque multiplies by ratio times efficiency.  
+**Reason:** prevents ambiguous drivetrain math and keeps telemetry, part swapping and over-rev calculations consistent.
+
+## ADR-022 — Functional damage uses typed events, not global HP
+**Status:** accepted 2026-09-23  
+**Decision:** structural/contact/thermal/wear systems emit deterministic typed damage signals routed to component-specific models. No single vehicle-health scalar drives physics.  
+**Reason:** a radiator, steering rack, brake line and gearbox fail through different physical state and consequences.
+
+## ADR-023 — Structural prototype begins with XPBD distance constraints
+**Status:** accepted for prototype 2026-09-23  
+**Decision:** first executable structure module implements compliant distance constraints, plastic rest-state change and fracture before adding bending/joint families.  
+**Reason:** establishes numerical stability and regression tests before increasing structural complexity.
+
