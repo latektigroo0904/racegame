@@ -771,4 +771,123 @@ bool FTAVehicleRuntimeHubBearingDragTest::RunTest(
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleRuntimeSeparateSuspensionApplicationPointTest,
+    "TorqueAtlas.Vehicle.Runtime.SeparateSuspensionForceApplicationPoint",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleRuntimeSeparateSuspensionApplicationPointTest::RunTest(
+    const FString& Parameters)
+{
+    FTAVehicleRuntimeConfig Config =
+        MakePrototypeRuntimeConfig();
+
+    Config.Chassis.GravityWorldMps2 =
+        FVector3d::ZeroVector;
+
+    FTAVehicleRuntimeState CenteredState;
+    FTAVehicleRuntimeState OffsetState;
+
+    TestTrue(
+        TEXT("Centered fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            CenteredState));
+
+    TestTrue(
+        TEXT("Offset fixture initializes"),
+        TAVehicleSimulation::Initialize(
+            Config,
+            OffsetState));
+
+    FTAVehicleStepInput CenteredInput =
+        MakeStaticContactInput();
+
+    FTAVehicleStepInput OffsetInput =
+        CenteredInput;
+
+    for (int32 Index = 0;
+         Index < CenteredInput.WheelContacts.Num();
+         ++Index)
+    {
+        CenteredInput.WheelContacts[Index].VerticalLoadN =
+            0.0;
+
+        CenteredInput.WheelContacts[Index].SuspensionForceWorldN =
+            FVector3d::ZeroVector;
+
+        CenteredInput.WheelContacts[Index].ContactPointWorldM =
+            FVector3d::ZeroVector;
+
+        OffsetInput.WheelContacts[Index] =
+            CenteredInput.WheelContacts[Index];
+    }
+
+    CenteredInput.Controls.SelectedGear =
+        0;
+
+    CenteredInput.Controls.ClutchEngagement01 =
+        0.0;
+
+    OffsetInput.Controls =
+        CenteredInput.Controls;
+
+    CenteredInput.WheelContacts[0].SuspensionForceWorldN =
+        FVector3d(0.0, 0.0, 1000.0);
+
+    OffsetInput.WheelContacts[0].SuspensionForceWorldN =
+        FVector3d(0.0, 0.0, 1000.0);
+
+    OffsetInput.WheelContacts[0]
+        .bHasSuspensionForceApplicationPoint =
+        true;
+
+    OffsetInput.WheelContacts[0]
+        .SuspensionForceApplicationPointWorldM =
+        FVector3d(1.0, 1.0, 0.0);
+
+    FTAVehicleStepOutput CenteredOutput;
+    FTAVehicleStepOutput OffsetOutput;
+
+    TestTrue(
+        TEXT("Centered suspension-force step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            CenteredInput,
+            1.0 / 240.0,
+            CenteredState,
+            CenteredOutput));
+
+    TestTrue(
+        TEXT("Offset suspension-force step succeeds"),
+        TAVehicleSimulation::Step(
+            Config,
+            OffsetInput,
+            1.0 / 240.0,
+            OffsetState,
+            OffsetOutput));
+
+    TestTrue(
+        TEXT("Centered force at COM creates negligible angular response"),
+        CenteredState.Chassis
+            .AngularVelocityWorldRadPerSec.Length()
+            < 1.0e-9);
+
+    TestTrue(
+        TEXT("Separate suspension application point creates physical moment"),
+        OffsetState.Chassis
+            .AngularVelocityWorldRadPerSec.Length()
+            > 1.0e-6);
+
+    TestTrue(
+        TEXT("Both fixtures receive the same net vertical linear force"),
+        FMath::IsNearlyEqual(
+            CenteredState.Chassis.LinearVelocityWorldMps.Z,
+            OffsetState.Chassis.LinearVelocityWorldMps.Z,
+            1.0e-9));
+
+    return true;
+}
+
 #endif
