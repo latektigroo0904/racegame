@@ -28,6 +28,11 @@ struct TA_TELEMETRY_API FTAVehicleTelemetrySample
     double TotalLateralForceN = 0.0;
 
     double SteeringRackDisplacementM = 0.0;
+
+    double SteeringRackDamage01 = 0.0;
+    double SteeringCommandAuthority01 = 1.0;
+    double SteeringRackFreePlayM = 0.0;
+
     double FrontLeftSteeringAngleRad = 0.0;
     double FrontRightSteeringAngleRad = 0.0;
     double FrontLeftBumpSteerRad = 0.0;
@@ -43,6 +48,13 @@ struct TA_TELEMETRY_API FTAVehicleTelemetrySample
     double SuspensionTravelM[TAPrototypeTelemetryWheelCount] = {};
     double WheelCamberRad[TAPrototypeTelemetryWheelCount] = {};
     double WheelToeRad[TAPrototypeTelemetryWheelCount] = {};
+
+    double WheelHubDamage01[TAPrototypeTelemetryWheelCount] = {};
+    double WheelHubBrakeEfficiency01[TAPrototypeTelemetryWheelCount] =
+        { 1.0, 1.0, 1.0, 1.0 };
+    double WheelHubDriveEfficiency01[TAPrototypeTelemetryWheelCount] =
+        { 1.0, 1.0, 1.0, 1.0 };
+    double WheelHubBearingDragTorqueNm[TAPrototypeTelemetryWheelCount] = {};
 
     double TireSurfaceTemperatureC[TAPrototypeTelemetryWheelCount] = {};
     double TirePressureKPa[TAPrototypeTelemetryWheelCount] = {};
