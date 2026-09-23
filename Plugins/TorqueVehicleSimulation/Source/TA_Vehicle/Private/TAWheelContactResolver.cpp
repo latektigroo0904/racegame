@@ -241,6 +241,8 @@ bool TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
     const FVector3d RoadNormal =
         Road.NormalWorld.GetSafeNormal();
 
+    OutContact.RoadNormalWorld = RoadNormal;
+
     if (RoadNormal.IsNearlyZero())
     {
         return false;
@@ -441,6 +443,56 @@ bool TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
     }
 
     return true;
+}
+
+void TAWheelContactResolver::ApplyAntiRollBarToPair(
+    const FTAAntiRollBarConfig& Config,
+    FTAResolvedWheelContact& InOutLeftContact,
+    FTAResolvedWheelContact& InOutRightContact)
+{
+    const FTAAntiRollBarOutput Adjustment =
+        TASuspensionRuntime::CalculateAntiRollBar(
+            Config,
+            InOutLeftContact.TravelM,
+            InOutRightContact.TravelM);
+
+    if (InOutLeftContact.bInContact)
+    {
+        InOutLeftContact.VerticalLoadN =
+            FMath::Max(
+                0.0,
+                InOutLeftContact.VerticalLoadN
+                + Adjustment.LeftLoadAdjustmentN);
+
+        InOutLeftContact.SuspensionForceWorldN =
+            InOutLeftContact.RoadNormalWorld
+            * InOutLeftContact.VerticalLoadN;
+    }
+    else
+    {
+        InOutLeftContact.VerticalLoadN = 0.0;
+        InOutLeftContact.SuspensionForceWorldN =
+            FVector3d::ZeroVector;
+    }
+
+    if (InOutRightContact.bInContact)
+    {
+        InOutRightContact.VerticalLoadN =
+            FMath::Max(
+                0.0,
+                InOutRightContact.VerticalLoadN
+                + Adjustment.RightLoadAdjustmentN);
+
+        InOutRightContact.SuspensionForceWorldN =
+            InOutRightContact.RoadNormalWorld
+            * InOutRightContact.VerticalLoadN;
+    }
+    else
+    {
+        InOutRightContact.VerticalLoadN = 0.0;
+        InOutRightContact.SuspensionForceWorldN =
+            FVector3d::ZeroVector;
+    }
 }
 
 FTAWheelContactInput TAWheelContactResolver::BuildVehicleWheelContactInput(
