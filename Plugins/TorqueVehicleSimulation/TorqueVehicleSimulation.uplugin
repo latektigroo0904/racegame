@@ -18,6 +18,11 @@
       "Name": "TA_Vehicle",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "TA_Powertrain",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
     }
   ]
 }
