@@ -331,6 +331,291 @@ namespace
 
         return Hash;
     }
+    bool ValidateTireAuthoring(
+        const FTAPrototypeTireDefinition& Tire,
+        FTAValidationResult& OutValidation)
+    {
+        const bool bFinite =
+            FMath::IsFinite(Tire.UnloadedRadiusM)
+            && FMath::IsFinite(Tire.ReferenceLoadN)
+            && FMath::IsFinite(Tire.DryPeakMu)
+            && FMath::IsFinite(Tire.LoadSensitivityExponent)
+            && FMath::IsFinite(Tire.LongitudinalStiffnessN)
+            && FMath::IsFinite(Tire.CorneringStiffnessNPerRad)
+            && FMath::IsFinite(Tire.CamberStiffnessNPerRad)
+            && FMath::IsFinite(Tire.SaturationExponent)
+            && FMath::IsFinite(Tire.PneumaticTrailM)
+            && FMath::IsFinite(Tire.RollingResistanceCoefficient)
+            && FMath::IsFinite(Tire.ReferencePressureKPa)
+            && FMath::IsFinite(Tire.ReferencePressureTemperatureC)
+            && FMath::IsFinite(Tire.RadialStiffnessNPerM)
+            && FMath::IsFinite(Tire.RadialProgressiveStiffnessNPerM2)
+            && FMath::IsFinite(Tire.RadialDampingNsPerM)
+            && FMath::IsFinite(Tire.MaxRadialDeflectionM)
+            && FMath::IsFinite(Tire.PressureRadialStiffnessExponent)
+            && FMath::IsFinite(Tire.NewTreadDepthMm)
+            && FMath::IsFinite(Tire.MinimumTreadDepthMm)
+            && FMath::IsFinite(Tire.OptimalSurfaceTemperatureC)
+            && FMath::IsFinite(Tire.ColdGripMultiplier)
+            && FMath::IsFinite(Tire.HotGripMultiplier)
+            && FMath::IsFinite(Tire.HotGripTemperatureC)
+            && FMath::IsFinite(Tire.PressureGripSensitivity)
+            && FMath::IsFinite(Tire.WearGripLossAtEnd)
+            && FMath::IsFinite(Tire.SurfaceThermalMassJPerC)
+            && FMath::IsFinite(Tire.CarcassThermalMassJPerC)
+            && FMath::IsFinite(Tire.SurfaceToCarcassConductanceWPerC)
+            && FMath::IsFinite(Tire.CarcassToAmbientConductanceWPerC)
+            && FMath::IsFinite(Tire.InternalAirTimeConstantSeconds)
+            && FMath::IsFinite(Tire.SlipHeatFraction)
+            && FMath::IsFinite(Tire.RollingHeatFraction)
+            && FMath::IsFinite(Tire.WearEnergyCapacityJ)
+            && FMath::IsFinite(Tire.ThermalDegradationStartC)
+            && FMath::IsFinite(Tire.ThermalDegradationRatePerSecondAt170C)
+            && FMath::IsFinite(Tire.SlipReferenceVelocityMps)
+            && FMath::IsFinite(Tire.DynamicBlendStartMps)
+            && FMath::IsFinite(Tire.DynamicBlendEndMps)
+            && FMath::IsFinite(Tire.HydroReferenceOnsetSpeedMps)
+            && FMath::IsFinite(Tire.HydroReferenceWaterDepthMm);
+
+        const bool bRangesValid =
+            Tire.UnloadedRadiusM > 0.0
+            && Tire.ReferenceLoadN > 0.0
+            && Tire.DryPeakMu > 0.0
+            && Tire.LoadSensitivityExponent >= 0.0
+            && Tire.LongitudinalStiffnessN > 0.0
+            && Tire.CorneringStiffnessNPerRad > 0.0
+            && Tire.CamberStiffnessNPerRad >= 0.0
+            && Tire.SaturationExponent > 0.0
+            && Tire.PneumaticTrailM >= 0.0
+            && Tire.RollingResistanceCoefficient >= 0.0
+            && Tire.ReferencePressureKPa > 0.0
+            && Tire.ReferencePressureTemperatureC > -273.15
+            && Tire.RadialStiffnessNPerM > 0.0
+            && Tire.RadialProgressiveStiffnessNPerM2 >= 0.0
+            && Tire.RadialDampingNsPerM >= 0.0
+            && Tire.MaxRadialDeflectionM > 0.0
+            && Tire.PressureRadialStiffnessExponent >= 0.0
+            && Tire.NewTreadDepthMm >= 0.0
+            && Tire.MinimumTreadDepthMm >= 0.0
+            && Tire.MinimumTreadDepthMm <= Tire.NewTreadDepthMm
+            && Tire.ColdGripMultiplier > 0.0
+            && Tire.HotGripMultiplier > 0.0
+            && Tire.HotGripTemperatureC
+                > Tire.OptimalSurfaceTemperatureC
+            && Tire.PressureGripSensitivity >= 0.0
+            && Tire.WearGripLossAtEnd >= 0.0
+            && Tire.WearGripLossAtEnd <= 1.0
+            && Tire.SurfaceThermalMassJPerC > 0.0
+            && Tire.CarcassThermalMassJPerC > 0.0
+            && Tire.SurfaceToCarcassConductanceWPerC >= 0.0
+            && Tire.CarcassToAmbientConductanceWPerC >= 0.0
+            && Tire.InternalAirTimeConstantSeconds > 0.0
+            && Tire.SlipHeatFraction >= 0.0
+            && Tire.SlipHeatFraction <= 1.0
+            && Tire.RollingHeatFraction >= 0.0
+            && Tire.RollingHeatFraction <= 1.0
+            && Tire.WearEnergyCapacityJ > 0.0
+            && Tire.ThermalDegradationRatePerSecondAt170C >= 0.0
+            && Tire.SlipReferenceVelocityMps > 0.0
+            && Tire.DynamicBlendStartMps >= 0.0
+            && Tire.DynamicBlendEndMps
+                > Tire.DynamicBlendStartMps
+            && Tire.HydroReferenceOnsetSpeedMps > 0.0
+            && Tire.HydroReferenceWaterDepthMm > 0.0;
+
+        if (!bFinite || !bRangesValid)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.InvalidTireCalibration"),
+                TEXT(
+                    "Tire calibration contains non-finite values or invalid force, "
+                    "thermal, tread, pressure, slip or hydro ranges."));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    bool ValidatePowertrainAuthoring(
+        const FTAPrototypeDrivetrainDefinition& Powertrain,
+        const FTAEngineThermalAuthoringDefinition& Thermal,
+        FTAValidationResult& OutValidation)
+    {
+        bool bValid = true;
+
+        const bool bEngineRanges =
+            FMath::IsFinite(Powertrain.IdleRPM)
+            && FMath::IsFinite(Powertrain.RedlineRPM)
+            && FMath::IsFinite(Powertrain.LimiterRPM)
+            && FMath::IsFinite(Powertrain.CrankInertiaKgm2)
+            && FMath::IsFinite(Powertrain.FrictionConstantNm)
+            && FMath::IsFinite(Powertrain.FrictionLinearNms)
+            && FMath::IsFinite(Powertrain.FrictionQuadraticNms2)
+            && FMath::IsFinite(Powertrain.StallRPM)
+            && FMath::IsFinite(Powertrain.CombustionStartRPM)
+            && FMath::IsFinite(Powertrain.StarterTorqueNm)
+            && FMath::IsFinite(Powertrain.StarterMaxRPM)
+            && FMath::IsFinite(Powertrain.IdleControlGainNmPerRPM)
+            && FMath::IsFinite(Powertrain.MaxIdleControlTorqueNm)
+            && Powertrain.IdleRPM > 0.0
+            && Powertrain.RedlineRPM > Powertrain.IdleRPM
+            && Powertrain.LimiterRPM >= Powertrain.RedlineRPM
+            && Powertrain.CrankInertiaKgm2 > 0.0
+            && Powertrain.FrictionConstantNm >= 0.0
+            && Powertrain.FrictionLinearNms >= 0.0
+            && Powertrain.FrictionQuadraticNms2 >= 0.0
+            && Powertrain.StallRPM >= 0.0
+            && Powertrain.CombustionStartRPM > Powertrain.StallRPM
+            && Powertrain.CombustionStartRPM <= Powertrain.IdleRPM
+            && Powertrain.StarterTorqueNm >= 0.0
+            && Powertrain.StarterMaxRPM >= Powertrain.CombustionStartRPM
+            && Powertrain.IdleControlGainNmPerRPM >= 0.0
+            && Powertrain.MaxIdleControlTorqueNm >= 0.0;
+
+        if (!bEngineRanges)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.InvalidEngineCalibration"),
+                TEXT("Engine speed, friction, starter or idle-control calibration is invalid."));
+            bValid = false;
+        }
+
+        if (Powertrain.TorqueCurve.Num() < 2)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.InvalidTorqueCurve"),
+                TEXT("Engine torque curve requires at least two ordered points."));
+            bValid = false;
+        }
+        else
+        {
+            double PreviousRPM = -1.0;
+
+            for (const FTAEngineTorqueDefinitionPoint& Point :
+                 Powertrain.TorqueCurve)
+            {
+                if (!FMath::IsFinite(Point.RPM)
+                    || !FMath::IsFinite(Point.TorqueNm)
+                    || Point.RPM < 0.0
+                    || Point.TorqueNm < 0.0
+                    || Point.RPM <= PreviousRPM)
+                {
+                    AddValidation(
+                        OutValidation,
+                        ETAValidationSeverity::Error,
+                        TEXT("Vehicle.InvalidTorqueCurve"),
+                        TEXT(
+                            "Engine torque-curve RPM values must be strictly increasing "
+                            "and all RPM/torque values must be finite and non-negative."));
+                    bValid = false;
+                    break;
+                }
+
+                PreviousRPM =
+                    Point.RPM;
+            }
+        }
+
+        const bool bClutchAndGearbox =
+            FMath::IsFinite(Powertrain.ClutchMaxTorqueNm)
+            && FMath::IsFinite(Powertrain.ClutchCouplingStiffnessNms)
+            && FMath::IsFinite(Powertrain.ClutchThermalMassJPerC)
+            && FMath::IsFinite(Powertrain.ClutchCoolingWPerC)
+            && FMath::IsFinite(Powertrain.ClutchAmbientTemperatureC)
+            && FMath::IsFinite(Powertrain.ClutchFadeStartTemperatureC)
+            && FMath::IsFinite(Powertrain.ClutchFadeEndTemperatureC)
+            && FMath::IsFinite(Powertrain.ClutchWearEnergyCapacityJ)
+            && FMath::IsFinite(Powertrain.ReverseGearRatio)
+            && FMath::IsFinite(Powertrain.FinalDriveRatio)
+            && FMath::IsFinite(Powertrain.MechanicalEfficiency)
+            && FMath::IsFinite(Powertrain.DrivelineTorsionalStiffnessNmPerRad)
+            && FMath::IsFinite(Powertrain.DrivelineTorsionalDampingNmsPerRad)
+            && Powertrain.ClutchMaxTorqueNm > 0.0
+            && Powertrain.ClutchCouplingStiffnessNms >= 0.0
+            && Powertrain.ClutchThermalMassJPerC > 0.0
+            && Powertrain.ClutchCoolingWPerC >= 0.0
+            && Powertrain.ClutchAmbientTemperatureC > -273.15
+            && Powertrain.ClutchFadeEndTemperatureC
+                > Powertrain.ClutchFadeStartTemperatureC
+            && Powertrain.ClutchWearEnergyCapacityJ > 0.0
+            && Powertrain.ReverseGearRatio > 0.0
+            && Powertrain.FinalDriveRatio > 0.0
+            && Powertrain.MechanicalEfficiency > 0.0
+            && Powertrain.MechanicalEfficiency <= 1.0
+            && Powertrain.DrivelineTorsionalStiffnessNmPerRad >= 0.0
+            && Powertrain.DrivelineTorsionalDampingNmsPerRad >= 0.0;
+
+        if (!bClutchAndGearbox
+            || Powertrain.ForwardGearRatios.Num() <= 0)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.InvalidDrivetrainCalibration"),
+                TEXT("Clutch, gearbox or driveline calibration is invalid."));
+            bValid = false;
+        }
+
+        for (const double Ratio :
+             Powertrain.ForwardGearRatios)
+        {
+            if (!FMath::IsFinite(Ratio)
+                || Ratio <= 0.0)
+            {
+                AddValidation(
+                    OutValidation,
+                    ETAValidationSeverity::Error,
+                    TEXT("Vehicle.InvalidForwardGear"),
+                    TEXT("All forward gear ratios must be finite and positive."));
+                bValid = false;
+                break;
+            }
+        }
+
+        const bool bThermal =
+            FMath::IsFinite(Thermal.AmbientTemperatureC)
+            && FMath::IsFinite(Thermal.InitialCoolantTemperatureC)
+            && FMath::IsFinite(Thermal.EffectiveThermalMassJPerC)
+            && FMath::IsFinite(Thermal.BaseHeatGenerationW)
+            && FMath::IsFinite(Thermal.FullLoadAdditionalHeatW)
+            && FMath::IsFinite(Thermal.CoolingCapacityWPerC)
+            && FMath::IsFinite(Thermal.DerateStartTemperatureC)
+            && FMath::IsFinite(Thermal.DerateFullTemperatureC)
+            && FMath::IsFinite(Thermal.MinimumThermalTorqueFactor)
+            && FMath::IsFinite(Thermal.DamageStartTemperatureC)
+            && FMath::IsFinite(Thermal.DamageRatePerSecondAt150C)
+            && Thermal.AmbientTemperatureC > -273.15
+            && Thermal.InitialCoolantTemperatureC > -273.15
+            && Thermal.EffectiveThermalMassJPerC > 0.0
+            && Thermal.BaseHeatGenerationW >= 0.0
+            && Thermal.FullLoadAdditionalHeatW >= 0.0
+            && Thermal.CoolingCapacityWPerC >= 0.0
+            && Thermal.DerateFullTemperatureC
+                > Thermal.DerateStartTemperatureC
+            && Thermal.MinimumThermalTorqueFactor >= 0.0
+            && Thermal.MinimumThermalTorqueFactor <= 1.0
+            && Thermal.DamageRatePerSecondAt150C >= 0.0;
+
+        if (!bThermal)
+        {
+            AddValidation(
+                OutValidation,
+                ETAValidationSeverity::Error,
+                TEXT("Vehicle.InvalidEngineThermalCalibration"),
+                TEXT("Engine thermal/derate calibration is invalid."));
+            bValid = false;
+        }
+
+        return bValid;
+    }
+
     void CompileDisplacementBinding(
         const FTAStructureDisplacementBindingAuthoringDefinition& Authored,
         FTAStructureDisplacementBinding& Out)
@@ -1444,16 +1729,41 @@ FTARearSuspensionDefinition::FTARearSuspensionDefinition()
 
 FTAPrototypeDrivetrainDefinition::FTAPrototypeDrivetrainDefinition()
 {
-    TorqueCurve =
+    const double TorqueRPM[] =
     {
-        { 1000.0, 150.0 },
-        { 2000.0, 310.0 },
-        { 3000.0, 400.0 },
-        { 4000.0, 410.0 },
-        { 5000.0, 405.0 },
-        { 6000.0, 365.0 },
-        { 7000.0, 300.0 }
+        1000.0,
+        2000.0,
+        3000.0,
+        4000.0,
+        5000.0,
+        6000.0,
+        7000.0
     };
+
+    const double TorqueNm[] =
+    {
+        150.0,
+        310.0,
+        400.0,
+        410.0,
+        405.0,
+        365.0,
+        300.0
+    };
+
+    TorqueCurve.SetNum(
+        UE_ARRAY_COUNT(TorqueRPM));
+
+    for (int32 Index = 0;
+         Index < UE_ARRAY_COUNT(TorqueRPM);
+         ++Index)
+    {
+        TorqueCurve[Index].RPM =
+            TorqueRPM[Index];
+
+        TorqueCurve[Index].TorqueNm =
+            TorqueNm[Index];
+    }
 
     ForwardGearRatios =
     {
@@ -1524,17 +1834,9 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             TEXT("The current high-fidelity compiled runtime requires exactly four wheels."));
     }
 
-    if (Tire.UnloadedRadiusM <= 0.0 ||
-        Tire.ReferenceLoadN <= 0.0 ||
-        Tire.RadialStiffnessNPerM <= 0.0 ||
-        Tire.MaxRadialDeflectionM <= 0.0)
-    {
-        AddValidation(
-            OutValidation,
-            ETAValidationSeverity::Error,
-            TEXT("Vehicle.InvalidTire"),
-            TEXT("Tire radius, reference load, radial stiffness and max radial deflection must be positive."));
-    }
+    ValidateTireAuthoring(
+        Tire,
+        OutValidation);
 
     if (FrontSuspension.MaxTravelM <=
             FrontSuspension.MinTravelM ||
@@ -1548,30 +1850,10 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
             TEXT("Suspension maximum travel must be greater than minimum travel."));
     }
 
-    if (Drivetrain.ForwardGearRatios.Num() <= 0 ||
-        Drivetrain.FinalDriveRatio <= 0.0 ||
-        Drivetrain.MechanicalEfficiency <= 0.0)
-    {
-        AddValidation(
-            OutValidation,
-            ETAValidationSeverity::Error,
-            TEXT("Vehicle.InvalidDrivetrain"),
-            TEXT("Drivetrain requires forward gears, a positive final drive and positive efficiency."));
-    }
-
-    for (const double Ratio :
-         Drivetrain.ForwardGearRatios)
-    {
-        if (Ratio <= 0.0)
-        {
-            AddValidation(
-                OutValidation,
-                ETAValidationSeverity::Error,
-                TEXT("Vehicle.InvalidForwardGear"),
-                TEXT("All forward gear ratios must be positive."));
-            break;
-        }
-    }
+    ValidatePowertrainAuthoring(
+        Drivetrain,
+        EngineThermal,
+        OutValidation);
 
     if (OutValidation.HasErrors())
     {
