@@ -39,6 +39,172 @@ namespace
         }
     }
 
+    double CalculateFunctionalDamageSeverity01(
+        const FTAVehicleDamageRoute& Route,
+        const FTADamageSignal& Signal)
+    {
+        if (Signal.Type == ETADamageSignalType::StructuralFracture)
+        {
+            return 1.0;
+        }
+
+        if (Signal.Type == ETADamageSignalType::ImpactEnergy)
+        {
+            const double ScaledEnergyJ =
+                FMath::Max(
+                    0.0,
+                    Signal.ScalarValue)
+                * FMath::Max(
+                    0.0,
+                    Route.ImpactEnergyScale);
+
+            return FMath::Clamp(
+                ScaledEnergyJ
+                / FMath::Max(
+                    1.0e-6,
+                    Route.FullDamageEnergyJ),
+                0.0,
+                1.0);
+        }
+
+        if (Signal.Type == ETADamageSignalType::StructuralDisplacement)
+        {
+            const double DisplacementM =
+                Signal.VectorValue.IsNearlyZero()
+                ? FMath::Max(
+                    0.0,
+                    Signal.ScalarValue)
+                : Signal.VectorValue.Length();
+
+            return FMath::Clamp(
+                DisplacementM
+                / FMath::Max(
+                    1.0e-6,
+                    Route.FullCrushDisplacementM),
+                0.0,
+                1.0);
+        }
+
+        return 0.0;
+    }
+
+    bool ApplySteeringRackSignal(
+        const FTAVehicleDamageRoute& Route,
+        const FTADamageSignal& Signal,
+        FTAVehicleRuntimeState& InOutVehicleState)
+    {
+        const double Severity01 =
+            CalculateFunctionalDamageSeverity01(
+                Route,
+                Signal);
+
+        if (Severity01 <= 0.0)
+        {
+            return false;
+        }
+
+        FTASteeringRackFunctionalDamageState& Damage =
+            InOutVehicleState.SteeringRackDamage;
+
+        Damage.Damage01 =
+            FMath::Max(
+                Damage.Damage01,
+                Severity01);
+
+        const double TargetAuthority01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumSteeringAuthority01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        Damage.CommandAuthority01 =
+            FMath::Min(
+                Damage.CommandAuthority01,
+                TargetAuthority01);
+
+        Damage.FreePlayM =
+            FMath::Max(
+                Damage.FreePlayM,
+                FMath::Max(
+                    0.0,
+                    Route.MaximumSteeringFreePlayM)
+                * Severity01);
+
+        return true;
+    }
+
+    bool ApplyWheelHubSignal(
+        const FTAVehicleDamageRoute& Route,
+        const FTADamageSignal& Signal,
+        FTAVehicleRuntimeState& InOutVehicleState)
+    {
+        if (!InOutVehicleState.WheelHubDamage.IsValidIndex(
+                Route.WheelIndex))
+        {
+            return false;
+        }
+
+        const double Severity01 =
+            CalculateFunctionalDamageSeverity01(
+                Route,
+                Signal);
+
+        if (Severity01 <= 0.0)
+        {
+            return false;
+        }
+
+        FTAWheelHubFunctionalDamageState& Damage =
+            InOutVehicleState.WheelHubDamage[
+                Route.WheelIndex];
+
+        Damage.Damage01 =
+            FMath::Max(
+                Damage.Damage01,
+                Severity01);
+
+        const double TargetBrakeEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumBrakeEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        const double TargetDriveEfficiency01 =
+            FMath::Lerp(
+                1.0,
+                FMath::Clamp(
+                    Route.MinimumDriveEfficiency01,
+                    0.0,
+                    1.0),
+                Severity01);
+
+        Damage.BrakeEfficiency01 =
+            FMath::Min(
+                Damage.BrakeEfficiency01,
+                TargetBrakeEfficiency01);
+
+        Damage.DriveEfficiency01 =
+            FMath::Min(
+                Damage.DriveEfficiency01,
+                TargetDriveEfficiency01);
+
+        Damage.BearingDragTorqueNm =
+            FMath::Max(
+                Damage.BearingDragTorqueNm,
+                FMath::Max(
+                    0.0,
+                    Route.MaximumBearingDragTorqueNm)
+                * Severity01);
+
+        return true;
+    }
+
     bool ApplyRadiatorSignal(
         const FTAVehicleDamageRoute& Route,
         const FTAVehicleRuntimeConfig& VehicleConfig,
@@ -125,8 +291,25 @@ bool TAVehicleDamageRouter::ValidateConfig(
             Route.Consumer == ETAVehicleDamageConsumerType::None ||
             !FMath::IsFinite(Route.ImpactEnergyScale) ||
             Route.ImpactEnergyScale < 0.0 ||
+            !FMath::IsFinite(Route.FullDamageEnergyJ) ||
+            Route.FullDamageEnergyJ <= 0.0 ||
             !FMath::IsFinite(Route.FullCrushDisplacementM) ||
-            Route.FullCrushDisplacementM <= 0.0)
+            Route.FullCrushDisplacementM <= 0.0 ||
+            !FMath::IsFinite(Route.MinimumSteeringAuthority01) ||
+            Route.MinimumSteeringAuthority01 < 0.0 ||
+            Route.MinimumSteeringAuthority01 > 1.0 ||
+            !FMath::IsFinite(Route.MaximumSteeringFreePlayM) ||
+            Route.MaximumSteeringFreePlayM < 0.0 ||
+            !FMath::IsFinite(Route.MinimumBrakeEfficiency01) ||
+            Route.MinimumBrakeEfficiency01 < 0.0 ||
+            Route.MinimumBrakeEfficiency01 > 1.0 ||
+            !FMath::IsFinite(Route.MinimumDriveEfficiency01) ||
+            Route.MinimumDriveEfficiency01 < 0.0 ||
+            Route.MinimumDriveEfficiency01 > 1.0 ||
+            !FMath::IsFinite(Route.MaximumBearingDragTorqueNm) ||
+            Route.MaximumBearingDragTorqueNm < 0.0 ||
+            (Route.Consumer == ETAVehicleDamageConsumerType::WheelHub &&
+             Route.WheelIndex < 0))
         {
             return false;
         }
@@ -195,6 +378,32 @@ bool TAVehicleDamageRouter::RouteSignals(
             if (bApplied)
             {
                 ++OutOutput.RadiatorSignalsApplied;
+            }
+            break;
+
+        case ETAVehicleDamageConsumerType::SteeringRack:
+            bApplied =
+                ApplySteeringRackSignal(
+                    *Route,
+                    Signal,
+                    InOutVehicleState);
+
+            if (bApplied)
+            {
+                ++OutOutput.SteeringRackSignalsApplied;
+            }
+            break;
+
+        case ETAVehicleDamageConsumerType::WheelHub:
+            bApplied =
+                ApplyWheelHubSignal(
+                    *Route,
+                    Signal,
+                    InOutVehicleState);
+
+            if (bApplied)
+            {
+                ++OutOutput.WheelHubSignalsApplied;
             }
             break;
 
