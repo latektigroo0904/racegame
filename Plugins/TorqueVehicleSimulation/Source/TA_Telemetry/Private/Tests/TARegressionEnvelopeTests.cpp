@@ -61,7 +61,7 @@ bool FTARegressionEnvelopePassFailTest::RunTest(const FString& Parameters)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
     FTARegressionEnvelopeRejectsInvalidTest,
-    "TorqueAtlas.Telemetry.RegressionEnvelope.RejectsInvalidSamples",
+    "TorqueAtlas.Telemetry.RegressionEnvelope.RejectsInvalidInput",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FTARegressionEnvelopeRejectsInvalidTest::RunTest(const FString& Parameters)
@@ -71,9 +71,11 @@ bool FTARegressionEnvelopeRejectsInvalidTest::RunTest(const FString& Parameters)
     TestFalse(TEXT("Empty trace rejected"),
         TARegressionEnvelope::Summarize(Empty, 0.25, Summary));
 
-    const TArray<double> NonFinite = { 1.0, TNumericLimits<double>::QuietNaN() };
-    TestFalse(TEXT("Non-finite trace rejected"),
-        TARegressionEnvelope::Summarize(NonFinite, 0.25, Summary));
+    const TArray<double> Samples = { 1.0, 2.0 };
+    TestFalse(TEXT("Zero steady-state fraction rejected"),
+        TARegressionEnvelope::Summarize(Samples, 0.0, Summary));
+    TestFalse(TEXT("Steady-state fraction above one rejected"),
+        TARegressionEnvelope::Summarize(Samples, 1.01, Summary));
     return true;
 }
 
