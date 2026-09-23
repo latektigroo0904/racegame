@@ -64,6 +64,9 @@ struct TA_VEHICLE_API FTAExperimentalUnsprungCornerOutput
     FVector3d ChassisSuspensionForceWorldN =
         FVector3d::ZeroVector;
 
+    FVector3d ChassisSuspensionApplicationPointWorldM =
+        FVector3d::ZeroVector;
+
     FTADoubleWishboneSolveOutput Geometry;
     FTASuspensionForceOutput SuspensionForce;
     FTAUnsprungVerticalOutput Unsprung;
