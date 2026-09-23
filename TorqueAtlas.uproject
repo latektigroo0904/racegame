@@ -1,0 +1,19 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Category": "Simulation",
+  "Description": "Torque Atlas open-world vehicle simulation prototype.",
+  "Modules": [
+    {
+      "Name": "TorqueAtlas",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "TorqueVehicleSimulation",
+      "Enabled": true
+    }
+  ]
+}
