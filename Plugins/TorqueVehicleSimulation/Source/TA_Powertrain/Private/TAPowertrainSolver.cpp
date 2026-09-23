@@ -29,6 +29,85 @@ namespace
     }
 }
 
+double TAPowertrainSolver::EvaluateTorqueCurveNm(
+    const FTAEngineRuntimeConfig& Config,
+    const double RPM)
+{
+    if (Config.TorqueCurve.Num() == 0)
+    {
+        return 0.0;
+    }
+
+    if (Config.TorqueCurve.Num() == 1)
+    {
+        return Config.TorqueCurve[0].TorqueNm;
+    }
+
+    if (RPM <= Config.TorqueCurve[0].RPM)
+    {
+        return Config.TorqueCurve[0].TorqueNm;
+    }
+
+    for (int32 Index = 1; Index < Config.TorqueCurve.Num(); ++Index)
+    {
+        const FTAEngineTorquePoint& Lower = Config.TorqueCurve[Index - 1];
+        const FTAEngineTorquePoint& Upper = Config.TorqueCurve[Index];
+
+        if (RPM <= Upper.RPM)
+        {
+            const double Range = FMath::Max(1.0, Upper.RPM - Lower.RPM);
+            const double Alpha = FMath::Clamp((RPM - Lower.RPM) / Range, 0.0, 1.0);
+            return FMath::Lerp(Lower.TorqueNm, Upper.TorqueNm, Alpha);
+        }
+    }
+
+    return Config.TorqueCurve.Last().TorqueNm;
+}
+
+double TAPowertrainSolver::CalculateCombustionTorqueNm(
+    const FTAEngineRuntimeConfig& Config,
+    const FTAEngineRuntimeState& State,
+    const double Throttle01)
+{
+    if (State.RunState != ETAEngineRunState::Running)
+    {
+        return 0.0;
+    }
+
+    const double RPM =
+        State.AngularSpeedRadPerSec * 60.0 / (2.0 * UE_DOUBLE_PI);
+
+    if (RPM >= Config.LimiterRPM)
+    {
+        return 0.0;
+    }
+
+    const double Throttle = FMath::Clamp(Throttle01, 0.0, 1.0);
+    const double BaseTorqueNm = EvaluateTorqueCurveNm(Config, RPM);
+
+    double LimiterFactor = 1.0;
+    if (RPM > Config.RedlineRPM)
+    {
+        const double Range = FMath::Max(1.0, Config.LimiterRPM - Config.RedlineRPM);
+        LimiterFactor = 1.0 - FMath::Clamp((RPM - Config.RedlineRPM) / Range, 0.0, 1.0);
+    }
+
+    const double IdleErrorRPM = FMath::Max(0.0, Config.IdleRPM - RPM);
+    const double IdleTorqueNm =
+        FMath::Min(
+            FMath::Max(0.0, Config.MaxIdleControlTorqueNm),
+            IdleErrorRPM * FMath::Max(0.0, Config.IdleControlGainNmPerRPM));
+
+    const double StateFactor =
+        FMath::Clamp(State.ThermalTorqueFactor, 0.0, 1.0)
+        * FMath::Clamp(State.DamageTorqueFactor, 0.0, 1.0);
+
+    return FMath::Max(
+        0.0,
+        (BaseTorqueNm * Throttle * LimiterFactor + IdleTorqueNm)
+        * StateFactor);
+}
+
 double TAPowertrainSolver::CalculateEngineFrictionTorqueNm(
     const FTAEngineRuntimeConfig& Config,
     const double AngularSpeedRadPerSec)
