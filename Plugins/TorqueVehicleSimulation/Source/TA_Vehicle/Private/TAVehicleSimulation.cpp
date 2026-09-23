@@ -67,6 +67,7 @@ bool TAVehicleSimulation::Initialize(
 
     OutState = FTAVehicleRuntimeState{};
     OutState.Wheels.SetNum(Config.Wheels.Num());
+    OutState.WheelHubDamage.SetNum(Config.Wheels.Num());
 
     const double IdleRadPerSec =
         FMath::Max(0.0, Config.Engine.IdleRPM)
@@ -153,6 +154,7 @@ bool TAVehicleSimulation::Step(
     if (DeltaTimeSeconds <= 0.0 ||
         Config.Wheels.Num() != Config.Tires.Num() ||
         InOutState.Wheels.Num() != Config.Wheels.Num() ||
+        InOutState.WheelHubDamage.Num() != Config.Wheels.Num() ||
         Input.WheelContacts.Num() != Config.Wheels.Num())
     {
         return false;
@@ -294,10 +296,20 @@ bool TAVehicleSimulation::Step(
             RightReactionCapacityNm);
 
     OutOutput.LeftDrivenWheelTorqueNm =
-        DifferentialOutput.LeftWheelTorqueNm;
+        DifferentialOutput.LeftWheelTorqueNm
+        * FMath::Clamp(
+            InOutState.WheelHubDamage[DrivenLeftIndex]
+                .DriveEfficiency01,
+            0.0,
+            1.0);
 
     OutOutput.RightDrivenWheelTorqueNm =
-        DifferentialOutput.RightWheelTorqueNm;
+        DifferentialOutput.RightWheelTorqueNm
+        * FMath::Clamp(
+            InOutState.WheelHubDamage[DrivenRightIndex]
+                .DriveEfficiency01,
+            0.0,
+            1.0);
 
     for (int32 Index = 0; Index < Config.Wheels.Num(); ++Index)
     {
@@ -325,15 +337,49 @@ bool TAVehicleSimulation::Step(
             DriveTorqueNm = DifferentialOutput.RightWheelTorqueNm;
         }
 
+        const FTAWheelHubFunctionalDamageState& HubDamage =
+            InOutState.WheelHubDamage[Index];
+
+        DriveTorqueNm *=
+            FMath::Clamp(
+                HubDamage.DriveEfficiency01,
+                0.0,
+                1.0);
+
         const double RadiusM =
             FMath::Max(0.01, Config.Wheels[Index].RadiusM);
 
-        const double TireReactionTorqueNm =
+        double TireReactionTorqueNm =
             -TireOutput.LongitudinalForceN * RadiusM;
+
+        const double BearingDragTorqueNm =
+            FMath::Max(
+                0.0,
+                HubDamage.BearingDragTorqueNm);
+
+        if (WheelState.AngularSpeedRadPerSec > UE_DOUBLE_SMALL_NUMBER)
+        {
+            TireReactionTorqueNm -=
+                BearingDragTorqueNm;
+        }
+        else if (WheelState.AngularSpeedRadPerSec < -UE_DOUBLE_SMALL_NUMBER)
+        {
+            TireReactionTorqueNm +=
+                BearingDragTorqueNm;
+        }
+
+        FTAWheelRuntimeConfig EffectiveWheelConfig =
+            Config.Wheels[Index];
+
+        EffectiveWheelConfig.MaxBrakeTorqueNm *=
+            FMath::Clamp(
+                HubDamage.BrakeEfficiency01,
+                0.0,
+                1.0);
 
         WheelState.AngularSpeedRadPerSec =
             IntegrateWheelAngularSpeed(
-                Config.Wheels[Index],
+                EffectiveWheelConfig,
                 WheelState.AngularSpeedRadPerSec,
                 DriveTorqueNm,
                 TireReactionTorqueNm,
