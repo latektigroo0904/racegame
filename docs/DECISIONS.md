@@ -242,3 +242,19 @@
 **Status:** accepted 2026-09-23  
 **Decision:** `FTATelemetryRingBuffer` refers only to the full vehicle/scenario telemetry buffer. The earlier lightweight buffer is retained as `FTACompactTelemetryRingBuffer`.  
 **Reason:** removes a C++ type-name collision and makes scenario/regression telemetry unambiguous.
+
+
+## ADR-051 — Dynamic unsprung force ownership separates tire normal load from chassis suspension reaction
+**Status:** accepted for experiment 2026-09-23  
+**Decision:** in the explicit-unsprung path, road/tire normal force acts on the unsprung generalized mass, while the sprung chassis receives only the equal/opposite suspension/link reaction. The two values are not forced equal; at level static equilibrium their difference includes unsprung weight.  
+**Reason:** directly applying tire normal load to the chassis while also integrating unsprung mass would double-count the road reaction.
+
+## ADR-052 — Tire contact point and suspension chassis-force point are distinct
+**Status:** accepted 2026-09-23  
+**Decision:** `FTAWheelContactInput` supports an optional suspension-force application point separate from the tire road-contact point. Existing contacts retain legacy fallback behavior. The experimental unsprung corner applies suspension reaction at the damaged chassis-side damper mount.  
+**Reason:** the correct net force with the wrong moment arm still produces incorrect pitch/roll/yaw dynamics.
+
+## ADR-053 — Dynamic unsprung integration remains isolated until comparison gates pass
+**Status:** accepted 2026-09-23  
+**Decision:** `TAExperimentalUnsprungCorner` may use the same geometry, suspension and tire models as the canonical runtime but cannot replace `ResolveDoubleWishboneCompliantRoadContact` or the four-wheel path until UE-executed equilibrium, road-step, determinism and performance gates pass.  
+**Reason:** explicit wheel-hop state adds stiffness and another force path; promotion without measured validation risks instability and load double-counting.
