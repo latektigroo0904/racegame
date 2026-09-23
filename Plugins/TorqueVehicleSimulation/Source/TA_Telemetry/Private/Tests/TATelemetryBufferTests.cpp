@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "TATelemetryBuffer.h"
 #include "TAFourWheelVehicleRuntime.h"
+#include "TAVehicleRuntime.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
     FTATelemetryRingBufferTest,
@@ -138,6 +139,7 @@ bool FTATelemetryFourWheelMappingTest::RunTest(const FString& Parameters)
     FourWheel.FrontAxle.LeftContact.TravelM = 0.01;
     FourWheel.FrontAxle.LeftContact.Geometry.CamberRad = -0.02;
     FourWheel.FrontAxle.LeftContact.Geometry.ToeRad = 0.08;
+    FourWheel.FrontAxle.LeftContact.TireRadialDeflectionM = 0.014;
 
     FourWheel.RearAxle.RightContact.VerticalLoadN = 3200.0;
     FourWheel.RearAxle.RightContact.TravelM = -0.005;
@@ -177,6 +179,25 @@ bool FTATelemetryFourWheelMappingTest::RunTest(const FString& Parameters)
             Sample.FrontAckermannDeltaRad,
             0.01,
             1.0e-9));
+
+    TestTrue(
+        TEXT("Front tire radial deflection maps"),
+        FMath::IsNearlyEqual(
+            Sample.TireRadialDeflectionM[0],
+            0.014,
+            1.0e-9));
+
+    FTAVehicleCompiledConfig Config;
+    Config.PhysicsConfigHash = 0x1234ABCDu;
+
+    TATelemetry::ApplyCompiledConfigMetadata(
+        Config,
+        Sample);
+
+    TestEqual(
+        TEXT("Physics config hash maps into telemetry"),
+        Sample.PhysicsConfigHash,
+        0x1234ABCDu);
 
     return true;
 }
