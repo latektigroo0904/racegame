@@ -27,13 +27,11 @@ bool TAAerodynamics::Calculate(
         return false;
     }
 
-    // Air velocity relative to vehicle. A stationary car in a +X wind sees +X air flow;
-    // a car travelling +X in still air sees -X air flow.
     OutOutput.RelativeAirVelocityWorldMps =
         Environment.WindVelocityWorldMps - Chassis.LinearVelocityWorldMps;
 
     const double SpeedSquared =
-        OutOutput.RelativeAirVelocityWorldMps.SquaredLength();
+        OutOutput.RelativeAirVelocityWorldMps.SizeSquared();
 
     OutOutput.ApplicationPointWorldM =
         Chassis.PositionWorldM +
@@ -54,17 +52,11 @@ bool TAAerodynamics::Calculate(
         0.5 * Environment.AirDensityKgPerM3 * SpeedSquared;
 
     OutOutput.DragForceN =
-        OutOutput.DynamicPressurePa *
-        Config.ReferenceAreaM2 *
-        Config.DragCoefficient;
+        OutOutput.DynamicPressurePa * Config.ReferenceAreaM2 * Config.DragCoefficient;
 
     OutOutput.LiftForceN =
-        OutOutput.DynamicPressurePa *
-        Config.ReferenceAreaM2 *
-        Config.LiftCoefficient;
+        OutOutput.DynamicPressurePa * Config.ReferenceAreaM2 * Config.LiftCoefficient;
 
-    // Drag follows the relative air-flow vector. Lift uses chassis up so authored
-    // negative Cl creates physical downforce without an arcade grip multiplier.
     const FVector3d UpWorld =
         FVector3d(Chassis.OrientationWorld.RotateVector(FVector::UpVector)).GetSafeNormal();
 
