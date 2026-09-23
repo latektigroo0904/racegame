@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-09-23 — Suspension functional damage and brake thermal session
+
+Suspension functional damage:
+- added persistent per-wheel spring/damper/stop and anti-roll-link health state;
+- added typed `SuspensionCorner` and `AntiRollLink` damage consumers;
+- routed impact/displacement/fracture signals into monotonic suspension degradation;
+- applied damaged spring/damper/stop capacity in the canonical four-wheel contact solver;
+- applied axle anti-roll capacity from the weaker left/right drop-link;
+- explicitly rejected zero spring support in the current quasi-static solver;
+- kept broken control-arm/tie-rod topology failures deferred rather than faking alignment offsets;
+- added authoring, config-hash, crash-pipeline, four-wheel behavior, telemetry and regression coverage;
+- added `docs/36-SUSPENSION-FUNCTIONAL-DAMAGE-V01.md`.
+
+Brake thermal/fade/wear:
+- added `TABrakeThermal` module API/state integration inside `TA_Vehicle`;
+- added per-wheel temperature, cooling, friction heat, thermal fade and energy-based wear;
+- combined brake capacity as base torque × hub efficiency × thermal factor × wear factor;
+- added complete brake thermal/fade/wear authoring to `FTAPrototypeWheelDefinition`;
+- added validation and physics-hash coverage;
+- added unit and vehicle behavior regressions for heating, cooling, fade and wear;
+- added brake temperature/fade/wear telemetry and regression metrics;
+- mechanically audited telemetry CSV at 26 placeholders ↔ 26 arguments/values per wheel;
+- added `docs/37-BRAKE-THERMAL-FADE-WEAR-V01.md`.
+
+Verification:
+- GitHub source-sanity passed on suspension/crash/telemetry code through commit `b51d70b...`;
+- GitHub source-sanity passed on complete brake code/tests through commit `9b71a34...`;
+- this remains source-level verification only; UE 5.8 UHT/UBT/Automation has not executed.
+
 ## 2026-09-23 — Vehicle calibration authoring v2 session
 
 Added:
