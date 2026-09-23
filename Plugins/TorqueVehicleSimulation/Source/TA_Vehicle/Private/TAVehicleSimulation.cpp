@@ -68,6 +68,7 @@ bool TAVehicleSimulation::Initialize(
     OutState = FTAVehicleRuntimeState{};
     OutState.Wheels.SetNum(Config.Wheels.Num());
     OutState.WheelHubDamage.SetNum(Config.Wheels.Num());
+    OutState.SuspensionDamage.SetNum(Config.Wheels.Num());
 
     const double IdleRadPerSec =
         FMath::Max(0.0, Config.Engine.IdleRPM)
@@ -155,6 +156,7 @@ bool TAVehicleSimulation::Step(
         Config.Wheels.Num() != Config.Tires.Num() ||
         InOutState.Wheels.Num() != Config.Wheels.Num() ||
         InOutState.WheelHubDamage.Num() != Config.Wheels.Num() ||
+        InOutState.SuspensionDamage.Num() != Config.Wheels.Num() ||
         Input.WheelContacts.Num() != Config.Wheels.Num())
     {
         return false;
