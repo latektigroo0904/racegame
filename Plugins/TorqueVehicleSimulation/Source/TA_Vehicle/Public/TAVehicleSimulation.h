@@ -101,6 +101,23 @@ struct TA_VEHICLE_API FTAWheelHubFunctionalDamageState
     double BearingDragTorqueNm = 0.0;
 };
 
+struct TA_VEHICLE_API FTASuspensionFunctionalDamageState
+{
+    // Force-producing suspension assembly damage only. Hardpoint deformation
+    // remains owned by the structural geometry binding path.
+    double SpringDamperDamage01 = 0.0;
+
+    double SpringEfficiency01 = 1.0;
+    double DampingEfficiency01 = 1.0;
+    double StopEfficiency01 = 1.0;
+
+    // A drop-link/bar-link failure reduces axle anti-roll transfer. Because
+    // both links are in the load path, axle effectiveness is limited by the
+    // weaker side in the four-wheel runtime.
+    double AntiRollLinkDamage01 = 0.0;
+    double AntiRollLinkEfficiency01 = 1.0;
+};
+
 struct TA_VEHICLE_API FTAVehicleRuntimeState
 {
     uint64 SimulationTick = 0;
@@ -121,6 +138,7 @@ struct TA_VEHICLE_API FTAVehicleRuntimeState
 
     TArray<FTAWheelRuntimeState> Wheels;
     TArray<FTAWheelHubFunctionalDamageState> WheelHubDamage;
+    TArray<FTASuspensionFunctionalDamageState> SuspensionDamage;
 };
 
 struct TA_VEHICLE_API FTAVehicleStepInput
