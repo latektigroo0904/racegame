@@ -280,14 +280,14 @@ bool FTAVehicleDefinitionStructureRuntimeTest::RunTest(
 
     const FVector NodePositions[] =
     {
-        FVector(1.50, 0.35, -0.03),
-        FVector(1.12, 0.35, -0.03),
-        FVector(1.55, 0.55,  0.20),
-        FVector(1.15, 0.55,  0.20),
-        FVector(1.55, 0.20,  0.40),
-        FVector(1.15, 0.20,  0.40),
-        FVector(1.35, 0.60,  0.55),
-        FVector(1.35, 0.10,  0.55)
+        FVector(1.50, 0.35, -0.48),
+        FVector(1.12, 0.35, -0.48),
+        FVector(1.55, 0.55, -0.25),
+        FVector(1.15, 0.55, -0.25),
+        FVector(1.55, 0.20, -0.05),
+        FVector(1.15, 0.20, -0.05),
+        FVector(1.35, 0.60,  0.10),
+        FVector(1.35, 0.10,  0.10)
     };
 
     for (const FVector& Position : NodePositions)
