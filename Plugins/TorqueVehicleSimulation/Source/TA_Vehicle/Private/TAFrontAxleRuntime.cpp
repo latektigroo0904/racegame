@@ -2,6 +2,39 @@
 
 namespace
 {
+    double ApplyFunctionalRackDamage(
+        const double BaseRackDisplacementM,
+        const FTAFrontAxleSolveInput& Input)
+    {
+        const double Authority01 =
+            FMath::Clamp(
+                Input.SteeringCommandAuthority01,
+                0.0,
+                1.0);
+
+        const double FreePlayM =
+            FMath::Max(
+                0.0,
+                Input.SteeringRackFreePlayM);
+
+        const double ScaledRackM =
+            BaseRackDisplacementM
+            * Authority01;
+
+        const double MagnitudeM =
+            FMath::Abs(
+                ScaledRackM);
+
+        if (MagnitudeM <= FreePlayM)
+        {
+            return 0.0;
+        }
+
+        return
+            FMath::Sign(ScaledRackM)
+            * (MagnitudeM - FreePlayM);
+    }
+
     bool CalculateNeutralToe(
         const FTADoubleWishboneSolverConfig& GeometryConfig,
         const FTADoubleWishboneDamageOffsets& Damage,
@@ -110,9 +143,11 @@ bool TAFrontAxleRuntime::Resolve(
     }
 
     const double RackDisplacementM =
-        CalculateRackDisplacementM(
-            Config.SteeringRack,
-            Input.Steering01);
+        ApplyFunctionalRackDamage(
+            CalculateRackDisplacementM(
+                Config.SteeringRack,
+                Input.Steering01),
+            Input);
 
     if (!TAWheelContactResolver::ResolveDoubleWishboneRoadContact(
             Chassis,
@@ -247,9 +282,11 @@ bool TAFrontAxleRuntime::ResolveWithTireCompliance(
     }
 
     const double RackDisplacementM =
-        CalculateRackDisplacementM(
-            Config.SteeringRack,
-            Input.Steering01);
+        ApplyFunctionalRackDamage(
+            CalculateRackDisplacementM(
+                Config.SteeringRack,
+                Input.Steering01),
+            Input);
 
     const FTAFrontAxleRuntimeState BaseAxleState =
         InOutState;
