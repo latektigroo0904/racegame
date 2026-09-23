@@ -258,3 +258,24 @@
 **Status:** accepted 2026-09-23  
 **Decision:** `TAExperimentalUnsprungCorner` may use the same geometry, suspension and tire models as the canonical runtime but cannot replace `ResolveDoubleWishboneCompliantRoadContact` or the four-wheel path until UE-executed equilibrium, road-step, determinism and performance gates pass.  
 **Reason:** explicit wheel-hop state adds stiffness and another force path; promotion without measured validation risks instability and load double-counting.
+
+
+## ADR-054 — Vehicle calibration v2 removes handling-critical hidden solver defaults
+**Status:** accepted 2026-09-23  
+**Decision:** current tire, engine, engine-thermal, clutch, gearbox, driveline, radiator/coolant and suspension-stop coefficients are explicit vehicle authoring data. Runtime struct defaults remain safe construction defaults, not authoritative production calibration.  
+**Reason:** two vehicle assets must differ because content differs, not because a programmer edits an invisible C++ default.
+
+## ADR-055 — Suspension kinematic caches are compiler-derived, never separately authored
+**Status:** accepted 2026-09-23  
+**Decision:** front/rear kinematic LUT samples are generated from the exact authored suspension hardpoints using the canonical geometry solvers and included in config identity.  
+**Reason:** avoids two competing geometry truths and permits future fast-path interpolation without content drift.
+
+## ADR-056 — Rigid chassis owns gravity for vehicle-attached internal structure
+**Status:** accepted 2026-09-23  
+**Decision:** compiled vehicle structure solver gravity is zero because structure nodes represent chassis-local internal deformation. World gravity remains in rigid chassis dynamics.  
+**Reason:** prevents duplicate gravity and artificial relative structural sag/deformation.
+
+## ADR-057 — Simulation content baseline advances to schema/physics/damage v2
+**Status:** accepted 2026-09-23  
+**Decision:** new assets default to 2/2/2. Legacy positive versions remain loadable with warning; future unknown versions and non-positive versions are rejected.  
+**Reason:** major schema, force-ownership and damage changes require explicit compatibility identity.
