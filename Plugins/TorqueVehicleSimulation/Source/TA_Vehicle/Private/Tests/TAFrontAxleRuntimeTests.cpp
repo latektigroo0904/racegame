@@ -342,4 +342,120 @@ bool FTAFrontAxleCompliantAntiRollEquilibriumTest::RunTest(const FString& Parame
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAFrontAxleFunctionalSteeringDamageTest,
+    "TorqueAtlas.Suspension.FrontAxle.FunctionalSteeringDamage",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAFrontAxleFunctionalSteeringDamageTest::RunTest(
+    const FString& Parameters)
+{
+    const FTAFrontAxleRuntimeConfig Config =
+        MakeFrontAxleConfig();
+
+    FTAFrontAxleSolveInput HealthyInput;
+    HealthyInput.Steering01 = 0.50;
+    HealthyInput.LeftRoad = MakeRoad();
+    HealthyInput.RightRoad = MakeRoad();
+
+    FTAFrontAxleRuntimeState HealthyState;
+    FTAFrontAxleSolveOutput HealthyOutput;
+
+    TestTrue(
+        TEXT("Healthy steering solve succeeds"),
+        TAFrontAxleRuntime::Resolve(
+            MakeChassis(),
+            Config,
+            HealthyInput,
+            0.327,
+            0.327,
+            1.0 / 240.0,
+            HealthyState,
+            HealthyOutput));
+
+    FTAFrontAxleSolveInput DamagedInput =
+        HealthyInput;
+
+    DamagedInput.SteeringCommandAuthority01 =
+        0.50;
+
+    FTAFrontAxleRuntimeState DamagedState;
+    FTAFrontAxleSolveOutput DamagedOutput;
+
+    TestTrue(
+        TEXT("Authority-damaged steering solve succeeds"),
+        TAFrontAxleRuntime::Resolve(
+            MakeChassis(),
+            Config,
+            DamagedInput,
+            0.327,
+            0.327,
+            1.0 / 240.0,
+            DamagedState,
+            DamagedOutput));
+
+    TestTrue(
+        TEXT("Half steering authority halves physical rack travel"),
+        FMath::IsNearlyEqual(
+            DamagedOutput.RackDisplacementM,
+            0.5 * HealthyOutput.RackDisplacementM,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Reduced rack travel reduces left wheel steer magnitude"),
+        FMath::Abs(
+            DamagedOutput.LeftSteeringAngleRad)
+            < FMath::Abs(
+                HealthyOutput.LeftSteeringAngleRad));
+
+    TestTrue(
+        TEXT("Reduced rack travel reduces right wheel steer magnitude"),
+        FMath::Abs(
+            DamagedOutput.RightSteeringAngleRad)
+            < FMath::Abs(
+                HealthyOutput.RightSteeringAngleRad));
+
+    FTAFrontAxleSolveInput FreePlayInput =
+        HealthyInput;
+
+    FreePlayInput.SteeringRackFreePlayM =
+        0.020;
+
+    FTAFrontAxleRuntimeState FreePlayState;
+    FTAFrontAxleSolveOutput FreePlayOutput;
+
+    TestTrue(
+        TEXT("Free-play steering solve succeeds"),
+        TAFrontAxleRuntime::Resolve(
+            MakeChassis(),
+            Config,
+            FreePlayInput,
+            0.327,
+            0.327,
+            1.0 / 240.0,
+            FreePlayState,
+            FreePlayOutput));
+
+    TestTrue(
+        TEXT("Free-play larger than commanded rack travel absorbs steering command"),
+        FMath::IsNearlyZero(
+            FreePlayOutput.RackDisplacementM,
+            1.0e-9));
+
+    TestTrue(
+        TEXT("Absorbed rack command leaves left wheel near neutral steer"),
+        FMath::Abs(
+            FreePlayOutput.LeftSteeringAngleRad)
+            < FMath::DegreesToRadians(0.1));
+
+    TestTrue(
+        TEXT("Absorbed rack command leaves right wheel near neutral steer"),
+        FMath::Abs(
+            FreePlayOutput.RightSteeringAngleRad)
+            < FMath::DegreesToRadians(0.1));
+
+    return true;
+}
+
 #endif
