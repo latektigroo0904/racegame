@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "TACoreTypes.h"
 #include "TAFourWheelVehicleRuntime.h"
+#include "TAVehicleStructureRuntime.h"
 #include "TAFourWheelVehicleRuntime.h"
 
 struct TA_VEHICLE_API FTAVehicleCompiledConfig
@@ -26,6 +27,7 @@ struct TA_VEHICLE_API FTAVehicleCompiledConfig
 
     FTAVehicleRuntimeConfig VehicleRuntime;
     FTAFourWheelRuntimeConfig FourWheelRuntime;
+    FTAVehicleStructureCompiledConfig StructureRuntime;
 
     uint32 PhysicsConfigHash = 0;
 };
