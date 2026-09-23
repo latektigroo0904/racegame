@@ -1,5 +1,68 @@
 # Changelog
 
+## 2026-09-23 — Suspension geometry, contact-load and tire-state session
+
+Added:
+- `docs/20-DOUBLE-WISHBONE-GEOMETRY-V02.md`;
+- `docs/21-CONTACT-LOAD-PIPELINE-V01.md`;
+- `docs/22-TIRE-THERMAL-WEAR-V01.md`;
+- full 3D front double-wishbone positional constraint solver;
+- physical upper/lower wishbone inner pickups;
+- tie-rod steering constraint;
+- rigid upright reconstruction;
+- wheel center/orientation reconstruction;
+- solved camber/toe from geometry;
+- chassis damper mount + lower-arm damper mount;
+- damaged-mode damper length and finite-difference motion-ratio estimation;
+- road-plane travel/contact resolver;
+- automatic full-droop contact loss;
+- automatic full-bump/penetration reporting;
+- contact-patch velocity from chassis linear/angular velocity;
+- self-derived vertical load from suspension force;
+- conversion from resolved contact into `FTAWheelContactInput`;
+- structure-node reference positions;
+- weighted structure-node → suspension-pickup bindings;
+- anti-roll bar equal/opposite axle load transfer;
+- tire surface/carcass/internal-air thermal model;
+- temperature-dependent tire grip;
+- pressure-dependent tire grip;
+- ideal-gas pressure update;
+- energy-based tire wear and tread-depth loss;
+- irreversible tire thermal degradation;
+- tire thermal/wear update in integrated vehicle step;
+- tire aligning moment now applied to chassis torque.
+
+New/expanded Automation test source covers:
+- reference wishbone geometry;
+- bump travel;
+- rack displacement changing toe;
+- damaged pickup changing camber;
+- degenerate geometry rejection;
+- reference road contact and self-derived normal load;
+- chassis velocity → contact velocity;
+- full-droop contact loss;
+- damaged contact alignment;
+- structural pickup binding and weighted displacement;
+- anti-roll transfer;
+- resolved suspension contact → tire → chassis integration;
+- tire heat transfer, pressure rise, wear/tread loss and temperature grip window.
+
+Corrections / consistency:
+- one-dimensional undamaged kinematic cache is now invalidated while steering or when structural pickup displacement exists;
+- road surface state is retained through the contact resolver into the tire input;
+- damaged-mode motion ratio no longer assumes 1.0;
+- tire aligning moment is no longer telemetry-only and contributes to chassis torque.
+
+Validation note:
+- the selected TA-P01 front-right seed geometry was numerically sanity-checked across reference travel, bump/droop, steering-rack displacement and pickup displacement before being committed as a test fixture;
+- current hardpoints are engineering seeds, not measured production-car geometry.
+
+Current limitation:
+- Unreal Engine 5.8 UHT/UBT/C++ build and Automation execution are still not available in this environment;
+- front-left production definition and driver steering-rack mapping are still pending;
+- rear multi-link geometry/contact remains pending;
+- tire vertical compliance and unsprung mass are not yet implemented.
+
 ## 2026-09-23 — Chassis, suspension runtime and telemetry session
 
 Added:
