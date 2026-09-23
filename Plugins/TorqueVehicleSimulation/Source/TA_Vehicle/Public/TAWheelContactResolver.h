@@ -34,6 +34,8 @@ struct TA_VEHICLE_API FTAResolvedWheelContact
 
     FVector3d SuspensionForceWorldN = FVector3d::ZeroVector;
 
+    FTASurfaceSample Surface;
+
     FTADoubleWishboneSolveOutput Geometry;
     FTASuspensionForceOutput SuspensionForce;
 };
