@@ -181,4 +181,88 @@ bool FTAVehicleDefinitionComTransformTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAVehicleDefinitionRuntimeIntegrationTest,
+    "TorqueAtlas.Vehicle.Definition.CompiledConfigRunsFourWheelStep",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAVehicleDefinitionRuntimeIntegrationTest::RunTest(const FString& Parameters)
+{
+    UTAVehicleDefinition* Definition =
+        NewObject<UTAVehicleDefinition>();
+
+    FTAVehicleCompiledConfig Config;
+    FTAValidationResult Validation;
+
+    TestTrue(
+        TEXT("Vehicle asset compiles into runtime config"),
+        Definition->BuildCompiledConfig(
+            Config,
+            Validation));
+
+    FTAFourWheelRuntimeState State;
+
+    TestTrue(
+        TEXT("Compiled vehicle runtime initializes"),
+        TAFourWheelVehicleRuntime::Initialize(
+            Config.VehicleRuntime,
+            State));
+
+    State.Vehicle.Chassis.PositionWorldM =
+        FVector3d(0.0, 0.0, 0.777);
+
+    FTAFourWheelStepInput Input;
+
+    Input.FrontLeftRoad.NormalWorld =
+        FVector3d(0.0, 0.0, 1.0);
+
+    Input.FrontRightRoad.NormalWorld =
+        FVector3d(0.0, 0.0, 1.0);
+
+    Input.RearLeftRoad.NormalWorld =
+        FVector3d(0.0, 0.0, 1.0);
+
+    Input.RearRightRoad.NormalWorld =
+        FVector3d(0.0, 0.0, 1.0);
+
+    Input.FrontLeftRoad.Surface.Material =
+        ETASurfaceMaterial::FreshAsphalt;
+
+    Input.FrontRightRoad.Surface.Material =
+        ETASurfaceMaterial::FreshAsphalt;
+
+    Input.RearLeftRoad.Surface.Material =
+        ETASurfaceMaterial::FreshAsphalt;
+
+    Input.RearRightRoad.Surface.Material =
+        ETASurfaceMaterial::FreshAsphalt;
+
+    FTAFourWheelStepOutput Output;
+
+    TestTrue(
+        TEXT("Compiled asset executes canonical four-wheel physics step"),
+        TAFourWheelVehicleRuntime::Step(
+            Config.VehicleRuntime,
+            Config.FourWheelRuntime,
+            Input,
+            1.0 / 240.0,
+            State,
+            Output));
+
+    TestTrue(
+        TEXT("All four compiled-asset contacts are solved"),
+        Output.FrontAxle.LeftContact.bInContact
+        && Output.FrontAxle.RightContact.bInContact
+        && Output.RearAxle.LeftContact.bInContact
+        && Output.RearAxle.RightContact.bInContact);
+
+    TestTrue(
+        TEXT("Compiled asset uses finite radial tire compliance"),
+        Output.FrontAxle.LeftContact.TireRadialDeflectionM > 0.0
+        && Output.RearAxle.LeftContact.TireRadialDeflectionM > 0.0);
+
+    return true;
+}
+
 #endif
