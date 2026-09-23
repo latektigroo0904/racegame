@@ -4,13 +4,13 @@
 #include "TATelemetry.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-    FTATelemetryRingBufferTest,
+    FTACompactTelemetryRingBufferTest,
     "TorqueAtlas.Telemetry.RingBuffer.WrapAndOrder",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FTATelemetryRingBufferTest::RunTest(const FString& Parameters)
+bool FTACompactTelemetryRingBufferTest::RunTest(const FString& Parameters)
 {
-    FTATelemetryRingBuffer Buffer;
+    FTACompactTelemetryRingBuffer Buffer;
     Buffer.Initialize(3);
 
     for (uint64 Tick = 1; Tick <= 5; ++Tick)
