@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "TAChassisDynamics.h"
+#include "TABrakeThermal.h"
 #include "TADamageTypes.h"
 #include "TAPowertrainSolver.h"
 #include "TATireSolver.h"
@@ -11,6 +12,8 @@ struct TA_VEHICLE_API FTAWheelRuntimeConfig
     double RadiusM = 0.327;
     double InertiaKgm2 = 1.20;
     double MaxBrakeTorqueNm = 2200.0;
+
+    FTABrakeThermalConfig BrakeThermal;
 
     bool bDriven = false;
 };
@@ -45,6 +48,8 @@ struct TA_VEHICLE_API FTAWheelRuntimeState
 
     FTATireRuntimeState TireState;
     FTATireSolveOutput LastTireOutput;
+
+    FTABrakeThermalState BrakeThermal;
 };
 
 struct TA_VEHICLE_API FTADriverControls
