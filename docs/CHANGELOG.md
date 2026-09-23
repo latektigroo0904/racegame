@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-09-23 — Functional damage and scenario regression session
+
+Added:
+- complete telemetry scenario regression evaluator with scenario ID and physics-hash checks;
+- CSV and JSON Lines machine-readable regression reports;
+- rich min/max/mean/steady-state profile reports;
+- six provisional proving-ground scenario baselines;
+- typed `SteeringRack` and `WheelHub` damage consumers;
+- persistent steering authority/free-play damage state;
+- per-wheel hub brake efficiency, drive efficiency and bearing drag damage state;
+- authored functional damage route parameters;
+- compile-time wheel-index validation for hub routes;
+- end-to-end crash → mount signal → steering/hub damage regression;
+- functional-damage telemetry and regression channels;
+- `docs/32-FUNCTIONAL-DAMAGE-AND-REGRESSION-V01.md`.
+
+Corrected:
+- expanded `PhysicsConfigHash` to include complete structural solver/bridge/route/binding state;
+- included route signal-acceptance flags in config identity;
+- removed duplicate telemetry ring-buffer type naming by retaining the compact buffer as `FTACompactTelemetryRingBuffer`;
+- removed duplicate Automation-test class naming around telemetry buffers;
+- fixed telemetry CSV damage-field format alignment;
+- corrected crash regression access from `DamageRouting` to the actual `Routing` output member;
+- made steering free-play regression compare against true neutral suspension geometry.
+
+Verification:
+- modified source files pass static brace/conflict-marker checks;
+- source remains **UE-build-unverified** until Unreal 5.8 UHT/UBT/Automation is executed.
+
+Current next step:
+- isolated dynamic-unsprung proving-ground corner and comparison against the canonical quasi-static compliant-contact solver.
+
 ## 2026-09-23 — Four-wheel compliant contact, content compilation and collision coupling session
 
 Added:
