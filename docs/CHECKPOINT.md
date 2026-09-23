@@ -3,9 +3,9 @@
 Updated: 2026-09-23
 
 ## Current phase
-**Integrated front-suspension/contact vehicle-physics prototype.**
+**Four-corner suspension/contact integration.**
 
-The high-fidelity front-corner path can now derive suspension geometry, road contact, tire normal load and contact velocity from chassis/road state rather than requiring those values to be manually supplied.
+The prototype now has a complete front-axle steering/contact runtime and a true five-link rear geometry/contact path in source. The next gate is a four-wheel self-support fixture that couples all four independently resolved contacts to the existing tire/chassis simulation.
 
 The source remains **build-unverified** until Unreal Engine 5.8 UHT/UBT/C++ compilation and Automation execution are actually run.
 
@@ -13,287 +13,135 @@ The source remains **build-unverified** until Unreal Engine 5.8 UHT/UBT/C++ comp
 `latektigroo0904/racegame`
 
 ## Runtime modules
-```
-TA_Core
-TA_Surface
-TA_Tire
-TA_Powertrain
-TA_Structure
-TA_Damage
-TA_Vehicle
-TA_Telemetry
-```
+`TA_Core`, `TA_Surface`, `TA_Tire`, `TA_Powertrain`, `TA_Structure`, `TA_Damage`, `TA_Vehicle`, `TA_Telemetry`.
 
-## Implemented physical chains
+## Completed physical chains
 
-### Propulsion
-```
-driver throttle
-→ engine torque curve
-→ clutch
-→ gearbox
-→ final drive
-→ open differential
-→ wheel inertia
-→ tire slip/force
-→ wheel reaction torque
-```
+### Front axle
+`driver Steering01 → shaped physical rack displacement → shared rack translation → mirrored left/right double-wishbone solve → road contact → spring/damper load → axle anti-roll → tire input`.
 
-### Front suspension / road / tire
-```
-chassis pose
-→ double-wishbone constraints
-→ wheel center + orientation
-→ road-plane travel solve
-→ damper motion ratio
-→ spring/damper/stop force
-→ anti-roll load transfer
-→ tire normal load
-→ contact-patch velocity
-→ tire force
-→ force/moment at physical contact point
-→ 6-DOF chassis motion
-```
+Implemented this phase:
+- canonical right-front geometry mirrored across chassis centerline;
+- rack axis deliberately remains one shared chassis-local translation axis when geometry is mirrored;
+- normalized steering input with clamp, exponent and explicit steering sign;
+- left/right road contacts solved independently;
+- anti-roll applied after both base corner loads exist;
+- Ackermann delta exposed;
+- neutral-rack bump-steer telemetry exposed;
+- regression source for mirror, rack clamp, shared-rack steering and asymmetric-road anti-roll.
 
-### Structural suspension damage
-```
-structure node current position
-- structure node reference position
-→ weighted pickup binding
-→ wishbone pickup displacement
-→ new 3D suspension geometry
-→ changed camber/toe/motion ratio/contact
-→ changed tire/chassis behavior
-```
+### Rear suspension
+`chassis pose → five independent link constraints → rigid upright → wheel center/orientation → road-plane travel solve → damper motion ratio → spring/damper load → tire input`.
 
-### Tire state
-```
-slip + rolling dissipation
-→ surface heat
-→ carcass heat
-→ internal-air temperature
-→ pressure
-→ grip change
-→ wear/tread loss
-→ wet/aquaplaning behavior change
-```
-
-### Cooling damage
-```
-radiator impact/crush
-→ puncture/leak
-→ coolant loss
-→ cooling efficiency loss
-→ coolant temperature rise
-→ engine torque derate
-→ cumulative thermal engine damage
-```
-
-### Engine restart
-```
-Running below stall RPM
-→ Stalled
-→ starter torque
-→ Cranking
-→ combustion-start RPM
-→ Running
-```
-
-## Major implemented systems
-
-### TA_Tire
-- slip ratio/angle;
-- load sensitivity;
-- combined slip;
-- camber force;
-- pneumatic-trail aligning moment;
-- aligning moment applied to chassis torque;
-- rolling resistance;
-- continuous per-wheel aquaplaning;
-- temperature-dependent grip;
-- pressure-dependent grip;
-- surface/carcass thermal model;
-- internal-air temperature and pressure;
-- energy-based wear;
-- tread-depth loss;
-- irreversible thermal degradation.
-
-### Front double wishbone
-- upper inner A/B;
-- lower inner A/B;
-- upper/lower ball joints;
-- tie-rod inner/outer;
-- wheel center;
+Implemented this phase:
+- true five-link rear solver; no double-wishbone substitution;
+- five independent chassis pickups and upright pickups;
+- rigid upright preservation through internal distance constraints;
+- travel coordinate closes the six-DOF upright mechanism;
 - wheel orientation reconstruction;
-- steering through tie-rod/rack displacement;
-- structural pickup offsets;
-- damper chassis mount;
-- lower-arm damper mount;
-- solved damper length;
-- damaged-mode motion-ratio estimate;
-- convergence residual/tolerance reporting.
+- camber/toe output;
+- damper length output;
+- per-link structural chassis-pickup displacement;
+- mirrored left-side configuration;
+- rear road-contact bisection;
+- rear self-derived normal load and contact-patch velocity;
+- rear anti-roll pair helper;
+- rear conversion to `FTAWheelContactInput`.
 
-### Suspension/contact
-- road-plane contact reach;
-- bisection suspension-travel solve;
-- full-droop airborne state;
-- full-bump penetration reporting;
-- spring/damper/bump/droop forces;
-- static spring compression;
-- anti-roll equal/opposite load transfer;
-- contact-point velocity from rigid-body motion;
-- longitudinal/lateral contact speed derivation;
-- self-derived tire normal load;
-- road surface propagation to tire solver.
-
-### Structure → suspension
-- structure nodes now retain reference positions;
-- current-minus-reference displacement helper;
-- weighted node bindings per suspension pickup;
-- direct conversion to double-wishbone damage offsets.
-
-### Chassis / vehicle
+### Existing vehicle physics retained
 - 6-DOF chassis integration;
 - physical force-at-point torque generation;
-- drivetrain/tire/wheel integration;
-- brake-to-zero wheel integration;
-- tire thermal/wear advancement every vehicle step;
-- resolved contact can feed `FTAWheelContactInput`;
-- integrated resolved-contact → tire → chassis regression source exists.
+- engine/clutch/gearbox/final-drive/open-differential/wheel/tire chain;
+- tire thermal, pressure and wear state;
+- radiator/cooling/thermal engine damage;
+- structural pickup displacement path.
 
-## Documentation added this session
-- `20-DOUBLE-WISHBONE-GEOMETRY-V02.md`
-- `21-CONTACT-LOAD-PIPELINE-V01.md`
-- `22-TIRE-THERMAL-WEAR-V01.md`
+## Telemetry
+Added front-axle channels for:
+- steering rack displacement;
+- front-left/right steering angle;
+- front-left/right bump steer;
+- Ackermann delta.
 
-## Tests written this session
-Automation source now additionally covers:
-- double-wishbone reference geometry;
-- bump travel;
-- rack steering changing toe;
-- pickup displacement changing camber;
-- degenerate wishbone rejection;
-- reference road contact;
-- self-derived normal load;
-- chassis velocity → contact velocity;
-- full-droop contact loss;
-- damaged-contact alignment;
-- structural-node → pickup binding;
-- weighted structural binding;
-- anti-roll transfer;
-- resolved suspension contact → tire → chassis acceleration;
-- tire surface heating;
-- carcass/internal-air warming;
-- pressure rise;
-- wear/tread loss;
-- cold/optimal/hot grip behavior.
+Also corrected a module dependency inconsistency: `TA_Telemetry` publicly includes vehicle types and now explicitly declares `TA_Vehicle` as a dependency.
 
-All tests remain **written but not executed**.
+## New documentation
+- `23-FRONT-AXLE-STEERING-V01.md`
+- `24-REAR-MULTILINK-GEOMETRY-V01.md`
 
-## Source/API review performed
-Current Epic Unreal Engine 5.8 documentation confirms the TVector functions used by this code, including:
-- `Length()`;
-- `Equals()`;
-- `GetSafeNormal()`;
-- `SquaredLength()`;
-- `GetClampedToMaxSize()`.
+## New/expanded tests written
+- mirrored front geometry;
+- shared rack-axis invariant;
+- steering input/rack clamp;
+- same-turn-direction left/right steering;
+- Ackermann differential;
+- asymmetric front travel/anti-roll;
+- rear five-link reference geometry;
+- rear bump/droop;
+- rear damper response;
+- rear mirror symmetry;
+- individual rear pickup damage changing alignment;
+- rear reference road contact/load;
+- rear chassis velocity → patch velocity.
 
-## Important corrections made
-1. Damaged suspension no longer assumes motion ratio = 1.0.
-2. 1D travel cache is invalid while steering or structural pickup displacement is active.
-3. Road surface state now survives the contact-resolution path into the tire solver.
-4. Tire aligning moment now affects chassis torque rather than telemetry only.
-5. Tire temperature/pressure/wear state now affects actual force capacity.
-6. High-fidelity front contact no longer needs manually supplied load or patch velocity.
+All Automation tests remain **written but not executed**.
 
-## Still build-unverified
-- UnrealHeaderTool;
-- UnrealBuildTool;
-- MSVC/Clang compilation;
-- Editor module loading;
-- Automation tests;
-- performance profiling;
-- cross-machine determinism;
-- real driving calibration.
+## Decisions and assumptions
+1. Positive `Steering01` means a right turn for TA-P01. Physical rack sign is configuration, not hidden solver behavior.
+2. Mirroring front hardpoints does not mirror the physical rack translation axis because one rack moves both inner tie-rods in the same chassis-local direction.
+3. Rear suspension is represented as five real links attached to one rigid upright. This preserves a direct damage path per link.
+4. Rear wheel travel is the sixth kinematic constraint for the initial rigid-upright solver.
+5. Rear multi-link kinematic caching is disabled for now; correctness precedes optimization.
+6. Current hardpoints and spring/damper values are engineering seeds, not measured production-car data.
 
-No build/test-pass claim may be made before those operations actually run.
-
-## Highest remaining technical risks
-1. Rear multi-link geometry/contact is still absent, so the whole car cannot yet use self-derived four-wheel loads.
-2. Driver steering input is not yet mapped to rack displacement in the integrated vehicle control path.
-3. Tire vertical compliance/unsprung mass are absent.
-4. Structure/contact crash impulses are not yet distributed from real collision manifolds.
-5. Whole-vehicle energy stability must be checked after four independent suspension corners are active.
-6. Tire and suspension calibrations are engineering seeds rather than measured data.
-7. First real UE 5.8 build may expose UHT/UBT/API issues.
+## Risks / verification debt
+1. First UE 5.8 compile may expose API/compiler issues; no build-pass claim is made.
+2. The iterative rear rigid-upright projection needs real Automation execution and residual profiling across the full travel envelope.
+3. Four-corner energy stability is not yet proven.
+4. Tire radial compliance and unsprung mass are still absent, so current road contact is kinematic/rigid-radius.
+5. Structural crash impulses are not yet distributed from real collision manifolds.
+6. Ackermann and bump-steer values are geometry outputs but not yet calibrated to a target handling specification.
 
 ## Immediate next work — no user input required
 
-### 1. Complete front axle
-Implement:
-- mirrored front-left TA-P01 hardpoints;
-- steering rack runtime config;
-- normalized steering input → physical rack displacement;
-- left/right wishbone solve from one rack position;
-- axle anti-roll application;
-- Ackermann/bump-steer telemetry and regression tests.
-
-### 2. Rear multi-link geometry v0.1
-Implement a true link-based rear upright solver rather than disguising the rear as a double wishbone:
-- individual chassis link pickups;
-- individual upright link pickups;
-- rigid upright/wheel center;
-- bump/toe/camber behavior;
-- structural pickup displacement;
-- damper/spring mount geometry.
-
-### 3. Full four-wheel self-support fixture
-Replace all manually supplied proving-ground loads/velocities:
-- four suspension corners;
+### 1. Four-wheel self-support fixture
+Create one high-level prototype rig containing:
+- front axle runtime state;
+- mirrored rear-left + rear-right multi-link states;
 - four road contacts;
-- gravity;
-- static settle;
-- accelerate;
-- brake;
-- steer;
-- roll/load transfer.
+- front/rear anti-roll;
+- four `FTAWheelContactInput` outputs;
+- gravity/chassis integration.
+
+Acceptance: at reference ride height all four corners derive their own contact, load and patch velocity without manually supplied wheel loads.
+
+### 2. Static settle regression
+From a slightly displaced chassis pose:
+- integrate gravity + suspension reactions;
+- verify finite settle behavior;
+- check total vertical support against vehicle weight;
+- check left/right symmetry;
+- record ride-height/load envelopes.
+
+### 3. Dynamic four-wheel regression
+Then run source fixtures for:
+- straight acceleration;
+- braking;
+- steering;
+- asymmetric road/roll transfer.
 
 ### 4. Tire vertical compliance / unsprung mass
-After four-wheel geometry is stable:
-- tire radial stiffness/damping;
-- unsprung wheel/upright mass;
+Only after four-wheel rigid-radius contact is stable:
+- tire radial spring/damper;
+- wheel/upright unsprung mass;
 - wheel hop;
-- curb/rough-road normal dynamics.
+- curb/rough-road transient load.
 
-### 5. Structure collision coupling
-Add:
-- collision impulse input;
-- spatial distribution to structural nodes;
-- energy accounting;
-- suspension pickup displacement from the same crash;
-- avoid double-counting rigid/structural impact energy.
-
-### 6. Telemetry / regression export
-Add:
-- config hash/build metadata;
-- CSV trace export;
-- regression envelopes;
-- static-settle and handling report outputs.
-
-### 7. First Unreal build gate
-As soon as UE 5.8 build access exists:
-1. generate project files;
-2. compile Development Editor;
-3. fix UHT/UBT/compiler errors;
-4. launch Editor;
-5. run all `TorqueAtlas.*` Automation tests;
-6. record engine/toolchain/commit;
-7. profile fixed-step vehicle and damaged-suspension cases.
+### 5. Build gate
+As soon as UE 5.8 execution is available: compile Development Editor, run all `TorqueAtlas.*` Automation tests, fix UHT/UBT/compiler errors, record toolchain/commit and profile solver cost.
 
 ## Exact continuation point
-Resume with **front-left mirror + steering rack runtime**, then create a complete two-wheel front axle contact/anti-roll solve. After that start the true rear multi-link solver.
-
-Do not expand world size, vehicle roster, career, economy or art production until the prototype vehicle supports its own weight on all four wheels and can accelerate, brake and steer from self-derived contact physics.
+Resume by implementing the **full four-wheel self-support runtime/fixture** using `TAFrontAxleRuntime` for the front and `TAMultiLinkContactResolver` for both rear corners. Do not start world/career/content expansion before four-wheel self-derived support, acceleration, braking and steering are demonstrated.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
