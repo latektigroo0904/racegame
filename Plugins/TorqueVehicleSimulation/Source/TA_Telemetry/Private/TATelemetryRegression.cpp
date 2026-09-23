@@ -11,6 +11,10 @@ namespace
         case ETATelemetryMetric::SuspensionTravelM:
         case ETATelemetryMetric::WheelCamberRad:
         case ETATelemetryMetric::WheelToeRad:
+        case ETATelemetryMetric::WheelHubDamage01:
+        case ETATelemetryMetric::WheelHubBrakeEfficiency01:
+        case ETATelemetryMetric::WheelHubDriveEfficiency01:
+        case ETATelemetryMetric::WheelHubBearingDragTorqueNm:
         case ETATelemetryMetric::TireRadialDeflectionM:
         case ETATelemetryMetric::WheelSlipRatio:
         case ETATelemetryMetric::TireLongitudinalForceN:
@@ -99,6 +103,21 @@ namespace
                 Sample.SteeringRackDisplacementM;
             break;
 
+        case ETATelemetryMetric::SteeringRackDamage01:
+            OutValue =
+                Sample.SteeringRackDamage01;
+            break;
+
+        case ETATelemetryMetric::SteeringCommandAuthority01:
+            OutValue =
+                Sample.SteeringCommandAuthority01;
+            break;
+
+        case ETATelemetryMetric::SteeringRackFreePlayM:
+            OutValue =
+                Sample.SteeringRackFreePlayM;
+            break;
+
         case ETATelemetryMetric::WheelVerticalLoadN:
             OutValue =
                 Sample.WheelVerticalLoadN[WheelIndex];
@@ -117,6 +136,26 @@ namespace
         case ETATelemetryMetric::WheelToeRad:
             OutValue =
                 Sample.WheelToeRad[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::WheelHubDamage01:
+            OutValue =
+                Sample.WheelHubDamage01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::WheelHubBrakeEfficiency01:
+            OutValue =
+                Sample.WheelHubBrakeEfficiency01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::WheelHubDriveEfficiency01:
+            OutValue =
+                Sample.WheelHubDriveEfficiency01[WheelIndex];
+            break;
+
+        case ETATelemetryMetric::WheelHubBearingDragTorqueNm:
+            OutValue =
+                Sample.WheelHubBearingDragTorqueNm[WheelIndex];
             break;
 
         case ETATelemetryMetric::TireRadialDeflectionM:
@@ -320,6 +359,12 @@ namespace
             return TEXT("CoolantTemperatureC");
         case ETATelemetryMetric::SteeringRackDisplacementM:
             return TEXT("SteeringRackDisplacementM");
+        case ETATelemetryMetric::SteeringRackDamage01:
+            return TEXT("SteeringRackDamage01");
+        case ETATelemetryMetric::SteeringCommandAuthority01:
+            return TEXT("SteeringCommandAuthority01");
+        case ETATelemetryMetric::SteeringRackFreePlayM:
+            return TEXT("SteeringRackFreePlayM");
         case ETATelemetryMetric::WheelVerticalLoadN:
             return TEXT("WheelVerticalLoadN");
         case ETATelemetryMetric::SuspensionTravelM:
@@ -328,6 +373,14 @@ namespace
             return TEXT("WheelCamberRad");
         case ETATelemetryMetric::WheelToeRad:
             return TEXT("WheelToeRad");
+        case ETATelemetryMetric::WheelHubDamage01:
+            return TEXT("WheelHubDamage01");
+        case ETATelemetryMetric::WheelHubBrakeEfficiency01:
+            return TEXT("WheelHubBrakeEfficiency01");
+        case ETATelemetryMetric::WheelHubDriveEfficiency01:
+            return TEXT("WheelHubDriveEfficiency01");
+        case ETATelemetryMetric::WheelHubBearingDragTorqueNm:
+            return TEXT("WheelHubBearingDragTorqueNm");
         case ETATelemetryMetric::TireRadialDeflectionM:
             return TEXT("TireRadialDeflectionM");
         case ETATelemetryMetric::WheelSlipRatio:
