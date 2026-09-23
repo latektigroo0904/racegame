@@ -24,5 +24,23 @@ jobs:
       - name: Validate shell verification runner syntax
         run: bash -n Scripts/verify-unreal.sh
 
+      - name: Validate PowerShell verification runner syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "Scripts/Verify-Unreal.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
+      - name: Test Automation report validator
+        run: python Scripts/test_validate_automation_report.py
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
