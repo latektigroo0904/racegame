@@ -18,6 +18,9 @@ namespace
 
         H.TieRodInner = FVector3d(1.12, 0.35, -0.38);
 
+        H.DamperChassis = FVector3d(1.31, 0.40, -0.05);
+        H.DamperLowerArmReference = FVector3d(1.31, 0.52, -0.43);
+
         H.UpperBallJointReference = FVector3d(1.31, 0.70, -0.25);
         H.LowerBallJointReference = FVector3d(1.31, 0.73, -0.50);
         H.TieRodOuterReference = FVector3d(1.12, 0.71, -0.39);
