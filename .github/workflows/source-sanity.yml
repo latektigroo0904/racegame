@@ -45,8 +45,27 @@ jobs:
       - name: Test aero asset-closure applicator
         run: python -m unittest tests.tools.test_apply_aero_asset_closure -v
 
+      - name: Test compliant midpoint-fix applicator
+        run: python -m unittest tests.tools.test_apply_compliant_midpoint_reaction_fix -v
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
+
+      - name: Exercise compliant midpoint fix against canonical source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/apply_compliant_midpoint_reaction_fix.py
+          git diff --check
+
+          mapfile -t changed < <(git diff --name-only)
+          expected="Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAWheelContactResolver.cpp"
+          if [[ ${#changed[@]} -ne 1 || "${changed[0]}" != "$expected" ]]; then
+            printf 'Unexpected midpoint-fix diff:\n%s\n' "${changed[*]}" >&2
+            exit 1
+          fi
+          git diff --stat
+          git checkout -- "$expected"
 
       - name: Exercise aero closure against canonical sources
         shell: bash
