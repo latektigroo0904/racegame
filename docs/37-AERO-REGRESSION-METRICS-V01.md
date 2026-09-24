@@ -21,8 +21,10 @@ The caller supplies normalized-able forward/up world axes. Degenerate, parallel,
 
 This preserves one physics source of truth and keeps reporting frame policy separate from the aero solver.
 
-## Risk
-These metrics are ready for report integration but ordinary `TAVehicleSimulation::Step` still does not call the aero bridge at this checkpoint. Therefore a full-step scenario will still report zero aero until canonical vehicle-step closure lands.
+## Runtime integration status
+`TAVehicleSimulation::Step` now calls `TAVehicleAerodynamicsBridge::AddToChassis` from the same pre-integration chassis state used by tire/suspension forces. Aero contributes to the shared `FTAChassisForceAccumulator` before the single chassis integration, and `FTAVehicleStepOutput::Aerodynamics` carries the exact solver result into telemetry/regression reporting. The previous zero-aero full-step integration risk is therefore source-closed.
+
+Remaining risk: this path is still UE 5.8 executable-unverified; generated code, compiler/linker behavior, module loading and Automation remain the acceptance gate.
 
 ## Acceptance
 Automation tests cover scalar projection/sign conventions and invalid-frame rejection. UE 5.8 executable verification remains required before baseline promotion.
