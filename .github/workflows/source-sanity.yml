@@ -42,5 +42,8 @@ jobs:
       - name: Test Automation report validator
         run: python Scripts/test_validate_automation_report.py
 
+      - name: Test aero asset-closure applicator
+        run: python -m unittest tests.tools.test_apply_aero_asset_closure -v
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
