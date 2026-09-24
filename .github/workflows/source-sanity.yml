@@ -64,7 +64,7 @@ jobs:
             exit 1
           fi
 
-      - name: Exercise aero closure against canonical sources
+      - name: Verify canonical aero asset closure
         shell: bash
         run: |
           set -euo pipefail
@@ -72,24 +72,8 @@ jobs:
           python scripts/verify_aero_asset_closure.py
           git diff --check
 
-          mapfile -t changed < <(git diff --name-only)
-          expected=(
-            "Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAVehicleDefinition.cpp"
-            "Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Public/TAVehicleDefinition.h"
-          )
-
-          if [[ ${#changed[@]} -ne ${#expected[@]} ]]; then
-            printf 'Unexpected closure diff file count: %s\n' "${#changed[@]}" >&2
-            printf 'Changed files:\n%s\n' "${changed[*]}" >&2
+          if ! git diff --quiet; then
+            printf 'REFUSED: canonical aero patch 41 is not already in fixed state.\n' >&2
+            git diff --stat >&2
             exit 1
           fi
-
-          for index in "${!expected[@]}"; do
-            if [[ "${changed[$index]}" != "${expected[$index]}" ]]; then
-              printf 'Unexpected closure diff at index %s: %s\n' \
-                "$index" "${changed[$index]}" >&2
-              exit 1
-            fi
-          done
-
-          git diff --stat
