@@ -3,21 +3,34 @@
 Updated: 2026-09-24
 
 ## Current phase
-**Proof-of-Physics v2 / P1.1 static mass balance — canonical source closure complete.** Analytical oracle, settled sampling, comparison, acceptance, live four-wheel evidence adapter and end-to-end evidence pipeline are source-complete. Vertical-load provenance and compliant additional-reaction behavior have Automation source coverage. Patch 44 and aero patch 41 are both landed on canonical `main`. UE 5.8 executable verification is now the acceptance gate.
+**Proof-of-Physics v2 / P1.1 static mass balance — canonical source closure and UE 5.8 source preflight complete.** Analytical oracle, settled sampling, comparison, acceptance, live four-wheel evidence adapter and end-to-end evidence pipeline are source-complete. Vertical-load provenance and compliant additional-reaction behavior have Automation source coverage. Patch 44 and aero patch 41 are both landed on canonical `main`. A source-level UHT/include/module audit found no deterministic dependency defect requiring speculative edits. UE 5.8 executable verification is now the acceptance gate.
 
 Canonical repository: `latektigroo0904/racegame`. Content/runtime versions remain SchemaVersion 2, PhysicsVersion 2 and DamageModelVersion 2.
 
 The project remains **UE-build-unverified** until UnrealHeaderTool, UnrealBuildTool/C++ compilation, Editor module loading and `Automation RunTest TorqueAtlas.` complete successfully under Unreal Engine 5.8.
 
 ## Aerodynamics status — CANONICAL OWNERSHIP CLOSED
-Aero patch 41 landed as commit `8f76d4cfe2767c2cb5a281afc06584d7d65abc27`. `UTAVehicleDefinition` now owns authored `FTAAerodynamicsDefinition Aerodynamics`; validation rejects invalid authored aero; canonical compilation converts the authored vehicle-origin-local application point to COM-local exactly once; and the compiled aero runtime contributes transactionally to the vehicle physics hash.
+Aero patch 41 landed as commit `8f76d4cfe2767c2cb5a281afc06584d7d65abc27`. `UTAVehicleDefinition` owns authored `FTAAerodynamicsDefinition Aerodynamics`; validation rejects invalid authored aero; canonical compilation converts the authored vehicle-origin-local application point to COM-local exactly once; and the compiled aero runtime contributes transactionally to the vehicle physics hash.
 
-The landing used `scripts/apply_aero_asset_closure.py` plus `scripts/verify_aero_asset_closure.py` under an exact two-file diff gate. The temporary `contents: write` workflow was removed immediately after landing. Source sanity now treats the applicator as a fixed-state no-op and requires the verifier to pass with a clean git diff.
+The landing used `scripts/apply_aero_asset_closure.py` plus `scripts/verify_aero_asset_closure.py` under an exact two-file diff gate. The temporary `contents: write` workflow was removed immediately after landing. Source sanity treats the applicator as a fixed-state no-op and requires the verifier to pass with a clean git diff.
 
 Invariant: no arcade speed-dependent tire-grip multiplier. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
 
+## UE 5.8 source preflight
+Canonical audit: `docs/45-UE58-UHT-MODULE-AUDIT-V01.md`.
+
+Findings:
+- `TA_Vehicle` already declares the public engine/subsystem dependencies required by its exported vehicle types.
+- the game module keeps `TA_Core`/`TA_Vehicle` private and does not leak plugin implementation dependencies publicly;
+- `TAVehicleDefinition.h` includes `TAAerodynamicsDefinition.h` before its generated header, with `TAVehicleDefinition.generated.h` remaining the final include;
+- `TAAerodynamicsDefinition.h` follows the same generated-header ordering and exports its reflected struct with `TA_VEHICLE_API`;
+- P1.1 evidence classes remain inside `TA_Vehicle`, so no additional module edge is justified;
+- no speculative Build.cs/include edit is warranted without UHT/UBT evidence.
+
+Source inspection cannot prove generated-code, compiler, module-load or Automation success; executable status remains unverified.
+
 ## P1.1 static mass balance status
-Canonical design docs: `docs/42-STATIC-MASS-BALANCE-V01.md`, `docs/43-STATIC-LOAD-EVIDENCE-PIPELINE-V01.md`, and `docs/44-VERTICAL-LOAD-PROVENANCE-AUDIT-V01.md`.
+Canonical design docs: `docs/42-STATIC-MASS-BALANCE-V01.md`, `docs/43-STATIC-LOAD-EVIDENCE-PIPELINE-V01.md`, `docs/44-VERTICAL-LOAD-PROVENANCE-AUDIT-V01.md`, and `docs/45-UE58-UHT-MODULE-AUDIT-V01.md`.
 
 Implemented layers:
 - `TAStaticMassBalance`: fail-closed analytical FL/FR/RL/RR equilibrium oracle;
@@ -57,31 +70,33 @@ Provisional acceptance defaults: total <= 2%; front/rear axle <= 3%; left/right 
 11. Anti-roll conservation is asserted only in the unclamped regime.
 12. Additional suspension reaction is a force contribution, not a hidden load-sign conversion.
 13. One-shot write-capable CI workflows must be removed immediately after successful canonical landing.
+14. Do not change module dependencies or include topology speculatively when the source graph is internally consistent; let UHT/UBT produce the next actionable defect.
 
 ## Risks
 - P1.1 source/tests remain UE 5.8 build-unverified.
 - The positive-reaction monotonicity assertion is physically intended but still requires UE execution; diagnose equilibrium/sign semantics rather than weakening the test if it fails.
 - Acceptance tolerances remain provisional until real stationary baselines are captured.
 - Authored suspension preload/static compression may disagree with COM-derived equilibrium and must be diagnosed rather than hidden by wider gates.
-- The post-aero fixed-state Source sanity run must be observed green before CI closure is considered complete.
 - No available hosted runner currently proves Unreal 5.8 UHT/UBT; executable acceptance requires a UE 5.8-capable environment.
+- Source inspection cannot expose generated-code or engine-version-specific compile failures.
 
 ## Deliverables completed this session
-- Confirmed Source sanity run 180 passed on patch-44 fixed state.
-- Created a narrow one-shot aero landing workflow with `contents: write`, fail-closed applicator/verifier and exact two-file diff gate.
-- Landed aero ownership closure as commit `8f76d4cfe2767c2cb5a281afc06584d7d65abc27`.
-- Converted Source sanity from temporary aero application to canonical fixed-state/no-op verification.
-- Removed the one-shot write-capable aero workflow immediately after use.
+- Audited the actual `TorqueAtlas.Build.cs` and plugin `TA_Vehicle.Build.cs` dependency direction.
+- Audited UHT-facing generated-header ordering for canonical `TAVehicleDefinition.h` and `TAAerodynamicsDefinition.h`.
+- Confirmed P1.1 remains module-local to `TA_Vehicle`; no new dependency edge is justified.
+- Added `docs/45-UE58-UHT-MODULE-AUDIT-V01.md` with executable gate and failure semantics.
+- Deliberately made no speculative source/Build.cs changes where engine evidence is required.
 - Preserved UE-build-unverified status pending real engine execution.
 
 ## Exact continuation point
-1. Observe the post-aero fixed-state Source sanity run and resolve any regression before engine work.
-2. Perform a source-level UHT/include/module dependency audit focused on newly added P1.1 and aero ownership types; fix only deterministic defects that can be proven without Unreal execution.
-3. Run UE 5.8 UHT/UBT for the complete source set in a UE-capable environment.
-4. Run `TorqueAtlas.Suspension.Contact.Compliant.*`, then `Automation RunTest TorqueAtlas.Vehicle.StaticLoad.`, `TorqueAtlas.Suspension.Contact.*`, and full `Automation RunTest TorqueAtlas.`.
-5. Diagnose any positive-reaction monotonicity failure as physics/sign semantics, not by widening tolerances.
-6. Capture a real stationary four-wheel baseline at 120 Hz and use executable evidence to decide whether the 1.0 s window and provisional 2/3/3/2% envelope should be tightened.
-7. Do not begin map-based/active aero or broad content production until integrated Proof-of-Physics is executable and repeatable.
+1. Run UE 5.8 UHT/UBT for `TorqueAtlasEditor` Development on a UE-capable environment; capture engine/compiler/command/exit status.
+2. Fix the first deterministic UHT/compile defect only if one appears, then rebuild before touching physics tolerances.
+3. Run `TorqueAtlas.Suspension.Contact.Compliant.*`.
+4. Run `Automation RunTest TorqueAtlas.Vehicle.StaticLoad.` and then `TorqueAtlas.Suspension.Contact.*`.
+5. Run full `Automation RunTest TorqueAtlas.`.
+6. Diagnose any positive-reaction monotonicity failure as physics/sign semantics, not by widening tolerances.
+7. Capture a real stationary four-wheel baseline at 120 Hz and use executable evidence to decide whether the 1.0 s window and provisional 2/3/3/2% envelope should be tightened.
+8. Do not begin map-based/active aero or broad content production until integrated Proof-of-Physics is executable and repeatable.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
