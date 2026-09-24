@@ -3,7 +3,7 @@
 Updated: 2026-09-24
 
 ## Current phase
-**Proof-of-Physics v2: aerodynamic solver, force application, applied telemetry and machine-readable regression reporting are source-level closed. Asset-level regression coverage is now versioned. The remaining canonical aero ownership edit is the authored `UTAVehicleDefinition` property plus its compile/hash call site. UE 5.8 executable verification remains the external acceptance gate.**
+**Proof-of-Physics v2: aerodynamic solver, force application, applied telemetry and machine-readable regression reporting are source-level closed. Asset-level regression coverage is versioned. The remaining canonical aero ownership edit is the authored `UTAVehicleDefinition` property plus its compile/hash call site. A safe local applicator now exists to remove the GitHub whole-file replacement limitation. UE 5.8 executable verification remains the external acceptance gate.**
 
 Canonical repository: `latektigroo0904/racegame`. Current content/runtime versions remain SchemaVersion 2, PhysicsVersion 2 and DamageModelVersion 2.
 
@@ -29,6 +29,7 @@ Established:
 - `TAAeroRegressionReport` machine-readable summary over exact applied compact telemetry, with JSON-lines and CSV export;
 - exact vehicle-definition closure patch versioned as `patches/41-aero-vehicle-definition-callsite.patch`;
 - `scripts/verify_aero_asset_closure.py`, a static source gate enforcing property/include/validation/compiler-call presence, exactly-one canonical compiler call, COM/runtime destination and `structure hash -> aero hash -> final PhysicsConfigHash` ordering;
+- `scripts/apply_aero_asset_closure.py`, an idempotent, fail-closed local source applicator that validates all anchors before writing either canonical source file;
 - `TAVehicleDefinitionAerodynamicsTests.cpp`, providing asset-level non-default propagation, invalid-authoring rejection, full physics-hash sensitivity and deterministic repeated compile/hash regressions.
 
 Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
@@ -44,11 +45,10 @@ Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero gr
 ## Work completed this session
 1. Re-read the active checkpoint and exact patch 41.
 2. Re-audited the canonical header and confirmed `UTAVehicleDefinition` still ends at `Structure`; authored aero is not yet present.
-3. Re-audited `BuildCompiledConfig`: validation currently stops after cooling/suspension authoring checks and final hashing still ends `HashStructureRuntime -> PhysicsConfigHash`.
-4. Confirmed patch 41 still targets the correct `VehicleRuntime` reference and `OutConfig.CenterOfMassMeters` ownership.
-5. Added `Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/Tests/TAVehicleDefinitionAerodynamicsTests.cpp` with four asset-level closure regressions using the frozen non-default fixture and non-zero COM.
-6. Corrected the planned regression matrix: coordinate-invariance belongs to the **effective aero hash contribution**, not the complete vehicle `PhysicsConfigHash`. The complete vehicle hash intentionally includes COM itself, so changing COM/origin representation can legitimately change the full vehicle hash even when the effective aero application point is invariant.
-7. Refreshed this checkpoint.
+3. Confirmed the asset-level aero tests intentionally reference `Definition->Aerodynamics`, keeping the missing source edit visible as a compile-time closure gate.
+4. Added `scripts/apply_aero_asset_closure.py` to make patch 41 safely executable from any local checkout without relying on a line-patch API.
+5. The applicator is idempotent, checks exact source anchors, refuses ambiguous/missing anchors, constructs both edited files before any write, and preserves the single intended validation/compile/hash ownership path.
+6. Refreshed this checkpoint.
 
 ## Decisions and assumptions
 1. Vehicle asset aero authoring uses vehicle-origin-local coordinates; runtime application point is COM-local.
@@ -64,33 +64,35 @@ Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero gr
 11. Single-resultant aero remains Proof-of-Physics scope; map-based front/rear balance and active aero remain deferred pending executable evidence.
 12. Compact telemetry owns exact applied-step physics evidence; broad telemetry owns high-dimensional diagnostic/state correlation for this phase.
 13. Static source verification is a pre-build guard only; it cannot substitute for UHT, C++ compilation or Automation execution.
+14. Automated source editing must fail closed on source drift; ambiguous anchors are an error, never a reason to guess.
 
 ## Risks
 Highest general risks remain UHT/UBT/compiler errors, unexecuted numerical Automation assertions, unmeasured coupled-contact convergence, unmeasured dynamic-unsprung behavior, incomplete real collision-manifold persistence, deferred topology-changing suspension fracture, incomplete hydraulic/ABS/fluid-boil behavior, and provisional real-world calibration.
 
 Aero-specific risks:
-- runtime defaults still mask the missing `UTAVehicleDefinition` property/call site until patch 41 is applied;
-- canonical `PhysicsConfigHash` still excludes aero until that patch is applied;
-- the new asset-level test translation unit intentionally references `Definition->Aerodynamics`, so the tree is expected not to compile until patch 41 is applied; this is now a deliberate closure gate rather than a silent missing test;
+- runtime defaults still mask the missing `UTAVehicleDefinition` property/call site until the closure is applied;
+- canonical `PhysicsConfigHash` still excludes aero until that edit is applied;
+- the asset-level test translation unit intentionally references `Definition->Aerodynamics`, so the tree is expected not to compile until closure is applied;
 - source-level report/tests have not executed under UE 5.8;
 - the call site must not hash aero twice: the adapter already advances the supplied hash on success;
 - double COM subtraction or raw-coordinate hashing would corrupt reproducibility;
 - two telemetry families intentionally remain, so ownership discipline is required to prevent field drift;
-- the current GitHub connector exposes whole-file replacement rather than a line-patch primitive. Applying partial/truncated replacements to the large canonical C++ files would be destructive; patch 41 remains the safe versioned edit artifact until a patch-capable workspace is available.
+- the GitHub connector still has no line-patch primitive; the new local applicator removes that operational blocker once a checkout/runner executes it, but this automation run cannot execute repository-local commands through GitHub itself.
 
 ## Deliverables completed this session
-- `Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/Tests/TAVehicleDefinitionAerodynamicsTests.cpp`;
-- corrected hash-invariance contract distinguishing isolated aero contribution from complete vehicle identity;
+- `scripts/apply_aero_asset_closure.py`;
+- safe/idempotent/fail-closed source-edit contract;
 - refreshed active checkpoint.
 
 ## Exact continuation point
 Resume with the **canonical vehicle-definition source edit**:
-1. apply `patches/41-aero-vehicle-definition-callsite.patch` using a patch-capable workspace/tool;
-2. run `scripts/verify_aero_asset_closure.py` and require PASS;
-3. run/compile the four new `TorqueAtlas.Vehicle.Definition.Aerodynamics.*` asset regressions and existing effective-hash coordinate-invariance regression;
-4. inspect includes/module dependencies and ensure UHT can reflect the new Blueprint property;
-5. run UE 5.8 UHT/UBT and `Automation RunTest TorqueAtlas.` when an engine environment is available;
-6. only after source closure passes, begin the next major Proof-of-Physics subsystem audit.
+1. in a patch-capable/local checkout run `python scripts/apply_aero_asset_closure.py`;
+2. immediately run `python scripts/verify_aero_asset_closure.py` and require PASS;
+3. inspect the resulting diff and commit the two canonical source edits only if the gate passes;
+4. run/compile the four `TorqueAtlas.Vehicle.Definition.Aerodynamics.*` asset regressions and existing effective-hash coordinate-invariance regression;
+5. inspect includes/module dependencies and ensure UHT can reflect the new Blueprint property;
+6. run UE 5.8 UHT/UBT and `Automation RunTest TorqueAtlas.` when an engine environment is available;
+7. only after source closure passes, begin the next major Proof-of-Physics subsystem audit.
 
 After aero asset closure is applied, keep the telemetry split defined by ADR 41 until executable verification. Do not start map-based aero, active aero or another large physics subsystem before the canonical asset property/call site and asset tests are source-level closed.
 
