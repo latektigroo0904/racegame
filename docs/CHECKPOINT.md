@@ -24,18 +24,24 @@ ADR 41 remains accepted: compact `FTATelemetrySample` owns exact applied-step ph
 ## P1.1 static mass balance
 The analytical contract is `docs/42-STATIC-MASS-BALANCE-V01.md`.
 
-Implemented this session:
+Implemented:
 - `Public/TAStaticMassBalance.h`: pure input/output contract and exported calculation API;
 - `Private/TAStaticMassBalance.cpp`: fail-closed analytical four-support equilibrium implementation;
-- `Private/Tests/TAStaticMassBalanceTests.cpp`: Class-A Automation coverage for total/axle conservation, centered symmetry, 55/45 baseline, longitudinal monotonicity, +Y lateral sign and invalid-input rejection.
+- `Private/Tests/TAStaticMassBalanceTests.cpp`: Class-A Automation coverage for total/axle conservation, centered symmetry, 55/45 baseline, longitudinal monotonicity, +Y lateral sign and invalid-input rejection;
+- `Public/TAStaticLoadComparison.h`: measured-mean versus analytical-oracle comparison contract;
+- `Private/TAStaticLoadComparison.cpp`: signed total/axle/side error metrics plus maximum absolute corner error, with fail-closed evidence validation;
+- `Private/Tests/TAStaticLoadComparisonTests.cpp`: exact-match, signed-aggregation and invalid-evidence regressions.
 
 Implementation properties:
 - +X forward, +Y right, +Z up;
 - longitudinal COM is measured from rear axle;
 - each axle uses its own track width for lateral split;
-- output is zeroed before validation so failure cannot leak stale targets;
-- lateral support-boundary cases are rejected before negative corner loads can arise;
-- the helper has no UObject/world dependency and must remain a regression oracle only.
+- calculation/comparison outputs are zeroed before validation so failure cannot leak stale evidence;
+- lateral support-boundary cases are rejected before negative analytical corner loads can arise;
+- comparison rejects negative/non-finite measured support loads and internally inconsistent analytical targets;
+- signed comparison errors are `Measured - Expected`;
+- relative total/axle/side errors use their corresponding expected aggregate; max corner error is normalized by expected total weight;
+- analytical and comparison helpers have no UObject/world dependency and remain regression evidence only.
 
 ## Decisions and assumptions
 1. Authored aero application point is vehicle-origin-local; runtime is COM-local.
@@ -51,9 +57,10 @@ Implementation properties:
 11. Automated source editing must fail closed on source drift or ambiguous anchors.
 12. Same-module aero includes require no additional `TA_Vehicle.Build.cs` dependency; UE/UHT remains the executable authority.
 13. Single-resultant aero remains current scope; map-based balance and active aero remain deferred.
-14. P1.1 analytical mass balance is an oracle only; it never injects forces or corner loads into the dynamic solver.
+14. P1.1 analytical mass balance and comparison layer are oracles only; neither injects forces or corner loads into the dynamic solver.
 15. Static lateral reference split uses each axle's own track width and rejects COM positions on/outside either lateral support boundary.
-16. Static-mass-balance calculation failure leaves a deterministic zero output.
+16. Static-mass-balance and comparison failure leave deterministic zero outputs.
+17. P1.1 comparison reports signed bias and magnitude separately; acceptance thresholds belong to the later sampling/envelope layer, not the metric calculator.
 
 ## Risks
 General risks remain UHT/UBT/compiler errors, unexecuted numerical Automation assertions, unmeasured coupled-contact convergence, dynamic-unsprung uncertainty, incomplete collision-manifold persistence, deferred topology-changing suspension fracture, incomplete hydraulic/ABS/fluid-boil behavior and provisional real-world calibration.
@@ -64,19 +71,22 @@ P1.1 risks:
 - authored suspension preload/static compression may disagree with COM-derived equilibrium;
 - tire vertical compliance can alter settle dynamics but not final force equilibrium;
 - transient roll stiffness distribution must not be conflated with the static analytical oracle;
-- the new helper/tests are source-complete but still UE-build-unverified.
+- contact-force sign/orientation at the eventual telemetry adapter must be normalized exactly once before comparison;
+- a single instantaneous frame is not valid static evidence; settled-window qualification is still required;
+- the new helpers/tests are source-complete but still UE-build-unverified.
 
 ## Deliverables completed this session
-- `TAStaticMassBalance.h`;
-- `TAStaticMassBalance.cpp`;
-- `TAStaticMassBalanceTests.cpp`;
+- `TAStaticLoadComparison.h`;
+- `TAStaticLoadComparison.cpp`;
+- `TAStaticLoadComparisonTests.cpp`;
 - refreshed active checkpoint.
 
 ## Exact continuation point
 1. If a safe patch-capable path is available, land patch 41 in `TAVehicleDefinition.h/.cpp`, require `verify_aero_asset_closure.py` PASS, then run the four vehicle-definition aero regressions and effective-hash invariant.
 2. Run UHT/include/module audit, UE 5.8 UBT and `Automation RunTest TorqueAtlas.` when an engine runner is available.
-3. If executable Unreal verification remains unavailable, continue P1.1 by implementing a **static-load comparison helper** that compares analytical versus measured mean FL/FR/RL/RR and reports total, axle and side errors without feeding results back into physics.
-4. Then specify/implement the settled-world P1.1 sampling window and acceptance envelope; do not begin map-based/active aero or broad content production.
+3. If executable Unreal verification remains unavailable, continue P1.1 with the **settled-world sampling window and acceptance envelope**. Define qualification using low chassis linear/angular velocity and load stability over a fixed window; only qualified samples may feed measured FL/FR/RL/RR means.
+4. Add deterministic tests for window warm-up, reset on motion/load instability, mean accumulation, minimum sample count and threshold boundary behavior.
+5. Do not begin map-based/active aero or broad content production until the integrated Proof-of-Physics gate is executable and repeatable.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
