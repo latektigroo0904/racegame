@@ -1,0 +1,11 @@
+diff --git a/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAWheelContactResolver.cpp b/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAWheelContactResolver.cpp
+--- a/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAWheelContactResolver.cpp
++++ b/Plugins/TorqueVehicleSimulation/Source/TA_Vehicle/Private/TAWheelContactResolver.cpp
+@@ -676,6 +676,7 @@ bool TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
+                     InOutSuspensionState,
+                     InOutTireState,
+                     RackDisplacementM,
++                    AdditionalSuspensionReactionN,
+                     DamageOffsets,
+                     Road.PointWorldM,
+                     RoadNormal,
