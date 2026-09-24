@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "TACoreTypes.h"
+#include "TAAerodynamicsDefinition.h"
 #include "TAVehicleRuntime.h"
 #include "TAVehicleStructureDefinition.h"
 #include "TAVehicleDefinition.generated.h"
@@ -589,6 +590,14 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Structure")
     FTAVehicleStructureAuthoringDefinition Structure;
+
+    /**
+     * Vehicle aerodynamic calibration. The authored application point is
+     * vehicle-origin-local; BuildCompiledConfig converts it to COM-local
+     * exactly once through TAVehicleAerodynamicsAssetCompiler.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Physics|Aerodynamics")
+    FTAAerodynamicsDefinition Aerodynamics;
 
     bool BuildCompiledConfig(FTAVehicleCompiledConfig& OutConfig, FTAValidationResult& OutValidation) const;
 };

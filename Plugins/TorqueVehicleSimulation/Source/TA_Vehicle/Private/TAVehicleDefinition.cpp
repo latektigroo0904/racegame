@@ -1,4 +1,5 @@
 #include "TAVehicleDefinition.h"
+#include "TAVehicleAerodynamicsAssetCompiler.h"
 
 namespace
 {
@@ -2333,6 +2334,15 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
         Cooling,
         OutValidation);
 
+    if (!TAAerodynamicsDefinition::Validate(Aerodynamics))
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.InvalidAerodynamics"),
+            TEXT("Aerodynamic reference area, coefficients or application point are invalid."));
+    }
+
     const bool bSuspensionForceCalibrationValid =
         FMath::IsFinite(FrontSuspension.SpringRateNPerM)
         && FrontSuspension.SpringRateNPerM >= 0.0
@@ -3363,6 +3373,20 @@ bool UTAVehicleDefinition::BuildCompiledConfig(
     Hash = HashStructureRuntime(
         Hash,
         OutConfig.StructureRuntime);
+
+    if (!TAVehicleAerodynamicsAssetCompiler::CompileValidatedAndHash(
+            Aerodynamics,
+            OutConfig.CenterOfMassMeters,
+            Hash,
+            VehicleRuntime.Aerodynamics))
+    {
+        AddValidation(
+            OutValidation,
+            ETAValidationSeverity::Error,
+            TEXT("Vehicle.InvalidAerodynamics"),
+            TEXT("Aerodynamic calibration failed canonical COM-local compilation."));
+        return false;
+    }
 
     OutConfig.PhysicsConfigHash =
         Hash;
