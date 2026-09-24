@@ -683,6 +683,7 @@ bool TAWheelContactResolver::ResolveDoubleWishboneCompliantRoadContact(
                     InOutSuspensionState,
                     InOutTireState,
                     RackDisplacementM,
+                    AdditionalSuspensionReactionN,
                     DamageOffsets,
                     Road.PointWorldM,
                     RoadNormal,
