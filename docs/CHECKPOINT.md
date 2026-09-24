@@ -23,7 +23,8 @@ Established:
 - `scripts/verify_aero_asset_closure.py` as the static post-edit gate;
 - `scripts/apply_aero_asset_closure.py` as the idempotent fail-closed applicator;
 - `tests/tools/test_apply_aero_asset_closure.py` covering insertion, ordering, idempotence, source drift and ambiguous-anchor refusal;
-- `.github/workflows/source-sanity.yml` now executes the applicator safety suite on push/pull request.
+- `.github/workflows/source-sanity.yml` executes the applicator safety suite and now also exercises the applicator + verifier against the real canonical source tree in an ephemeral CI checkout;
+- the ephemeral closure gate additionally requires `git diff --check` and exactly the two intended `TAVehicleDefinition` source files to change.
 
 Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
 
@@ -35,12 +36,12 @@ ADR 41 remains accepted:
 - structural consolidation remains deferred until executable evidence and schema migration tests exist.
 
 ## Work completed this session
-1. Re-audited the canonical header: `UTAVehicleDefinition` still ends at `Structure`; authored aero is not yet present.
-2. Re-audited `BuildCompiledConfig`: validation currently reaches cooling without aero, and final hash currently ends `HashStructureRuntime -> PhysicsConfigHash` without aero.
-3. Confirmed the staged applicator targets the correct anchors and runtime destination.
-4. Added six standard-library unit tests for the applicator safety contract.
-5. Wired those tests into the existing Source sanity GitHub Actions workflow.
-6. Preserved the deliberate expected compile-time closure gate in `TAVehicleDefinitionAerodynamicsTests.cpp` until the canonical source edit lands.
+1. Re-audited the canonical `UTAVehicleDefinition` header and confirmed authored aero is still absent after `Structure`.
+2. Re-audited the canonical `BuildCompiledConfig` tail and confirmed the final hash still ends `HashStructureRuntime -> PhysicsConfigHash`.
+3. Audited `TA_Vehicle.Build.cs` and the aero headers: the aero definition/solver live in `TA_Vehicle`; no new external module dependency is introduced by the planned property/include.
+4. Strengthened Source sanity so the closure applicator is executed against the actual repository sources, immediately verified, checked for whitespace errors, and constrained to exactly the two intended canonical files.
+5. Confirmed GitHub Actions run 139 started for commit `09bc60aa3373619d7154e75cab27aef915068163`; it was still in progress at checkpoint time, so no pass is claimed yet.
+6. Preserved main-source immutability: the CI exercise occurs only in the ephemeral Actions checkout and does not pretend the canonical edit has landed.
 
 ## Decisions and assumptions
 1. Authored aero application point is vehicle-origin-local; runtime is COM-local.
@@ -54,7 +55,8 @@ ADR 41 remains accepted:
 9. `TAVehicleAerodynamicsAssetCompiler` is the single asset validate/compile/hash call site.
 10. Failed aero compilation is transactional.
 11. Automated source editing must fail closed on source drift or ambiguous anchors.
-12. Single-resultant aero remains current scope; map-based balance and active aero remain deferred.
+12. Same-module aero includes require no additional `TA_Vehicle.Build.cs` dependency; UE/UHT remains the executable authority.
+13. Single-resultant aero remains current scope; map-based balance and active aero remain deferred.
 
 ## Risks
 General risks remain UHT/UBT/compiler errors, unexecuted numerical Automation assertions, unmeasured coupled-contact convergence, dynamic-unsprung uncertainty, incomplete collision-manifold persistence, deferred topology-changing suspension fracture, incomplete hydraulic/ABS/fluid-boil behavior and provisional real-world calibration.
@@ -66,22 +68,24 @@ Aero-specific risks:
 - static gates and Python unit tests do not substitute for UHT/UBT/Automation;
 - the adapter must not be called twice or followed by a second aero hash;
 - double COM subtraction/raw-coordinate hashing would break reproducibility;
-- compact/broad telemetry ownership must remain disciplined.
+- compact/broad telemetry ownership must remain disciplined;
+- the new real-source CI preflight validates patch applicability but does not persist its ephemeral edits.
 
 ## Deliverables completed this session
-- `tests/tools/test_apply_aero_asset_closure.py`;
-- Source sanity CI integration for the applicator tests;
+- strengthened `.github/workflows/source-sanity.yml` with real-source aero closure preflight;
+- module/UHT dependency audit result recorded;
 - refreshed active checkpoint.
 
 ## Exact continuation point
 Resume with the **canonical vehicle-definition source edit**:
-1. execute `scripts/apply_aero_asset_closure.py` in a patch-capable checkout;
-2. immediately require PASS from `scripts/verify_aero_asset_closure.py`;
-3. inspect and commit only the two intended canonical source edits;
-4. run the four `TorqueAtlas.Vehicle.Definition.Aerodynamics.*` regressions plus effective-hash coordinate-invariance;
-5. audit includes/module dependencies and UHT reflection for the new Blueprint property;
-6. run UE 5.8 UHT/UBT and `Automation RunTest TorqueAtlas.` when an engine runner is available;
-7. only after that closure, start the next major Proof-of-Physics subsystem audit.
+1. inspect Source sanity run 139 and require the real-source closure preflight to be green; if red, fix the applicator/verifier/anchor contract before touching canonical C++;
+2. execute `scripts/apply_aero_asset_closure.py` in a patch-capable checkout;
+3. immediately require PASS from `scripts/verify_aero_asset_closure.py`;
+4. inspect and commit only the two intended canonical source edits;
+5. run the four `TorqueAtlas.Vehicle.Definition.Aerodynamics.*` regressions plus effective-hash coordinate-invariance;
+6. audit UHT reflection for the new Blueprint property;
+7. run UE 5.8 UHT/UBT and `Automation RunTest TorqueAtlas.` when an engine runner is available;
+8. only after that closure, start the next major Proof-of-Physics subsystem audit.
 
 Do not start map-based aero, active aero or another large physics subsystem before canonical asset ownership is source-level closed.
 
