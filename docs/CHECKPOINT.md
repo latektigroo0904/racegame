@@ -3,114 +3,77 @@
 Updated: 2026-09-24
 
 ## Current phase
-**Proof-of-Physics v2.** Aerodynamics is functionally established but still lacks the final canonical `UTAVehicleDefinition.Aerodynamics` ownership edit. Source sanity run 140 proved the exact applicator/verifier contract against the real source tree. UE 5.8 executable verification remains the acceptance gate.
+**Proof-of-Physics v2 / P1.1 static mass balance.** The analytical oracle, settled sampling, comparison, acceptance, live four-wheel evidence adapter and end-to-end evidence pipeline are now source-complete. UE 5.8 executable verification remains the acceptance gate.
 
 Canonical repository: `latektigroo0904/racegame`. Content/runtime versions remain SchemaVersion 2, PhysicsVersion 2 and DamageModelVersion 2.
 
 The project remains **UE-build-unverified** until UnrealHeaderTool, UnrealBuildTool/C++ compilation, Editor module loading and `Automation RunTest TorqueAtlas.` complete successfully under Unreal Engine 5.8.
 
 ## Aerodynamics status
-Established: deterministic solver/bridge, runtime config, canonical step wiring, authored definition validation and COM-local compilation, transactional `TAVehicleAerodynamicsAssetCompiler`, compact applied-aero telemetry, regression reporting, solver/bridge/full-step/effective-hash/asset-compiler regressions, asset-level vehicle-definition regression source, exact patch 41, fail-closed applicator/verifier tooling, applicator unit tests and the real-source CI preflight.
+Aerodynamics remains functionally established, but canonical main still lacks the final authored `UTAVehicleDefinition.Aerodynamics` property/hash ownership edit. Source sanity run 140 previously proved the exact patch-41 applicator/verifier contract against the real source tree. Do not fake or reconstruct the large canonical definition files from truncated retrieval.
 
-Source sanity run 140 completed successfully for checkpoint commit `47c92b6f1af1d10bc0bd29c471a393ce20a09669`.
+Important invariant: no arcade speed-dependent tire-grip multiplier. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
 
-Canonical main still lacks the authored `Aerodynamics` property and still finalizes the physics hash after structure. The GitHub connector available to this automation can replace whole files but cannot safely line-patch the large canonical definition files; partial retrieval is truncated. Therefore the source edit is intentionally not faked or applied via unsafe whole-file reconstruction.
+## P1.1 static mass balance status
+Canonical design docs: `docs/42-STATIC-MASS-BALANCE-V01.md` and `docs/43-STATIC-LOAD-EVIDENCE-PIPELINE-V01.md`.
 
-Important invariant: **no arcade speed-dependent tire-grip multiplier**. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
-
-## Telemetry ownership
-ADR 41 remains accepted: compact `FTATelemetrySample` owns exact applied-step physics evidence; broad `FTAVehicleTelemetrySample` owns diagnostic/state correlation; telemetry never re-solves physics; structural consolidation remains deferred until executable evidence and schema migration tests exist.
-
-## P1.1 static mass balance
-The analytical contract is `docs/42-STATIC-MASS-BALANCE-V01.md`.
-
-Implemented:
-- `TAStaticMassBalance`: pure fail-closed analytical four-support equilibrium oracle;
-- `TAStaticLoadComparison`: measured-mean versus oracle signed aggregate/corner error metrics;
-- `TAStaticLoadSettledSampler`: consecutive settled-world qualification window and mean accumulator;
+Implemented layers:
+- `TAStaticMassBalance`: fail-closed analytical FL/FR/RL/RR equilibrium oracle;
+- `TAStaticLoadComparison`: measured mean versus analytical signed errors;
+- `TAStaticLoadSettledSampler`: consecutive settled-world evidence window;
 - `TAStaticLoadAcceptance`: configurable Proof-of-Physics acceptance envelope;
-- Automation source coverage for mass balance, comparison, settled sampling and acceptance.
+- `TAStaticLoadEvidenceAdapter`: maps canonical four-wheel runtime/contact evidence into sampler evidence;
+- `TAStaticLoadEvidencePipeline`: oracle -> adapter -> settle -> mean -> comparison -> acceptance orchestration;
+- Automation source coverage for every layer, including an end-to-end regression.
 
-Settled sampling contract:
-- default maximum chassis linear speed: 0.02 m/s;
-- default maximum chassis angular speed: 0.01 rad/s;
-- default maximum per-corner sample-to-sample load delta: 0.25% of expected total support load;
-- default minimum consecutive qualified samples: 120;
-- threshold equality qualifies;
-- invalid/non-finite evidence, excess motion or load instability resets the entire consecutive window;
-- the first motion-qualified sample seeds the load-stability reference and participates in the mean;
-- no partial/pre-reset samples may leak into accepted means.
+### Live evidence ownership
+`FTAWheelContactInput::VerticalLoadN` is consumed as an already non-negative support-load magnitude. The adapter performs no second sign inversion. Corner mapping is explicit FL/FR/RL/RR from the corresponding front/rear axle left/right `VehicleContact`. Negative/non-finite loads, non-finite chassis velocities, unsolved contacts or invalid cadence fail closed.
 
-Acceptance envelope defaults are deliberately provisional PoP tolerances, not vehicle-calibration truth:
-- total support-load absolute relative error <= 2%;
-- front/rear axle absolute relative error <= 3%;
-- left/right side absolute relative error <= 3%;
-- maximum absolute corner error <= 2% of expected total support load.
-All component gates must pass. Threshold equality passes. Acceptance evaluation is downstream of settled qualification and comparison; it never alters physics.
+### Fixed cadence decision
+P1.1 live evidence is canonical at 120 Hz (`1/120 s`) with `1e-6 s` cadence tolerance. The existing 120 consecutive settled samples therefore represent approximately one second. Cadence drift is rejected instead of silently changing the physical qualification duration. If production physics cadence changes, migrate sample count/duration deliberately with executable evidence.
 
-Implementation properties:
-- +X forward, +Y right, +Z up;
-- longitudinal COM is measured from rear axle;
-- each axle uses its own track width for lateral split;
-- calculation/comparison/acceptance outputs are zeroed before validation so failure cannot leak stale evidence;
-- lateral support-boundary cases are rejected before negative analytical corner loads can arise;
-- comparison rejects negative/non-finite measured support loads and internally inconsistent analytical targets;
-- signed comparison errors are `Measured - Expected`;
-- relative total/axle/side errors use their corresponding expected aggregate; max corner error is normalized by expected total weight;
-- all P1.1 helpers remain regression evidence only and never inject forces or corner loads into the dynamic solver.
+### Settled gate
+Defaults remain: linear speed <= 0.02 m/s; angular speed <= 0.01 rad/s; per-corner sample delta <= 0.25% of expected total support load; minimum 120 consecutive samples. Invalid evidence, motion or instability resets the window. Threshold equality passes.
 
-## Decisions and assumptions
-1. Authored aero application point is vehicle-origin-local; runtime is COM-local.
-2. COM subtraction occurs exactly once through the established compile path.
-3. Aero hash contribution follows effective compiled values, not raw authored coordinates.
-4. Full `PhysicsConfigHash` includes physical COM; only the isolated effective-aero contribution is coordinate-invariant.
-5. Air density and wind are transient environment state and are not asset-hashed.
-6. Negative lift coefficient means downforce under the current convention.
-7. Applied telemetry is evidence; it never recomputes aero.
-8. Asset regressions use non-default values and non-zero COM to prevent default masking.
-9. `TAVehicleAerodynamicsAssetCompiler` is the single asset validate/compile/hash call site.
-10. Failed aero compilation is transactional.
-11. Automated source editing must fail closed on source drift or ambiguous anchors.
-12. Same-module aero includes require no additional `TA_Vehicle.Build.cs` dependency; UE/UHT remains the executable authority.
-13. Single-resultant aero remains current scope; map-based balance and active aero remain deferred.
-14. P1.1 analytical mass balance, sampling, comparison and acceptance are evidence-only.
-15. Static lateral reference split uses each axle's own track width and rejects COM positions on/outside either lateral support boundary.
-16. Failure paths leave deterministic zero outputs/evidence windows.
-17. Sampling requires consecutive settled evidence; a single instantaneous frame is never sufficient.
-18. Load stability is normalized to expected total support load so the gate scales with vehicle mass.
-19. Acceptance thresholds are isolated in a configurable envelope and may be tightened only after executable baselines exist.
+### Acceptance envelope
+Provisional defaults remain: total <= 2%; front/rear axle <= 3%; left/right side <= 3%; max corner error <= 2% of expected total support load. A qualified result may legitimately fail acceptance; valid evidence of bad physics is distinct from invalid evidence.
+
+## Decisions / invariants
+1. P1.1 is evidence-only and never injects analytical or measured loads back into physics.
+2. +X forward, +Y right, +Z up; COM longitudinal position is measured from rear axle.
+3. Comparison signed errors are `Measured - Expected`.
+4. Failure paths clear outputs/state so stale evidence cannot leak.
+5. Live load sign normalization occurs exactly once at the canonical contact contract; the adapter only validates/preserves magnitude.
+6. Chassis settled speeds are vector magnitudes from canonical chassis linear/angular velocity.
+7. Fixed evidence cadence is part of the regression contract, not an incidental caller detail.
+8. `bQualified` means a complete valid settled window exists; `Acceptance.bPass` separately states whether that evidence satisfies PoP tolerances.
+9. Aero patch 41 remains independent and must still land before aero ownership is considered closed.
 
 ## Risks
-General risks remain UHT/UBT/compiler errors, unexecuted numerical Automation assertions, unmeasured coupled-contact convergence, dynamic-unsprung uncertainty, incomplete collision-manifold persistence, deferred topology-changing suspension fracture, incomplete hydraulic/ABS/fluid-boil behavior and provisional real-world calibration.
-
-Aero-specific risks remain the missing canonical asset property/hash contribution until patch 41 lands, possible UHT/compiler issues, and accidental double compilation/hash/COM subtraction.
-
-P1.1 risks:
-- authored suspension preload/static compression may disagree with COM-derived equilibrium;
-- tire vertical compliance can alter settle dynamics but not final force equilibrium;
-- transient roll stiffness distribution must not be conflated with the static analytical oracle;
-- contact-force sign/orientation at the eventual telemetry adapter must be normalized exactly once before comparison;
-- current sampler consumes already-normalized support-load magnitudes and is not yet wired to live wheel/contact telemetry;
-- fixed sample count is intentionally deterministic but corresponds to different wall-clock durations if the caller's sampling cadence changes; integration must use a documented fixed physics cadence or later move to duration-aware qualification;
-- default acceptance tolerances are provisional until real UE 5.8 baseline runs exist;
-- new helpers/tests are source-complete but still UE-build-unverified.
+- All new P1.1 source/tests remain UE 5.8 build-unverified; compile/API mistakes are still possible until UBT executes.
+- Runtime provenance of `VerticalLoadN` must be confirmed in executable suspension/contact tests; the P1.1 consumer convention is frozen but does not replace solver validation.
+- Acceptance tolerances remain provisional until real stationary baselines are captured.
+- Authored suspension preload/static compression may disagree with COM-derived equilibrium and must be diagnosed, not hidden by loosening gates.
+- Aero canonical asset property/hash contribution remains open until patch 41 lands.
 
 ## Deliverables completed this session
-- `Public/TAStaticLoadSettledSampler.h`;
-- `Private/TAStaticLoadSettledSampler.cpp`;
-- `Private/Tests/TAStaticLoadSettledSamplerTests.cpp`;
-- `Public/TAStaticLoadAcceptance.h`;
-- `Private/TAStaticLoadAcceptance.cpp`;
-- `Private/Tests/TAStaticLoadAcceptanceTests.cpp`;
+- `Public/TAStaticLoadEvidenceAdapter.h`;
+- `Private/TAStaticLoadEvidenceAdapter.cpp`;
+- `Private/Tests/TAStaticLoadEvidenceAdapterTests.cpp`;
+- `Public/TAStaticLoadEvidencePipeline.h`;
+- `Private/TAStaticLoadEvidencePipeline.cpp`;
+- `Private/Tests/TAStaticLoadEvidencePipelineTests.cpp`;
+- `docs/43-STATIC-LOAD-EVIDENCE-PIPELINE-V01.md`;
 - refreshed active checkpoint.
 
 ## Exact continuation point
-1. If a safe patch-capable path is available, land patch 41 in `TAVehicleDefinition.h/.cpp`, require `verify_aero_asset_closure.py` PASS, then run the four vehicle-definition aero regressions and effective-hash invariant.
-2. Run UHT/include/module audit, UE 5.8 UBT and `Automation RunTest TorqueAtlas.` when an engine runner is available.
-3. If executable Unreal verification remains unavailable, continue P1.1 by implementing the **live static-load evidence adapter**: map canonical FL/FR/RL/RR wheel/contact telemetry into non-negative support-load magnitudes, document sign normalization exactly once, and feed the settled sampler only at a fixed physics cadence.
-4. Add an end-to-end evidence helper/test path: analytical oracle -> settled samples -> qualified mean -> comparison -> acceptance result, including reset/recovery and deliberate bias failures.
-5. Audit whether 120 samples should remain the canonical gate or become a duration-based window once the actual fixed-step cadence is executable and measured.
-6. Do not begin map-based/active aero or broad content production until the integrated Proof-of-Physics gate is executable and repeatable.
+1. If a safe patch-capable path is available, land aero patch 41, require `verify_aero_asset_closure.py` PASS, then run vehicle-definition aero regressions/effective-hash invariant.
+2. Run UHT/include/module audit and UE 5.8 UBT for the complete P1.1 + aero source set when an engine runner is available.
+3. Run `Automation RunTest TorqueAtlas.Vehicle.StaticLoad.` followed by full `Automation RunTest TorqueAtlas.`.
+4. Capture a real stationary four-wheel baseline at 120 Hz: settle time, FL/FR/RL/RR mean, aggregate/corner error distribution and reset/recovery behavior.
+5. Use that executable evidence to decide whether 1.0 s/120 samples and the provisional 2/3/3/2% envelope should be tightened; do not tune thresholds from source-only reasoning.
+6. If Unreal execution remains unavailable, next source-only work is an audit of `VerticalLoadN` production through front/rear contact resolvers and suspension force application, with a regression proving support-load sign/provenance exactly once.
+7. Do not begin map-based/active aero or broad content production until the integrated Proof-of-Physics gate is executable and repeatable.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
