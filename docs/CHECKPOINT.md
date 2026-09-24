@@ -3,77 +3,78 @@
 Updated: 2026-09-24
 
 ## Current phase
-**Proof-of-Physics v2 / P1.1 static mass balance.** The analytical oracle, settled sampling, comparison, acceptance, live four-wheel evidence adapter and end-to-end evidence pipeline are now source-complete. UE 5.8 executable verification remains the acceptance gate.
+**Proof-of-Physics v2 / P1.1 static mass balance.** Analytical oracle, settled sampling, comparison, acceptance, live four-wheel evidence adapter and end-to-end evidence pipeline are source-complete. Vertical-load provenance has now been audited from contact resolution through chassis force application. UE 5.8 executable verification remains the acceptance gate.
 
 Canonical repository: `latektigroo0904/racegame`. Content/runtime versions remain SchemaVersion 2, PhysicsVersion 2 and DamageModelVersion 2.
 
 The project remains **UE-build-unverified** until UnrealHeaderTool, UnrealBuildTool/C++ compilation, Editor module loading and `Automation RunTest TorqueAtlas.` complete successfully under Unreal Engine 5.8.
 
 ## Aerodynamics status
-Aerodynamics remains functionally established, but canonical main still lacks the final authored `UTAVehicleDefinition.Aerodynamics` property/hash ownership edit. Source sanity run 140 previously proved the exact patch-41 applicator/verifier contract against the real source tree. Do not fake or reconstruct the large canonical definition files from truncated retrieval.
+Aerodynamics is functionally established, but canonical main still lacks the final authored `UTAVehicleDefinition.Aerodynamics` property/hash ownership edit. Source sanity run 140 previously proved patch 41's applicator/verifier contract against the real source tree. Do not reconstruct the large definition files from truncated retrieval.
 
-Important invariant: no arcade speed-dependent tire-grip multiplier. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
+Invariant: no arcade speed-dependent tire-grip multiplier. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
 
 ## P1.1 static mass balance status
-Canonical design docs: `docs/42-STATIC-MASS-BALANCE-V01.md` and `docs/43-STATIC-LOAD-EVIDENCE-PIPELINE-V01.md`.
+Canonical design docs: `docs/42-STATIC-MASS-BALANCE-V01.md`, `docs/43-STATIC-LOAD-EVIDENCE-PIPELINE-V01.md`, and `docs/44-VERTICAL-LOAD-PROVENANCE-AUDIT-V01.md`.
 
 Implemented layers:
 - `TAStaticMassBalance`: fail-closed analytical FL/FR/RL/RR equilibrium oracle;
 - `TAStaticLoadComparison`: measured mean versus analytical signed errors;
 - `TAStaticLoadSettledSampler`: consecutive settled-world evidence window;
 - `TAStaticLoadAcceptance`: configurable Proof-of-Physics acceptance envelope;
-- `TAStaticLoadEvidenceAdapter`: maps canonical four-wheel runtime/contact evidence into sampler evidence;
-- `TAStaticLoadEvidencePipeline`: oracle -> adapter -> settle -> mean -> comparison -> acceptance orchestration;
-- Automation source coverage for every layer, including an end-to-end regression.
+- `TAStaticLoadEvidenceAdapter`: canonical four-wheel contact evidence -> sampler evidence;
+- `TAStaticLoadEvidencePipeline`: oracle -> adapter -> settle -> mean -> comparison -> acceptance;
+- Automation source coverage for every P1.1 layer, including end-to-end regression.
 
-### Live evidence ownership
-`FTAWheelContactInput::VerticalLoadN` is consumed as an already non-negative support-load magnitude. The adapter performs no second sign inversion. Corner mapping is explicit FL/FR/RL/RR from the corresponding front/rear axle left/right `VehicleContact`. Negative/non-finite loads, non-finite chassis velocities, unsolved contacts or invalid cadence fail closed.
+### Vertical-load provenance audit
+`VerticalLoadN` is canonically a non-negative support-load magnitude. The geometric contact path clamps suspension total force once and builds `SuspensionForceWorldN = RoadNormal * VerticalLoadN`. The compliant path uses tire `NormalForceN` as final `VerticalLoadN`. `BuildVehicleWheelContactInput` and `TAVehicleSimulation::BuildTireInput` copy the scalar without sign conversion; chassis force application uses the separate world-force vector. P1.1 therefore must validate/preserve the scalar and never apply `Abs()` or negate it again.
+
+### Defect found: compliant midpoint reaction
+The midpoint `EvaluateCompliantTravel` call in `ResolveDoubleWishboneCompliantRoadContact` omits the required `AdditionalSuspensionReactionN` argument while endpoint calls supply it. This is a compile/API defect and would also invalidate anti-roll-coupled bisection semantics if masked by an overload/default. A minimal correction is prepared as `patches/44-compliant-contact-midpoint-reaction.patch`. It is not yet landed in the canonical large source file.
 
 ### Fixed cadence decision
-P1.1 live evidence is canonical at 120 Hz (`1/120 s`) with `1e-6 s` cadence tolerance. The existing 120 consecutive settled samples therefore represent approximately one second. Cadence drift is rejected instead of silently changing the physical qualification duration. If production physics cadence changes, migrate sample count/duration deliberately with executable evidence.
+P1.1 live evidence is canonical at 120 Hz (`1/120 s`) with `1e-6 s` cadence tolerance. 120 consecutive settled samples represent approximately one second. Cadence drift is rejected.
 
 ### Settled gate
-Defaults remain: linear speed <= 0.02 m/s; angular speed <= 0.01 rad/s; per-corner sample delta <= 0.25% of expected total support load; minimum 120 consecutive samples. Invalid evidence, motion or instability resets the window. Threshold equality passes.
+Defaults: linear speed <= 0.02 m/s; angular speed <= 0.01 rad/s; per-corner sample delta <= 0.25% of expected total support load; minimum 120 consecutive samples. Invalid evidence, motion or instability resets the window. Threshold equality passes.
 
 ### Acceptance envelope
-Provisional defaults remain: total <= 2%; front/rear axle <= 3%; left/right side <= 3%; max corner error <= 2% of expected total support load. A qualified result may legitimately fail acceptance; valid evidence of bad physics is distinct from invalid evidence.
+Provisional defaults: total <= 2%; front/rear axle <= 3%; left/right side <= 3%; max corner error <= 2% of expected total support load. Valid qualified evidence may legitimately fail acceptance.
 
 ## Decisions / invariants
 1. P1.1 is evidence-only and never injects analytical or measured loads back into physics.
 2. +X forward, +Y right, +Z up; COM longitudinal position is measured from rear axle.
 3. Comparison signed errors are `Measured - Expected`.
 4. Failure paths clear outputs/state so stale evidence cannot leak.
-5. Live load sign normalization occurs exactly once at the canonical contact contract; the adapter only validates/preserves magnitude.
-6. Chassis settled speeds are vector magnitudes from canonical chassis linear/angular velocity.
-7. Fixed evidence cadence is part of the regression contract, not an incidental caller detail.
-8. `bQualified` means a complete valid settled window exists; `Acceptance.bPass` separately states whether that evidence satisfies PoP tolerances.
-9. Aero patch 41 remains independent and must still land before aero ownership is considered closed.
+5. Live load sign normalization occurs exactly once at the canonical contact contract.
+6. `VerticalLoadN` is magnitude; `SuspensionForceWorldN` owns direction.
+7. Chassis settled speeds are vector magnitudes from canonical chassis linear/angular velocity.
+8. Fixed evidence cadence is part of the regression contract.
+9. `bQualified` and `Acceptance.bPass` are separate states.
+10. Aero patch 41 and compliant-contact patch 44 are independent closure items; both must land before integrated PoP acceptance.
 
 ## Risks
-- All new P1.1 source/tests remain UE 5.8 build-unverified; compile/API mistakes are still possible until UBT executes.
-- Runtime provenance of `VerticalLoadN` must be confirmed in executable suspension/contact tests; the P1.1 consumer convention is frozen but does not replace solver validation.
+- P1.1 source/tests remain UE 5.8 build-unverified.
+- Patch 44 is prepared but not applied; current canonical compliant resolver should be treated as compile-blocked until corrected.
 - Acceptance tolerances remain provisional until real stationary baselines are captured.
-- Authored suspension preload/static compression may disagree with COM-derived equilibrium and must be diagnosed, not hidden by loosening gates.
+- Anti-roll equal/opposite conservation must be tested before final zero-load clamping because wheel unload can break equality after clamp.
+- Authored suspension preload/static compression may disagree with COM-derived equilibrium and must be diagnosed rather than hidden by wider gates.
 - Aero canonical asset property/hash contribution remains open until patch 41 lands.
 
 ## Deliverables completed this session
-- `Public/TAStaticLoadEvidenceAdapter.h`;
-- `Private/TAStaticLoadEvidenceAdapter.cpp`;
-- `Private/Tests/TAStaticLoadEvidenceAdapterTests.cpp`;
-- `Public/TAStaticLoadEvidencePipeline.h`;
-- `Private/TAStaticLoadEvidencePipeline.cpp`;
-- `Private/Tests/TAStaticLoadEvidencePipelineTests.cpp`;
-- `docs/43-STATIC-LOAD-EVIDENCE-PIPELINE-V01.md`;
+- source-level provenance audit of geometric/compliant contact, anti-roll coupling, vehicle-contact bridge, tire consumer and chassis force application;
+- `patches/44-compliant-contact-midpoint-reaction.patch`;
+- `docs/44-VERTICAL-LOAD-PROVENANCE-AUDIT-V01.md`;
 - refreshed active checkpoint.
 
 ## Exact continuation point
-1. If a safe patch-capable path is available, land aero patch 41, require `verify_aero_asset_closure.py` PASS, then run vehicle-definition aero regressions/effective-hash invariant.
-2. Run UHT/include/module audit and UE 5.8 UBT for the complete P1.1 + aero source set when an engine runner is available.
-3. Run `Automation RunTest TorqueAtlas.Vehicle.StaticLoad.` followed by full `Automation RunTest TorqueAtlas.`.
-4. Capture a real stationary four-wheel baseline at 120 Hz: settle time, FL/FR/RL/RR mean, aggregate/corner error distribution and reset/recovery behavior.
-5. Use that executable evidence to decide whether 1.0 s/120 samples and the provisional 2/3/3/2% envelope should be tightened; do not tune thresholds from source-only reasoning.
-6. If Unreal execution remains unavailable, next source-only work is an audit of `VerticalLoadN` production through front/rear contact resolvers and suspension force application, with a regression proving support-load sign/provenance exactly once.
-7. Do not begin map-based/active aero or broad content production until the integrated Proof-of-Physics gate is executable and repeatable.
+1. Land patch 44 safely in `TAWheelContactResolver.cpp`; verify every `EvaluateCompliantTravel` call supplies `AdditionalSuspensionReactionN`.
+2. Add/extend compliant-contact regressions for zero-reaction equivalence, positive-reaction behavior, anti-roll conservation before clamp, exact scalar bridge preservation, and non-negative world-normal force projection.
+3. If a safe patch-capable path is available, also land aero patch 41 and require `verify_aero_asset_closure.py` PASS.
+4. Run UHT/include/module audit and UE 5.8 UBT for the complete source set.
+5. Run `Automation RunTest TorqueAtlas.Vehicle.StaticLoad.` then full `Automation RunTest TorqueAtlas.`.
+6. Capture a real stationary four-wheel baseline at 120 Hz and use executable evidence to decide whether the 1.0 s window and provisional 2/3/3/2% envelope should be tightened.
+7. Do not begin map-based/active aero or broad content production until integrated Proof-of-Physics is executable and repeatable.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
