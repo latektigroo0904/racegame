@@ -9,17 +9,47 @@ import sys
 from pathlib import Path
 
 
+COUNTER_FIELDS = (
+    "succeeded",
+    "succeededWithWarnings",
+    "failed",
+    "notRun",
+    "inProcess",
+)
+
+
 def fail(message: str) -> int:
     print(f"Automation report validation FAILED: {message}", file=sys.stderr)
     return 1
+
+
+def non_negative_int(value: object, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"{field} must be a non-negative integer")
+    return value
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("report_dir", type=Path)
     parser.add_argument("--prefix", default="TorqueAtlas.")
+    parser.add_argument("--expected-count", type=int)
     parser.add_argument("--summary-output", type=Path)
     args = parser.parse_args()
+
+    if (
+        not args.prefix
+        or not args.prefix.startswith("TorqueAtlas.")
+        or "*" in args.prefix
+        or "?" in args.prefix
+    ):
+        return fail(
+            "--prefix must be a literal non-empty TorqueAtlas.* namespace prefix "
+            "without wildcard characters"
+        )
+
+    if args.expected_count is not None and args.expected_count <= 0:
+        return fail("--expected-count must be greater than zero")
 
     report_path = args.report_dir / "index.json"
     if not report_path.is_file():
@@ -30,21 +60,39 @@ def main() -> int:
     except (OSError, json.JSONDecodeError) as exc:
         return fail(f"cannot parse {report_path}: {exc}")
 
+    if not isinstance(report, dict):
+        return fail("report root must be an object")
+
     tests = report.get("tests")
     if not isinstance(tests, list) or not tests:
         return fail("report contains no tests")
 
-    failed = int(report.get("failed", 0))
-    not_run = int(report.get("notRun", 0))
-    in_process = int(report.get("inProcess", 0))
-    succeeded = int(report.get("succeeded", 0))
-    succeeded_with_warnings = int(report.get("succeededWithWarnings", 0))
+    malformed_indices = [
+        index for index, test in enumerate(tests) if not isinstance(test, dict)
+    ]
+    if malformed_indices:
+        preview = ", ".join(str(index) for index in malformed_indices[:10])
+        return fail(f"tests[] contains non-object entries at index(es): {preview}")
+
+    try:
+        counters = {
+            field: non_negative_int(report.get(field), field)
+            for field in COUNTER_FIELDS
+        }
+    except ValueError as exc:
+        return fail(str(exc))
+
+    aggregate_total = sum(counters.values())
+    if aggregate_total != len(tests):
+        return fail(
+            "aggregate counters do not match tests[] length: "
+            f"{aggregate_total} != {len(tests)}"
+        )
 
     matching = [
         test
         for test in tests
-        if isinstance(test, dict)
-        and str(test.get("fullTestPath", "")).startswith(args.prefix)
+        if str(test.get("fullTestPath", "")).startswith(args.prefix)
     ]
 
     if not matching:
@@ -53,8 +101,7 @@ def main() -> int:
     non_matching = [
         str(test.get("fullTestPath", ""))
         for test in tests
-        if isinstance(test, dict)
-        and not str(test.get("fullTestPath", "")).startswith(args.prefix)
+        if not str(test.get("fullTestPath", "")).startswith(args.prefix)
     ]
 
     if non_matching:
@@ -63,6 +110,18 @@ def main() -> int:
             "report contains tests outside requested prefix "
             f"{args.prefix!r}: {preview}"
         )
+
+    if args.expected_count is not None and len(matching) != args.expected_count:
+        return fail(
+            f"expected exactly {args.expected_count} test(s) under "
+            f"{args.prefix!r}, found {len(matching)}"
+        )
+
+    failed = counters["failed"]
+    not_run = counters["notRun"]
+    in_process = counters["inProcess"]
+    succeeded = counters["succeeded"]
+    succeeded_with_warnings = counters["succeededWithWarnings"]
 
     if failed != 0:
         return fail(f"report records {failed} failed test(s)")
@@ -79,7 +138,12 @@ def main() -> int:
     failed_states = []
     for test in matching:
         state = str(test.get("state", ""))
-        errors = int(test.get("errors", 0) or 0)
+        try:
+            errors = non_negative_int(test.get("errors"), "test.errors")
+        except ValueError as exc:
+            return fail(
+                f"{test.get('fullTestPath', '<unknown>')}: {exc}"
+            )
 
         if errors > 0:
             failed_states.append(
@@ -96,6 +160,7 @@ def main() -> int:
     summary = {
         "report_file": str(report_path),
         "prefix": args.prefix,
+        "expected_count": args.expected_count,
         "test_count": len(tests),
         "matching_test_count": len(matching),
         "succeeded": succeeded,
@@ -115,7 +180,7 @@ def main() -> int:
 
     print(
         "Automation report validation passed: "
-        f"{len(matching)} Torque Atlas test(s), "
+        f"{len(matching)} test(s) under {args.prefix!r}, "
         f"{succeeded} succeeded, "
         f"{succeeded_with_warnings} succeeded with warnings."
     )
