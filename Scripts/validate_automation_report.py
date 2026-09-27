@@ -5,8 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
+
+
+AUTOMATION_PREFIX_PATTERN = re.compile(r"^TorqueAtlas\.(?:[A-Za-z_][A-Za-z0-9_]*\.)*$")
 
 
 COUNTER_FIELDS = (
@@ -37,15 +41,10 @@ def main() -> int:
     parser.add_argument("--summary-output", type=Path)
     args = parser.parse_args()
 
-    if (
-        not args.prefix
-        or not args.prefix.startswith("TorqueAtlas.")
-        or "*" in args.prefix
-        or "?" in args.prefix
-    ):
+    if AUTOMATION_PREFIX_PATTERN.fullmatch(args.prefix) is None:
         return fail(
-            "--prefix must be a literal non-empty TorqueAtlas.* namespace prefix "
-            "without wildcard characters"
+            "--prefix must be a literal TorqueAtlas namespace prefix composed of "
+            "identifier segments and ending in a dot"
         )
 
     if args.expected_count is not None and args.expected_count <= 0:
