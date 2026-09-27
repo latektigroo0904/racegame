@@ -12,7 +12,11 @@ ROOT = Path(__file__).resolve().parents[1]
 VALIDATOR = ROOT / "Scripts" / "validate_automation_report.py"
 
 
-def run_validator(report: dict, prefix: str = "TorqueAtlas."):
+def run_validator(
+    report: dict,
+    prefix: str = "TorqueAtlas.",
+    expected_count: int | None = None,
+):
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
         report_dir = root / "AutomationReport"
@@ -24,17 +28,20 @@ def run_validator(report: dict, prefix: str = "TorqueAtlas."):
         )
 
         summary_path = root / "summary.json"
+        command = [
+            sys.executable,
+            str(VALIDATOR),
+            str(report_dir),
+            "--prefix",
+            prefix,
+            "--summary-output",
+            str(summary_path),
+        ]
+        if expected_count is not None:
+            command.extend(["--expected-count", str(expected_count)])
 
         completed = subprocess.run(
-            [
-                sys.executable,
-                str(VALIDATOR),
-                str(report_dir),
-                "--prefix",
-                prefix,
-                "--summary-output",
-                str(summary_path),
-            ],
+            command,
             capture_output=True,
             text=True,
             check=False,
@@ -76,6 +83,13 @@ def valid_report() -> dict:
     }
 
 
+def report_under_prefix(prefix: str) -> dict:
+    report = valid_report()
+    for index, test in enumerate(report["tests"], start=1):
+        test["fullTestPath"] = f"{prefix}Regression.Case{index}"
+    return report
+
+
 def assert_true(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
@@ -93,6 +107,22 @@ def main() -> int:
         "summary should count all Torque Atlas tests",
     )
 
+    completed, summary = run_validator(valid_report(), expected_count=3)
+    assert_true(
+        completed.returncode == 0,
+        f"matching expected count should pass: {completed.stderr}",
+    )
+    assert_true(
+        summary is not None and summary["expected_count"] == 3,
+        "summary should preserve expected_count",
+    )
+
+    completed, _ = run_validator(valid_report(), expected_count=2)
+    assert_true(
+        completed.returncode != 0,
+        "mismatched expected count must be rejected",
+    )
+
     report = valid_report()
     report["failed"] = 1
     report["succeeded"] = 1
@@ -107,6 +137,8 @@ def main() -> int:
 
     report = valid_report()
     report["notRun"] = 1
+    report["succeeded"] = 1
+    report["tests"][0]["state"] = "NotRun"
     completed, _ = run_validator(report)
     assert_true(
         completed.returncode != 0,
@@ -115,6 +147,8 @@ def main() -> int:
 
     report = valid_report()
     report["inProcess"] = 1
+    report["succeeded"] = 1
+    report["tests"][0]["state"] = "InProcess"
     completed, _ = run_validator(report)
     assert_true(
         completed.returncode != 0,
@@ -138,6 +172,33 @@ def main() -> int:
         completed.returncode != 0,
         "empty report must be rejected",
     )
+
+    for prefix in (
+        "TorqueAtlas.",
+        "TorqueAtlas.Vehicle.",
+        "TorqueAtlas._Internal.",
+    ):
+        completed, _ = run_validator(report_under_prefix(prefix), prefix=prefix)
+        assert_true(
+            completed.returncode == 0,
+            f"valid prefix {prefix!r} should pass: {completed.stderr}",
+        )
+
+    for prefix in (
+        "TorqueAtlas",
+        "TorqueAtlas..Vehicle.",
+        "TorqueAtlas.Vehicle-Load.",
+        "TorqueAtlas.9Vehicle.",
+        "TorqueAtlas.*.",
+        "TorqueAtlas.?.",
+        " TorqueAtlas.",
+        "TorqueAtlas. ",
+    ):
+        completed, _ = run_validator(valid_report(), prefix=prefix)
+        assert_true(
+            completed.returncode != 0,
+            f"invalid prefix {prefix!r} must be rejected",
+        )
 
     print("Automation report validator tests passed.")
     return 0
