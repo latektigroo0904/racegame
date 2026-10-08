@@ -337,3 +337,19 @@
 **Status:** accepted 2026-09-23  
 **Decision:** electrical/fuel failures act only through concrete modeled functions such as starter torque and combustion authority.  
 **Reason:** preserves the project rule that mechanical consequences are subsystem-based rather than global-health based.
+
+
+## ADR-069 — Aerodynamic lift is split into front and rear physical surfaces
+**Status:** accepted for source prototype 2026-10-08  
+**Decision:** the canonical source model uses one Cd plus independent front/rear lift coefficients and physical application points. The old single-lift-resultant simplification is superseded.  
+**Reason:** aero balance must produce pitch/load-transfer consequences through actual force locations rather than an arbitrary speed grip scalar.
+
+## ADR-070 — Aerodynamic balance is diagnostic, never a tire-grip input
+**Status:** accepted 2026-10-08  
+**Decision:** front downforce balance may be computed in telemetry/regression, but it never directly modifies tire friction or wheel load.  
+**Reason:** tire load changes must emerge from the chassis/suspension/contact force chain.
+
+## ADR-071 — Aero telemetry copies the applied result instead of recomputing physics
+**Status:** reaffirmed and extended 2026-10-08  
+**Decision:** compact telemetry records drag, front lift, rear lift, total force and total torque from the exact vehicle-step aero output. Regression/report code only projects/summarizes those values.  
+**Reason:** prevents reporting drift from the force actually integrated by the chassis.
