@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "calibration_id": "ta-p01-prototype-v1",
+  "version": 1,
+  "vehicle_definition_id": "ta.base:vehicle-ta-p01",
+  "physics_version": 2,
+  "groups": [
+    {
+      "group_id": "mass",
+      "provenance_class": "P0",
+      "confidence": "low",
+      "source_reference": "Engineering prototype seed",
+      "parameters": [
+        {
+          "path": "mass.total_kg",
+          "value": 1420.0,
+          "units": "kg"
+        },
+        {
+          "path": "geometry.wheelbase_m",
+          "value": 2.62,
+          "units": "m"
+        }
+      ],
+      "validation_scenarios": [
+        "ta.scenario:static-mass-balance"
+      ]
+    },
+    {
+      "group_id": "aero",
+      "provenance_class": "P0",
+      "confidence": "low",
+      "source_reference": "Engineering prototype seed",
+      "parameters": [
+        {
+          "path": "aero.cd",
+          "value": 0.32,
+          "units": "1"
+        },
+        {
+          "path": "aero.reference_area_m2",
+          "value": 2.1,
+          "units": "m^2"
+        }
+      ],
+      "validation_scenarios": [
+        "ta.scenario:aero-straight-line"
+      ]
+    }
+  ]
+}
