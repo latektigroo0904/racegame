@@ -113,6 +113,21 @@ jobs:
       - name: Validate world package example
         run: python Tools/WorldPackages/validate_world_package.py Tools/WorldPackages/examples/prototype_world_v1.json
 
+      - name: Test economy transaction oracle
+        run: python -m unittest discover -s Tools/Economy/tests -p "test_*.py" -v
+
+      - name: Test event definition validator
+        run: python -m unittest discover -s Tools/Events/tests -p "test_*.py" -v
+
+      - name: Validate event definition example
+        run: python Tools/Events/validate_event.py Tools/Events/examples/proving_ground_circuit_v1.json
+
+      - name: Test vehicle build validator
+        run: python -m unittest discover -s Tools/VehicleBuild/tests -p "test_*.py" -v
+
+      - name: Validate vehicle build example
+        run: python Tools/VehicleBuild/validate_vehicle_build.py Tools/VehicleBuild/examples/ta_p01_stock_build_v1.json
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
