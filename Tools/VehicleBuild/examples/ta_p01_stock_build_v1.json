@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "build_id": "ta.build:ta-p01-stock",
+  "vehicle_definition_id": "ta.base:vehicle-ta-p01",
+  "base_mass_kg": 1420.0,
+  "slots": [
+    {
+      "slot_id": "engine",
+      "allowed_component_types": ["engine"],
+      "required": true
+    },
+    {
+      "slot_id": "differential-rear",
+      "allowed_component_types": ["differential"],
+      "required": true
+    },
+    {
+      "slot_id": "brakes-front",
+      "allowed_component_types": ["brake"],
+      "required": true
+    },
+    {
+      "slot_id": "brakes-rear",
+      "allowed_component_types": ["brake"],
+      "required": true
+    }
+  ],
+  "installed_parts": [
+    {
+      "part_id": "ta.base:engine-i4t-20",
+      "slot_id": "engine",
+      "component_type": "engine",
+      "mass_delta_kg": 0.0,
+      "physics_affecting": true
+    },
+    {
+      "part_id": "ta.base:diff-open-rwd",
+      "slot_id": "differential-rear",
+      "component_type": "differential",
+      "mass_delta_kg": 0.0,
+      "physics_affecting": true
+    },
+    {
+      "part_id": "ta.base:brake-sport-front",
+      "slot_id": "brakes-front",
+      "component_type": "brake",
+      "mass_delta_kg": 0.0,
+      "physics_affecting": true
+    },
+    {
+      "part_id": "ta.base:brake-sport-rear",
+      "slot_id": "brakes-rear",
+      "component_type": "brake",
+      "mass_delta_kg": 0.0,
+      "physics_affecting": true
+    }
+  ]
+}
