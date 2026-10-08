@@ -13,8 +13,11 @@ bool FTAAerodynamicsDefinitionComLocalTest::RunTest(const FString& Parameters)
     FTAAerodynamicsDefinition Definition;
     Definition.ReferenceAreaM2 = 2.25;
     Definition.DragCoefficient = 0.29;
-    Definition.LiftCoefficient = -0.18;
-    Definition.ApplicationPointVehicleLocalM = FVector(0.30, 0.0, 0.45);
+    Definition.FrontLiftCoefficient = -0.08;
+    Definition.RearLiftCoefficient = -0.10;
+    Definition.DragApplicationPointVehicleLocalM = FVector(0.30, 0.0, 0.45);
+    Definition.FrontLiftApplicationPointVehicleLocalM = FVector(1.20, 0.0, 0.20);
+    Definition.RearLiftApplicationPointVehicleLocalM = FVector(-1.00, 0.0, 0.20);
 
     FTAAerodynamicsConfig Runtime;
     const bool bCompiled = TAAerodynamicsDefinition::Compile(
@@ -25,10 +28,11 @@ bool FTAAerodynamicsDefinitionComLocalTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("Valid aero authoring compiles"), bCompiled);
     TestEqual(TEXT("Area is preserved"), Runtime.ReferenceAreaM2, 2.25);
     TestEqual(TEXT("Cd is preserved"), Runtime.DragCoefficient, 0.29);
-    TestEqual(TEXT("Cl is preserved"), Runtime.LiftCoefficient, -0.18);
+    TestEqual(TEXT("Front Cl is preserved"), Runtime.FrontLiftCoefficient, -0.08);
+    TestEqual(TEXT("Rear Cl is preserved"), Runtime.RearLiftCoefficient, -0.10);
     TestTrue(
         TEXT("Application point is converted from vehicle origin to COM-local"),
-        Runtime.ApplicationPointBodyM.Equals(FVector3d(0.20, 0.0, 0.25), 1.0e-12));
+        Runtime.DragApplicationPointBodyM.Equals(FVector3d(0.20, 0.0, 0.25), 1.0e-12));
     return true;
 }
 
@@ -43,13 +47,13 @@ bool FTAAerodynamicsDefinitionHashTest::RunTest(const FString& Parameters)
     FTAAerodynamicsConfig B = A;
 
     const uint32 HashA = TAAerodynamicsDefinition::HashRuntimeConfig(0u, A);
-    B.LiftCoefficient -= 0.01;
+    B.RearLiftCoefficient -= 0.01;
     const uint32 HashB = TAAerodynamicsDefinition::HashRuntimeConfig(0u, B);
 
     TestNotEqual(TEXT("Effective aero coefficient changes physics hash contribution"), HashA, HashB);
 
     B = A;
-    B.ApplicationPointBodyM.X += 0.01;
+    B.FrontLiftApplicationPointBodyM.X += 0.01;
     const uint32 HashPoint = TAAerodynamicsDefinition::HashRuntimeConfig(0u, B);
     TestNotEqual(TEXT("Effective aero application point changes physics hash contribution"), HashA, HashPoint);
     return true;
@@ -65,16 +69,23 @@ bool FTAAerodynamicsDefinitionEffectiveHashInvariantTest::RunTest(const FString&
     FTAAerodynamicsDefinition A;
     A.ReferenceAreaM2 = 2.31;
     A.DragCoefficient = 0.287;
-    A.LiftCoefficient = -0.214;
-    A.ApplicationPointVehicleLocalM = FVector(0.42, -0.03, 0.51);
+    A.FrontLiftCoefficient = -0.094;
+    A.RearLiftCoefficient = -0.120;
+    A.DragApplicationPointVehicleLocalM = FVector(0.42, -0.03, 0.51);
+    A.FrontLiftApplicationPointVehicleLocalM = FVector(1.22, -0.03, 0.25);
+    A.RearLiftApplicationPointVehicleLocalM = FVector(-0.98, -0.03, 0.25);
 
     FTAAerodynamicsDefinition B = A;
 
     const FVector3d ComA(0.12, -0.01, 0.18);
     const FVector3d OriginShift(0.37, 0.08, -0.14);
     const FVector3d ComB = ComA + OriginShift;
-    B.ApplicationPointVehicleLocalM =
-        FVector(FVector3d(A.ApplicationPointVehicleLocalM) + OriginShift);
+    B.DragApplicationPointVehicleLocalM =
+        FVector(FVector3d(A.DragApplicationPointVehicleLocalM) + OriginShift);
+    B.FrontLiftApplicationPointVehicleLocalM =
+        FVector(FVector3d(A.FrontLiftApplicationPointVehicleLocalM) + OriginShift);
+    B.RearLiftApplicationPointVehicleLocalM =
+        FVector(FVector3d(A.RearLiftApplicationPointVehicleLocalM) + OriginShift);
 
     FTAAerodynamicsConfig RuntimeA;
     FTAAerodynamicsConfig RuntimeB;
@@ -86,7 +97,9 @@ bool FTAAerodynamicsDefinitionEffectiveHashInvariantTest::RunTest(const FString&
     TestTrue(TEXT("Shifted coordinate representation compiles"), bCompiledB);
     TestTrue(
         TEXT("Equivalent authored origin/COM shift preserves effective COM-local application point"),
-        RuntimeA.ApplicationPointBodyM.Equals(RuntimeB.ApplicationPointBodyM, 1.0e-12));
+        RuntimeA.DragApplicationPointBodyM.Equals(RuntimeB.DragApplicationPointBodyM, 1.0e-12)
+        && RuntimeA.FrontLiftApplicationPointBodyM.Equals(RuntimeB.FrontLiftApplicationPointBodyM, 1.0e-12)
+        && RuntimeA.RearLiftApplicationPointBodyM.Equals(RuntimeB.RearLiftApplicationPointBodyM, 1.0e-12));
 
     const uint32 HashA = TAAerodynamicsDefinition::HashRuntimeConfig(0x51A7u, RuntimeA);
     const uint32 HashB = TAAerodynamicsDefinition::HashRuntimeConfig(0x51A7u, RuntimeB);
