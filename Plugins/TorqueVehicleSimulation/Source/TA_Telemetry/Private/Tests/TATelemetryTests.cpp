@@ -51,8 +51,11 @@ bool FTATelemetryAerodynamicsCaptureTest::RunTest(const FString& Parameters)
     FTAVehicleStepOutput Output;
     Output.Aerodynamics.RelativeAirVelocityWorldMps = FVector3d(-30.0, 4.0, 0.0);
     Output.Aerodynamics.DynamicPressurePa = 560.0;
-    Output.Aerodynamics.ForceWorldN = FVector3d(-850.0, 15.0, -310.0);
-    Output.Aerodynamics.TorqueWorldNm = FVector3d(2.0, 48.0, -6.0);
+    Output.Aerodynamics.DragForceN = 850.0;
+    Output.Aerodynamics.FrontLiftForceN = -190.0;
+    Output.Aerodynamics.RearLiftForceN = -120.0;
+    Output.Aerodynamics.TotalForceWorldN = FVector3d(-850.0, 15.0, -310.0);
+    Output.Aerodynamics.TotalTorqueWorldNm = FVector3d(2.0, 48.0, -6.0);
 
     const FTATelemetrySample Sample =
         TATelemetry::MakeSample(State, Output);
@@ -61,8 +64,11 @@ bool FTATelemetryAerodynamicsCaptureTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("Relative air speed derived from exact output vector"),
         FMath::IsNearlyEqual(Sample.AeroRelativeAirSpeedMps, Output.Aerodynamics.RelativeAirVelocityWorldMps.Length(), 1.0e-9));
     TestEqual(TEXT("Dynamic pressure copied"), Sample.AeroDynamicPressurePa, 560.0);
-    TestTrue(TEXT("Applied aero force copied exactly"), Sample.AeroForceWorldN.Equals(Output.Aerodynamics.ForceWorldN, 1.0e-9));
-    TestTrue(TEXT("Applied aero torque copied exactly"), Sample.AeroTorqueWorldNm.Equals(Output.Aerodynamics.TorqueWorldNm, 1.0e-9));
+    TestEqual(TEXT("Drag force copied"), Sample.AeroDragForceN, 850.0);
+    TestEqual(TEXT("Front lift force copied"), Sample.AeroFrontLiftForceN, -190.0);
+    TestEqual(TEXT("Rear lift force copied"), Sample.AeroRearLiftForceN, -120.0);
+    TestTrue(TEXT("Applied aero force copied exactly"), Sample.AeroForceWorldN.Equals(Output.Aerodynamics.TotalForceWorldN, 1.0e-9));
+    TestTrue(TEXT("Applied aero torque copied exactly"), Sample.AeroTorqueWorldNm.Equals(Output.Aerodynamics.TotalTorqueWorldNm, 1.0e-9));
 
     return true;
 }
