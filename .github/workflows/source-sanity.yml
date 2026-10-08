@@ -75,6 +75,20 @@ jobs:
       - name: Validate ranked session manifest example
         run: python Tools/NetworkSchemas/validate_session.py Tools/NetworkSchemas/examples/ranked_session_v1.json
 
+      - name: Test calibration manifest validator
+        run: python -m unittest discover -s Tools/Calibration/tests -p "test_*.py" -v
+
+      - name: Validate TA-P01 calibration example
+        run: python Tools/Calibration/validate_calibration.py Tools/Calibration/examples/ta_p01_calibration_v1.json
+
+      - name: Test regression scenario validator
+        run: python -m unittest discover -s Tools/Regression/tests -p "test_*.py" -v
+
+      - name: Validate proving-ground scenario examples
+        run: |
+          python Tools/Regression/validate_scenario.py Tools/Regression/examples/static_mass_balance_v1.json
+          python Tools/Regression/validate_scenario.py Tools/Regression/examples/braking_100_0_dry_v1.json
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
