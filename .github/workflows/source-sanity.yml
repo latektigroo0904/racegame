@@ -69,6 +69,12 @@ jobs:
       - name: Validate persistence example save
         run: python Tools/Persistence/validate_save.py Tools/Persistence/examples/minimal_save_v1.json
 
+      - name: Test multiplayer session manifest validator
+        run: python -m unittest discover -s Tools/NetworkSchemas/tests -p "test_*.py" -v
+
+      - name: Validate ranked session manifest example
+        run: python Tools/NetworkSchemas/validate_session.py Tools/NetworkSchemas/examples/ranked_session_v1.json
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
