@@ -107,6 +107,12 @@ jobs:
       - name: Validate QA bundle example
         run: python Tools/QA/validate_qa_bundle.py Tools/QA/examples/minimal_qa_bundle_v1.json
 
+      - name: Test world package validator
+        run: python -m unittest discover -s Tools/WorldPackages/tests -p "test_*.py" -v
+
+      - name: Validate world package example
+        run: python Tools/WorldPackages/validate_world_package.py Tools/WorldPackages/examples/prototype_world_v1.json
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
