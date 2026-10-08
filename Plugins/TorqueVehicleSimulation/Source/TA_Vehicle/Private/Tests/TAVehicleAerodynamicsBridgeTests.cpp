@@ -13,7 +13,8 @@ bool FTAVehicleAeroBridgeAddsForceTest::RunTest(const FString& Parameters)
     FTAVehicleRuntimeConfig Config;
     Config.Aerodynamics.ReferenceAreaM2 = 2.0;
     Config.Aerodynamics.DragCoefficient = 0.30;
-    Config.Aerodynamics.LiftCoefficient = -0.10;
+    Config.Aerodynamics.FrontLiftCoefficient = -0.04;
+    Config.Aerodynamics.RearLiftCoefficient = -0.06;
 
     FTAVehicleStepInput Input;
     Input.AerodynamicsEnvironment.AirDensityKgPerM3 = 1.225;
@@ -31,11 +32,11 @@ bool FTAVehicleAeroBridgeAddsForceTest::RunTest(const FString& Parameters)
             Config, Input, Chassis, Accumulator, Output));
 
     TestTrue(TEXT("Drag opposes forward vehicle motion"),
-        Output.Aerodynamics.ForceWorldN.X < 0.0);
+        Output.Aerodynamics.TotalForceWorldN.X < 0.0);
     TestTrue(TEXT("Negative Cl produces downforce"),
-        Output.Aerodynamics.ForceWorldN.Z < 0.0);
+        Output.Aerodynamics.TotalForceWorldN.Z < 0.0);
     TestTrue(TEXT("Aero force reaches shared chassis accumulator"),
-        Accumulator.ForceWorldN.Equals(Output.Aerodynamics.ForceWorldN, 1.0e-9));
+        Accumulator.TotalForceWorldN.Equals(Output.Aerodynamics.TotalForceWorldN, 1.0e-9));
 
     return true;
 }
@@ -50,7 +51,8 @@ bool FTAVehicleAeroBridgeUsesEnvironmentTest::RunTest(const FString& Parameters)
     FTAVehicleRuntimeConfig Config;
     Config.Aerodynamics.ReferenceAreaM2 = 2.0;
     Config.Aerodynamics.DragCoefficient = 0.30;
-    Config.Aerodynamics.LiftCoefficient = 0.0;
+    Config.Aerodynamics.FrontLiftCoefficient = 0.0;
+    Config.Aerodynamics.RearLiftCoefficient = 0.0;
 
     FTAChassisState Chassis;
     Chassis.OrientationWorld = FQuat4d::Identity;
