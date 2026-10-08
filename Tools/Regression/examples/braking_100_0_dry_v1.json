@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "scenario_id": "ta.scenario:braking-100-0-dry",
+  "scenario_version": 1,
+  "category": "braking",
+  "vehicle_definition_id": "ta.base:vehicle-ta-p01",
+  "fixed_step_hz": 240.0,
+  "duration_seconds": 8.0,
+  "environment": {
+    "surface_material": "fresh_asphalt",
+    "surface_wetness01": 0.0,
+    "water_depth_mm": 0.0,
+    "ambient_temperature_c": 20.0,
+    "air_density_kg_m3": 1.225,
+    "wind_world_mps": [0.0, 0.0, 0.0]
+  },
+  "control_program": [
+    {
+      "time_seconds": 0.0,
+      "throttle01": 0.0,
+      "brake01": 1.0,
+      "steering01": 0.0,
+      "clutch01": 1.0,
+      "gear": 0
+    }
+  ],
+  "acceptance": [
+    {
+      "metric": "VehicleSpeedMps",
+      "statistic": "final",
+      "minimum_allowed": 0.0,
+      "maximum_allowed": 0.5
+    },
+    {
+      "metric": "BrakeTemperatureC",
+      "statistic": "maximum",
+      "wheel_index": 0,
+      "minimum_allowed": 20.0,
+      "maximum_allowed": 900.0
+    }
+  ]
+}
