@@ -48,6 +48,12 @@ jobs:
       - name: Test compliant midpoint-fix applicator
         run: python -m unittest tests.tools.test_apply_compliant_midpoint_reaction_fix -v
 
+      - name: Test GeoForge normalized data validator
+        run: python -m unittest discover -s Tools/GeoForge/tests -p "test_*.py" -v
+
+      - name: Validate GeoForge example package
+        run: python Tools/GeoForge/validate_geoforge.py Tools/GeoForge/examples/minimal_network.json
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
