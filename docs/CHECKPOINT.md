@@ -120,15 +120,86 @@ Provisional acceptance defaults: total <= 2%; front/rear axle <= 3%; left/right 
 - Deliberately made no speculative source/Build.cs changes where engine evidence is required.
 - Preserved UE-build-unverified status pending real engine execution.
 
+## Architecture prepared beyond current executable gate
+
+Implementation-ready design now exists for:
+- post-Proof subsystem dependency order;
+- hydraulic brake actuation and ABS;
+- differential backend architecture;
+- tire transient dynamics;
+- physical coolant/fuel/oil/brake-fluid networks;
+- 12 V battery/starter/alternator/bus network;
+- ABS/TCS/ESC/launch and steering FFB controller boundaries;
+- subsystem promotion/test gates;
+- physics calibration provenance/versioning;
+- Proof-of-Physics → 20–25 km² world transition;
+- multiplayer vehicle/damage replication.
+
+Canonical documents:
+- `47-POST-POP-PHYSICS-ROADMAP-V01.md`;
+- `48-HYDRAULIC-BRAKE-ABS-V01.md`;
+- `49-DIFFERENTIAL-TRACTION-ARCHITECTURE-V01.md`;
+- `50-TIRE-TRANSIENT-DYNAMICS-V01.md`;
+- `51-VEHICLE-FLUID-NETWORKS-V01.md`;
+- `52-VEHICLE-ELECTRICAL-NETWORK-V01.md`;
+- `53-DRIVER-ASSISTS-FFB-V01.md`;
+- `54-VEHICLE-PHYSICS-PROMOTION-TEST-MATRIX-V01.md`;
+- `55-PHYSICS-CALIBRATION-PROVENANCE-V01.md`;
+- `56-POP-TO-WORLD-TRANSITION-V01.md`;
+- `57-MULTIPLAYER-VEHICLE-REPLICATION-V01.md`.
+
+These are design/implementation contracts, not claims of runtime validation.
+
+## Post-gate implementation order
+
+After the existing UE 5.8 executable baseline is captured:
+
+1. implement isolated hydraulic brake solver;
+2. add authored brake hydraulic config + hash + telemetry;
+3. integrate hydraulic actuation while preserving existing thermal/fade/wear capacity;
+4. implement per-wheel ABS pressure controller;
+5. promote after braking/ABS traces pass;
+6. implement backend-neutral differential solver;
+7. add tire transient relaxation layer;
+8. evaluate/promote dynamic unsprung four-corner path;
+9. implement physical fluid networks;
+10. implement physical electrical network;
+11. layer TCS/ESC/FFB controllers;
+12. begin integrated world/GeoForge prototype.
+
 ## Exact continuation point
-1. Run UE 5.8 UHT/UBT for `TorqueAtlasEditor` Development on a UE-capable environment; capture engine/compiler/command/exit status.
-2. Fix the first deterministic UHT/compile defect only if one appears, then rebuild before touching physics tolerances.
+
+### Highest-priority external gate
+1. Run UE 5.8 UHT/UBT for `TorqueAtlasEditor` Development.
+2. Fix the first deterministic UHT/compiler defect only if one appears.
 3. Run `TorqueAtlas.Suspension.Contact.Compliant.*`.
-4. Run `Automation RunTest TorqueAtlas.Vehicle.StaticLoad.` and then `TorqueAtlas.Suspension.Contact.*`.
-5. Run full `Automation RunTest TorqueAtlas.`.
-6. Diagnose any positive-reaction monotonicity failure as physics/sign semantics, not by widening tolerances.
-7. Capture a real stationary four-wheel baseline at 120 Hz and use executable evidence to decide whether the 1.0 s window and provisional 2/3/3/2% envelope should be tightened.
-8. Do not begin map-based/active aero or broad content production until integrated Proof-of-Physics is executable and repeatable.
+4. Run `Automation RunTest TorqueAtlas.Vehicle.StaticLoad.`.
+5. Run `TorqueAtlas.Suspension.Contact.*`.
+6. Run full `Automation RunTest TorqueAtlas.`.
+7. Capture stationary four-wheel baseline at 120 Hz with engine/compiler/commit/hash provenance.
+
+### If executable UE remains unavailable
+Continue only with work that does not falsely promote unverified physics:
+1. isolated solver primitives behind non-canonical interfaces;
+2. tooling/validation/calibration manifests;
+3. GeoForge offline schema/tooling;
+4. traffic/world data contracts;
+5. network serialization contracts;
+6. content archetype generation;
+7. test fixtures and expected analytical oracles.
+
+### First isolated source module allowed next
+**Hydraulic brake actuation primitive**, following `docs/48-HYDRAULIC-BRAKE-ABS-V01.md`.
+
+Initial implementation boundary:
+- pedal/master-cylinder pressure request;
+- front/rear circuit state;
+- bounded pressure rise/release;
+- per-corner hydraulic torque conversion;
+- circuit-health/leak authority;
+- no replacement of canonical vehicle brake path yet;
+- unit tests only;
+- no ABS until the pressure actuator primitive is stable.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
