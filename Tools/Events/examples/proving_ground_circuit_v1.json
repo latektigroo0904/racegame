@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "event_id": "ta.base:event-proving-ground-circuit",
+  "version": 1,
+  "discipline": "circuit",
+  "route_id": "ta.world:route-proving-ground-loop-a",
+  "start_type": "standing",
+  "traffic_policy": "closed",
+  "laps": 3,
+  "checkpoints": [
+    {"id": "start-finish", "order": 0},
+    {"id": "sector-1", "order": 1},
+    {"id": "sector-2", "order": 2}
+  ],
+  "eligibility": {
+    "minimum_performance_class": 0,
+    "maximum_performance_class": 1000
+  },
+  "rewards": {
+    "base_credits": 1000,
+    "placement_credits": [2500, 1500, 1000]
+  }
+}
