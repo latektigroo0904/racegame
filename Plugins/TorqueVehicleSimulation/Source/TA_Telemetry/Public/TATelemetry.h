@@ -27,6 +27,9 @@ struct TA_TELEMETRY_API FTATelemetrySample
     // inside telemetry, preserving single-source-of-truth physics reporting.
     double AeroRelativeAirSpeedMps = 0.0;
     double AeroDynamicPressurePa = 0.0;
+    double AeroDragForceN = 0.0;
+    double AeroFrontLiftForceN = 0.0;
+    double AeroRearLiftForceN = 0.0;
     FVector3d AeroForceWorldN = FVector3d::ZeroVector;
     FVector3d AeroTorqueWorldNm = FVector3d::ZeroVector;
 };
