@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "scenario_id": "ta.scenario:static-mass-balance",
+  "scenario_version": 1,
+  "physics_hash": "1a2b3c4d",
+  "metrics": [
+    {
+      "metric": "StaticLoadTotalErrorFraction",
+      "statistic": "steady_mean",
+      "value": 0.004
+    },
+    {
+      "metric": "StaticLoadMaxCornerErrorFraction",
+      "statistic": "maximum",
+      "value": 0.012
+    }
+  ]
+}
