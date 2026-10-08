@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://torqueatlas.local/schema/session_manifest_v1.schema.json",
+  "title": "Torque Atlas Multiplayer Session Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "session_id",
+    "mode",
+    "game_build_id",
+    "physics_version",
+    "damage_model_version",
+    "server_authoritative",
+    "max_players",
+    "mod_policy",
+    "allowed_content_manifest_sha256",
+    "allowed_vehicle_physics_hashes"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "session_id": { "type": "string", "minLength": 1 },
+    "mode": {
+      "enum": ["ranked", "unranked", "private"]
+    },
+    "game_build_id": { "type": "string", "minLength": 1 },
+    "physics_version": { "type": "integer", "minimum": 1 },
+    "damage_model_version": { "type": "integer", "minimum": 1 },
+    "server_authoritative": { "type": "boolean" },
+    "max_players": { "type": "integer", "minimum": 1, "maximum": 64 },
+    "mod_policy": {
+      "enum": ["base_only", "whitelist", "open"]
+    },
+    "allowed_content_manifest_sha256": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "allowed_vehicle_physics_hashes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{8}$"
+      }
+    }
+  }
+}
