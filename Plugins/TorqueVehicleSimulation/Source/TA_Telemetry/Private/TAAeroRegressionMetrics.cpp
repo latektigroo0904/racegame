@@ -37,6 +37,31 @@ namespace TAAeroRegressionMetrics
             Sample.AeroForceWorldN,
             Up);
 
+        OutMetrics.FrontLiftForceN =
+            Sample.AeroFrontLiftForceN;
+
+        OutMetrics.RearLiftForceN =
+            Sample.AeroRearLiftForceN;
+
+        const double FrontDownforceN =
+            FMath::Max(
+                0.0,
+                -Sample.AeroFrontLiftForceN);
+
+        const double RearDownforceN =
+            FMath::Max(
+                0.0,
+                -Sample.AeroRearLiftForceN);
+
+        const double TotalDownforceN =
+            FrontDownforceN
+            + RearDownforceN;
+
+        OutMetrics.FrontDownforceBalance01 =
+            TotalDownforceN > UE_DOUBLE_SMALL_NUMBER
+            ? FrontDownforceN / TotalDownforceN
+            : 0.5;
+
         const FVector3d Right = FVector3d::CrossProduct(Up, Forward).GetSafeNormal();
         OutMetrics.PitchTorqueNm = FVector3d::DotProduct(
             Sample.AeroTorqueWorldNm,
