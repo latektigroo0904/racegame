@@ -63,6 +63,12 @@ jobs:
       - name: Test traffic lane graph builder
         run: python -m unittest discover -s Tools/Traffic/tests -p "test_*.py" -v
 
+      - name: Test persistence save validator
+        run: python -m unittest discover -s Tools/Persistence/tests -p "test_*.py" -v
+
+      - name: Validate persistence example save
+        run: python Tools/Persistence/validate_save.py Tools/Persistence/examples/minimal_save_v1.json
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
