@@ -16,8 +16,11 @@ namespace
         Config.Chassis.PrincipalInertiaBodyKgm2 = FVector3d(500.0, 900.0, 1000.0);
         Config.Aerodynamics.ReferenceAreaM2 = 2.4;
         Config.Aerodynamics.DragCoefficient = 0.41;
-        Config.Aerodynamics.LiftCoefficient = -0.30;
-        Config.Aerodynamics.ApplicationPointBodyM = FVector3d(0.75, 0.0, 0.35);
+        Config.Aerodynamics.FrontLiftCoefficient = -0.12;
+        Config.Aerodynamics.RearLiftCoefficient = -0.18;
+        Config.Aerodynamics.DragApplicationPointBodyM = FVector3d(0.0, 0.0, 0.35);
+        Config.Aerodynamics.FrontLiftApplicationPointBodyM = FVector3d(1.10, 0.0, 0.0);
+        Config.Aerodynamics.RearLiftApplicationPointBodyM = FVector3d(-1.10, 0.0, 0.0);
         return Config;
     }
 
@@ -49,10 +52,10 @@ bool FTAVehicleFullStepAeroTest::RunTest(const FString& Parameters)
 
     TestTrue(TEXT("Step"), TAVehicleSimulation::Step(Config, Input, 0.01, State, Output));
     TestTrue(TEXT("Applied drag is reported"), Output.Aerodynamics.DragForceN > 0.0);
-    TestTrue(TEXT("Applied downforce is reported"), Output.Aerodynamics.ForceWorldN.Z < 0.0);
+    TestTrue(TEXT("Applied downforce is reported"), Output.Aerodynamics.TotalForceWorldN.Z < 0.0);
     TestTrue(TEXT("Drag decelerates chassis"), State.Chassis.LinearVelocityWorldMps.X < InitialVx);
     TestTrue(TEXT("Downforce changes vertical velocity"), State.Chassis.LinearVelocityWorldMps.Z < 0.0);
-    TestTrue(TEXT("Off-COM aero produces pitch response"), FMath::Abs(State.Chassis.AngularVelocityBodyRadPerSec.Y) > 1.0e-9);
+    TestTrue(TEXT("Off-COM aero produces pitch response"), FMath::Abs(State.Chassis.AngularVelocityWorldRadPerSec.Y) > 1.0e-9);
     return true;
 }
 
@@ -73,7 +76,7 @@ bool FTAVehicleFullStepZeroAirTest::RunTest(const FString& Parameters)
     FTAVehicleStepOutput Output;
     TestTrue(TEXT("Step"), TAVehicleSimulation::Step(Config, Input, 0.01, State, Output));
     TestEqual(TEXT("Zero dynamic pressure"), Output.Aerodynamics.DynamicPressurePa, 0.0);
-    TestTrue(TEXT("No aero force"), Output.Aerodynamics.ForceWorldN.IsNearlyZero());
+    TestTrue(TEXT("No aero force"), Output.Aerodynamics.TotalForceWorldN.IsNearlyZero());
     return true;
 }
 
