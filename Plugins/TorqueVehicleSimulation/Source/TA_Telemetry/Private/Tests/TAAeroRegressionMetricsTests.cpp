@@ -14,6 +14,8 @@ bool FTAAeroRegressionMetricsExtractionTest::RunTest(const FString& Parameters)
     Sample.AeroRelativeAirSpeedMps = 40.0;
     Sample.AeroDynamicPressurePa = 980.0;
     Sample.AeroForceWorldN = FVector3d(-1200.0, 0.0, -600.0);
+    Sample.AeroFrontLiftForceN = -360.0;
+    Sample.AeroRearLiftForceN = -240.0;
     Sample.AeroTorqueWorldNm = FVector3d(0.0, 75.0, 0.0);
 
     FTAAeroRegressionMetrics Metrics;
@@ -28,6 +30,10 @@ bool FTAAeroRegressionMetricsExtractionTest::RunTest(const FString& Parameters)
     TestEqual(TEXT("Dynamic pressure propagates"), Metrics.DynamicPressurePa, 980.0);
     TestEqual(TEXT("Drag scalar is positive when force opposes forward"), Metrics.DragAxisForceN, 1200.0);
     TestEqual(TEXT("Downforce remains negative on the up axis"), Metrics.VerticalForceN, -600.0);
+    TestEqual(TEXT("Front lift/downforce channel propagates"), Metrics.FrontLiftForceN, -360.0);
+    TestEqual(TEXT("Rear lift/downforce channel propagates"), Metrics.RearLiftForceN, -240.0);
+    TestTrue(TEXT("Front downforce balance is sixty percent"),
+        FMath::IsNearlyEqual(Metrics.FrontDownforceBalance01, 0.60, 1.0e-12));
     TestEqual(TEXT("Pitch torque projects onto right axis"), Metrics.PitchTorqueNm, 75.0);
     TestTrue(TEXT("Force magnitude is finite"), FMath::IsFinite(Metrics.ForceMagnitudeN));
     return true;
