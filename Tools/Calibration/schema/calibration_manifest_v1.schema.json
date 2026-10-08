@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://torqueatlas.local/schema/calibration_manifest_v1.schema.json",
+  "title": "Torque Atlas Calibration Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "calibration_id",
+    "version",
+    "vehicle_definition_id",
+    "physics_version",
+    "groups"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "calibration_id": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "vehicle_definition_id": { "type": "string", "minLength": 3 },
+    "physics_version": { "type": "integer", "minimum": 1 },
+    "groups": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/group" }
+    }
+  },
+  "$defs": {
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "value", "units"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "value": { "type": "number" },
+        "units": { "type": "string", "minLength": 1 },
+        "notes": { "type": "string" }
+      }
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_id",
+        "provenance_class",
+        "confidence",
+        "parameters",
+        "validation_scenarios"
+      ],
+      "properties": {
+        "group_id": { "type": "string", "minLength": 1 },
+        "provenance_class": {
+          "enum": ["P0", "P1", "P2", "P3", "P4"]
+        },
+        "confidence": {
+          "enum": ["low", "medium", "high"]
+        },
+        "source_reference": { "type": "string" },
+        "parameters": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/parameter" }
+        },
+        "validation_scenarios": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}
