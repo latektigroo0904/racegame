@@ -43,6 +43,9 @@ bool TAAeroRegressionReport::Build(
     TArray<double> ForceMagnitude;
     TArray<double> DragAxisForce;
     TArray<double> VerticalForce;
+    TArray<double> FrontLiftForce;
+    TArray<double> RearLiftForce;
+    TArray<double> FrontBalance;
     TArray<double> PitchTorque;
 
     const int32 Count = Buffer.Num();
@@ -51,6 +54,9 @@ bool TAAeroRegressionReport::Build(
     ForceMagnitude.Reserve(Count);
     DragAxisForce.Reserve(Count);
     VerticalForce.Reserve(Count);
+    FrontLiftForce.Reserve(Count);
+    RearLiftForce.Reserve(Count);
+    FrontBalance.Reserve(Count);
     PitchTorque.Reserve(Count);
 
     for (int32 Index = 0; Index < Count; ++Index)
@@ -76,6 +82,9 @@ bool TAAeroRegressionReport::Build(
         ForceMagnitude.Add(Metrics.ForceMagnitudeN);
         DragAxisForce.Add(Metrics.DragAxisForceN);
         VerticalForce.Add(Metrics.VerticalForceN);
+        FrontLiftForce.Add(Metrics.FrontLiftForceN);
+        RearLiftForce.Add(Metrics.RearLiftForceN);
+        FrontBalance.Add(Metrics.FrontDownforceBalance01);
         PitchTorque.Add(Metrics.PitchTorqueNm);
     }
 
@@ -84,6 +93,9 @@ bool TAAeroRegressionReport::Build(
         !SummarizeChannel(ForceMagnitude, SteadyStateFraction01, OutReport.ForceMagnitudeN) ||
         !SummarizeChannel(DragAxisForce, SteadyStateFraction01, OutReport.DragAxisForceN) ||
         !SummarizeChannel(VerticalForce, SteadyStateFraction01, OutReport.VerticalForceN) ||
+        !SummarizeChannel(FrontLiftForce, SteadyStateFraction01, OutReport.FrontLiftForceN) ||
+        !SummarizeChannel(RearLiftForce, SteadyStateFraction01, OutReport.RearLiftForceN) ||
+        !SummarizeChannel(FrontBalance, SteadyStateFraction01, OutReport.FrontDownforceBalance01) ||
         !SummarizeChannel(PitchTorque, SteadyStateFraction01, OutReport.PitchTorqueNm))
     {
         OutReport = FTAAeroRegressionReport{};
@@ -98,13 +110,16 @@ FString TAAeroRegressionReport::ExportJsonLine(
     const FTAAeroRegressionReport& Report)
 {
     return FString::Printf(
-        TEXT("{\"sample_count\":%d,\"relative_air_speed_mps\":%s,\"dynamic_pressure_pa\":%s,\"force_magnitude_n\":%s,\"drag_axis_force_n\":%s,\"vertical_force_n\":%s,\"pitch_torque_nm\":%s}\n"),
+        TEXT("{\"sample_count\":%d,\"relative_air_speed_mps\":%s,\"dynamic_pressure_pa\":%s,\"force_magnitude_n\":%s,\"drag_axis_force_n\":%s,\"vertical_force_n\":%s,\"front_lift_force_n\":%s,\"rear_lift_force_n\":%s,\"front_downforce_balance_01\":%s,\"pitch_torque_nm\":%s}\n"),
         Report.SampleCount,
         *SummaryJson(Report.RelativeAirSpeedMps),
         *SummaryJson(Report.DynamicPressurePa),
         *SummaryJson(Report.ForceMagnitudeN),
         *SummaryJson(Report.DragAxisForceN),
         *SummaryJson(Report.VerticalForceN),
+        *SummaryJson(Report.FrontLiftForceN),
+        *SummaryJson(Report.RearLiftForceN),
+        *SummaryJson(Report.FrontDownforceBalance01),
         *SummaryJson(Report.PitchTorqueNm));
 }
 
@@ -112,13 +127,16 @@ FString TAAeroRegressionReport::ExportCsv(
     const FTAAeroRegressionReport& Report)
 {
     return FString::Printf(
-        TEXT("sample_count,airspeed_min,airspeed_max,airspeed_mean,airspeed_steady,dynamic_pressure_min,dynamic_pressure_max,dynamic_pressure_mean,dynamic_pressure_steady,force_min,force_max,force_mean,force_steady,drag_min,drag_max,drag_mean,drag_steady,vertical_min,vertical_max,vertical_mean,vertical_steady,pitch_min,pitch_max,pitch_mean,pitch_steady\n")
-        TEXT("%d,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g\n"),
+        TEXT("sample_count,airspeed_min,airspeed_max,airspeed_mean,airspeed_steady,dynamic_pressure_min,dynamic_pressure_max,dynamic_pressure_mean,dynamic_pressure_steady,force_min,force_max,force_mean,force_steady,drag_min,drag_max,drag_mean,drag_steady,vertical_min,vertical_max,vertical_mean,vertical_steady,front_lift_min,front_lift_max,front_lift_mean,front_lift_steady,rear_lift_min,rear_lift_max,rear_lift_mean,rear_lift_steady,front_balance_min,front_balance_max,front_balance_mean,front_balance_steady,pitch_min,pitch_max,pitch_mean,pitch_steady\n")
+        TEXT("%d,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g\n"),
         Report.SampleCount,
         Report.RelativeAirSpeedMps.MinValue, Report.RelativeAirSpeedMps.MaxValue, Report.RelativeAirSpeedMps.MeanValue, Report.RelativeAirSpeedMps.SteadyStateMean,
         Report.DynamicPressurePa.MinValue, Report.DynamicPressurePa.MaxValue, Report.DynamicPressurePa.MeanValue, Report.DynamicPressurePa.SteadyStateMean,
         Report.ForceMagnitudeN.MinValue, Report.ForceMagnitudeN.MaxValue, Report.ForceMagnitudeN.MeanValue, Report.ForceMagnitudeN.SteadyStateMean,
         Report.DragAxisForceN.MinValue, Report.DragAxisForceN.MaxValue, Report.DragAxisForceN.MeanValue, Report.DragAxisForceN.SteadyStateMean,
         Report.VerticalForceN.MinValue, Report.VerticalForceN.MaxValue, Report.VerticalForceN.MeanValue, Report.VerticalForceN.SteadyStateMean,
+        Report.FrontLiftForceN.MinValue, Report.FrontLiftForceN.MaxValue, Report.FrontLiftForceN.MeanValue, Report.FrontLiftForceN.SteadyStateMean,
+        Report.RearLiftForceN.MinValue, Report.RearLiftForceN.MaxValue, Report.RearLiftForceN.MeanValue, Report.RearLiftForceN.SteadyStateMean,
+        Report.FrontDownforceBalance01.MinValue, Report.FrontDownforceBalance01.MaxValue, Report.FrontDownforceBalance01.MeanValue, Report.FrontDownforceBalance01.SteadyStateMean,
         Report.PitchTorqueNm.MinValue, Report.PitchTorqueNm.MaxValue, Report.PitchTorqueNm.MeanValue, Report.PitchTorqueNm.SteadyStateMean);
 }
