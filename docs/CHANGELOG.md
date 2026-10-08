@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-10-08 — Split aerodynamic balance closure
+
+Added/updated:
+- upgraded aero runtime from one lift coefficient/resultant point to separate front/rear lift/downforce surfaces;
+- retained one drag coefficient with its own physical application point;
+- front/rear lift forces now generate chassis pitch/roll/yaw moments through real moment arms;
+- no speed-dependent grip multiplier was introduced;
+- authored aero now includes front/rear coefficients and three physical application points;
+- effective COM-local aero state remains part of canonical physics hashing;
+- compact telemetry now records drag, front lift, rear lift, total aero force and total aero torque;
+- aero regression metrics/report now expose front/rear downforce balance;
+- updated solver, bridge, full-step, definition and asset-compiler regressions;
+- added direct regression proving front-heavy downforce creates nose-down pitch and symmetric balance cancels lift-induced pitch;
+- added `docs/46-AERO-SPLIT-BALANCE-V01.md`;
+- added ADR-069 through ADR-071.
+
+Verification:
+- GitHub source-sanity passed on split-aero code through commit `ac1f0bd1f8b57923d695b0e4abe89ca6a36d60d5` (run 220);
+- later documentation-only commits do not change runtime physics;
+- Unreal Engine 5.8 UHT/UBT/module-load/Automation remains unexecuted.
+
 ## 2026-09-23 — Fluid and electrical functional damage session
 
 Added:
