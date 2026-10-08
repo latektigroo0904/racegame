@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://torqueatlas.local/schema/regression_scenario_v1.schema.json",
+  "title": "Torque Atlas Regression Scenario v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "scenario_version",
+    "category",
+    "vehicle_definition_id",
+    "fixed_step_hz",
+    "duration_seconds",
+    "environment",
+    "control_program",
+    "acceptance"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "scenario_id": { "type": "string", "minLength": 3 },
+    "scenario_version": { "type": "integer", "minimum": 1 },
+    "category": {
+      "enum": [
+        "static_load",
+        "braking",
+        "acceleration",
+        "skidpad",
+        "slalom",
+        "aero",
+        "wet",
+        "powertrain",
+        "damage",
+        "traffic"
+      ]
+    },
+    "vehicle_definition_id": { "type": "string", "minLength": 3 },
+    "fixed_step_hz": { "type": "number", "exclusiveMinimum": 0 },
+    "duration_seconds": { "type": "number", "exclusiveMinimum": 0 },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_material",
+        "surface_wetness01",
+        "water_depth_mm",
+        "ambient_temperature_c",
+        "air_density_kg_m3",
+        "wind_world_mps"
+      ],
+      "properties": {
+        "surface_material": { "type": "string", "minLength": 1 },
+        "surface_wetness01": { "type": "number", "minimum": 0, "maximum": 1 },
+        "water_depth_mm": { "type": "number", "minimum": 0 },
+        "ambient_temperature_c": { "type": "number" },
+        "air_density_kg_m3": { "type": "number", "minimum": 0 },
+        "wind_world_mps": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "number" },
+            { "type": "number" },
+            { "type": "number" }
+          ],
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    },
+    "control_program": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/control_step" }
+    },
+    "acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/envelope" }
+    }
+  },
+  "$defs": {
+    "control_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["time_seconds"],
+      "properties": {
+        "time_seconds": { "type": "number", "minimum": 0 },
+        "throttle01": { "type": "number", "minimum": 0, "maximum": 1 },
+        "brake01": { "type": "number", "minimum": 0, "maximum": 1 },
+        "steering01": { "type": "number", "minimum": -1, "maximum": 1 },
+        "clutch01": { "type": "number", "minimum": 0, "maximum": 1 },
+        "gear": { "type": "integer" }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "statistic",
+        "minimum_allowed",
+        "maximum_allowed"
+      ],
+      "properties": {
+        "metric": { "type": "string", "minLength": 1 },
+        "statistic": {
+          "enum": ["minimum", "maximum", "mean", "steady_mean", "final"]
+        },
+        "wheel_index": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "minimum_allowed": { "type": "number" },
+        "maximum_allowed": { "type": "number" }
+      }
+    }
+  }
+}
