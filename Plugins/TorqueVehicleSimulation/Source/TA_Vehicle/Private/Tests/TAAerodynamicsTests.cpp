@@ -18,7 +18,7 @@ bool FTAAeroZeroSpeedTest::RunTest(const FString& Parameters)
 
     FTAAerodynamicsOutput Output;
     TestTrue(TEXT("Calculate"), TAAerodynamics::Calculate(Config, Environment, Chassis, Output));
-    TestTrue(TEXT("Zero force"), Output.ForceWorldN.IsNearlyZero());
+    TestTrue(TEXT("Zero force"), Output.TotalForceWorldN.IsNearlyZero());
     TestEqual(TEXT("Zero q"), Output.DynamicPressurePa, 0.0);
     return true;
 }
@@ -31,7 +31,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FTAAeroSpeedSquaredTest::RunTest(const FString& Parameters)
 {
     FTAAerodynamicsConfig Config;
-    Config.LiftCoefficient = 0.0;
+    Config.FrontLiftCoefficient = 0.0;
+    Config.RearLiftCoefficient = 0.0;
     FTAAerodynamicsEnvironment Environment;
     FTAChassisState Slow;
     FTAChassisState Fast;
@@ -55,7 +56,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FTAAeroWindAndDownforceTest::RunTest(const FString& Parameters)
 {
     FTAAerodynamicsConfig Config;
-    Config.LiftCoefficient = -0.5;
+    Config.FrontLiftCoefficient = -0.20;
+    Config.RearLiftCoefficient = -0.30;
     FTAAerodynamicsEnvironment Headwind;
     FTAAerodynamicsEnvironment Tailwind;
     Headwind.WindVelocityWorldMps = FVector3d(-10.0, 0.0, 0.0);
@@ -81,20 +83,21 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FTAAeroApplicationMomentTest::RunTest(const FString& Parameters)
 {
     FTAAerodynamicsConfig Config;
-    Config.LiftCoefficient = 0.0;
-    Config.ApplicationPointBodyM = FVector3d(0.0, 0.0, 0.5);
+    Config.FrontLiftCoefficient = 0.0;
+    Config.RearLiftCoefficient = 0.0;
+    Config.DragApplicationPointBodyM = FVector3d(0.0, 0.0, 0.5);
     FTAAerodynamicsEnvironment Environment;
     FTAChassisState Chassis;
     Chassis.LinearVelocityWorldMps = FVector3d(30.0, 0.0, 0.0);
 
     FTAAerodynamicsOutput Output;
     TestTrue(TEXT("Calculate"), TAAerodynamics::Calculate(Config, Environment, Chassis, Output));
-    TestTrue(TEXT("Offset drag creates pitch moment"), FMath::Abs(Output.TorqueWorldNm.Y) > 1.0);
+    TestTrue(TEXT("Offset drag creates pitch moment"), FMath::Abs(Output.TotalTorqueWorldNm.Y) > 1.0);
 
     FTAChassisForceAccumulator Accumulator;
     TestTrue(TEXT("Add"), TAAerodynamics::AddToChassis(Config, Environment, Chassis, Accumulator));
-    TestTrue(TEXT("Accumulator force matches"), Accumulator.TotalForceWorldN.Equals(Output.ForceWorldN, 1.0e-9));
-    TestTrue(TEXT("Accumulator torque matches"), Accumulator.TotalTorqueWorldNm.Equals(Output.TorqueWorldNm, 1.0e-9));
+    TestTrue(TEXT("Accumulator force matches"), Accumulator.TotalForceWorldN.Equals(Output.TotalForceWorldN, 1.0e-9));
+    TestTrue(TEXT("Accumulator torque matches"), Accumulator.TotalTorqueWorldNm.Equals(Output.TotalTorqueWorldNm, 1.0e-9));
     return true;
 }
 
