@@ -89,6 +89,24 @@ jobs:
           python Tools/Regression/validate_scenario.py Tools/Regression/examples/static_mass_balance_v1.json
           python Tools/Regression/validate_scenario.py Tools/Regression/examples/braking_100_0_dry_v1.json
 
+      - name: Test build provenance validator
+        run: python -m unittest discover -s Tools/BuildProvenance/tests -p "test_*.py" -v
+
+      - name: Validate build provenance example
+        run: python Tools/BuildProvenance/validate_build.py Tools/BuildProvenance/examples/source_preflight_build_v1.json
+
+      - name: Test replay validator
+        run: python -m unittest discover -s Tools/Replay/tests -p "test_*.py" -v
+
+      - name: Validate replay example
+        run: python Tools/Replay/validate_replay.py Tools/Replay/examples/minimal_replay_v1.json
+
+      - name: Test QA bundle validator
+        run: python -m unittest discover -s Tools/QA/tests -p "test_*.py" -v
+
+      - name: Validate QA bundle example
+        run: python Tools/QA/validate_qa_bundle.py Tools/QA/examples/minimal_qa_bundle_v1.json
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
