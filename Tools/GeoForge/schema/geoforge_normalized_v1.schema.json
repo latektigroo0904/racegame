@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://torqueatlas.local/schema/geoforge_normalized_v1.schema.json",
+  "title": "Torque Atlas GeoForge Normalized Package v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "coordinate_system",
+    "nodes",
+    "segments",
+    "lanes",
+    "surface_zones"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coordinate_system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["units", "axis_convention", "origin_description"],
+      "properties": {
+        "units": { "const": "m" },
+        "axis_convention": { "const": "x_forward_y_right_z_up" },
+        "origin_description": { "type": "string", "minLength": 1 }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "segments": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/segment" }
+    },
+    "lanes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/lane" }
+    },
+    "surface_zones": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/surface_zone" }
+    }
+  },
+  "$defs": {
+    "point3": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "number" },
+        { "type": "number" },
+        { "type": "number" }
+      ],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "x_m", "y_m", "z_m"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "x_m": { "type": "number" },
+        "y_m": { "type": "number" },
+        "z_m": { "type": "number" }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "start_node_id",
+        "end_node_id",
+        "road_class",
+        "speed_limit_mps",
+        "lane_ids",
+        "centerline"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "start_node_id": { "type": "string", "minLength": 1 },
+        "end_node_id": { "type": "string", "minLength": 1 },
+        "road_class": { "type": "string", "minLength": 1 },
+        "speed_limit_mps": { "type": "number", "minimum": 0 },
+        "lane_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "centerline": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/point3" }
+        }
+      }
+    },
+    "lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "segment_id",
+        "direction",
+        "width_m",
+        "centerline"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "segment_id": { "type": "string", "minLength": 1 },
+        "direction": {
+          "enum": ["forward", "backward"]
+        },
+        "width_m": { "type": "number", "exclusiveMinimum": 0 },
+        "centerline": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/point3" }
+        }
+      }
+    },
+    "surface_zone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "material_id",
+        "dry_friction_baseline",
+        "wet_friction_baseline",
+        "drainage01"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "material_id": { "type": "string", "minLength": 1 },
+        "dry_friction_baseline": { "type": "number", "minimum": 0 },
+        "wet_friction_baseline": { "type": "number", "minimum": 0 },
+        "drainage01": { "type": "number", "minimum": 0, "maximum": 1 },
+        "segment_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "roughness": { "type": "number", "minimum": 0 },
+        "macrotexture": { "type": "number", "minimum": 0 },
+        "temperature_c": { "type": "number" }
+      }
+    }
+  }
+}
