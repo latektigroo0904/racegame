@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://torqueatlas.local/schema/save_v1.schema.json",
+  "title": "Torque Atlas Save Package v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "save_schema_version",
+    "profile_revision",
+    "credits",
+    "career",
+    "vehicles",
+    "transactions"
+  ],
+  "properties": {
+    "save_schema_version": { "const": 1 },
+    "profile_revision": { "type": "integer", "minimum": 0 },
+    "credits": { "type": "integer", "minimum": 0 },
+    "career": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["licenses", "reputation"],
+      "properties": {
+        "licenses": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "reputation": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "vehicles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/vehicle" }
+    },
+    "transactions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/transaction" }
+    }
+  },
+  "$defs": {
+    "vehicle": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "instance_id",
+        "definition_id",
+        "definition_version",
+        "odometer_m",
+        "engine_hours",
+        "installed_component_ids",
+        "fuel_fraction01",
+        "battery_soc01"
+      ],
+      "properties": {
+        "instance_id": { "type": "string", "minLength": 1 },
+        "definition_id": { "type": "string", "minLength": 3 },
+        "definition_version": { "type": "integer", "minimum": 1 },
+        "odometer_m": { "type": "number", "minimum": 0 },
+        "engine_hours": { "type": "number", "minimum": 0 },
+        "installed_component_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 3 },
+          "uniqueItems": true
+        },
+        "fuel_fraction01": { "type": "number", "minimum": 0, "maximum": 1 },
+        "battery_soc01": { "type": "number", "minimum": 0, "maximum": 1 },
+        "damage_model_version": { "type": "integer", "minimum": 1 },
+        "physics_version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "credit_delta"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "credit_delta": { "type": "integer" }
+      }
+    }
+  }
+}
