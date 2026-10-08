@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "world_package_id": "ta.world:prototype-region-a",
+  "dataset_id": "prototype-region-a-v1",
+  "geoforge_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "lane_graph_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "surface_package_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "chunks": [
+    {
+      "id": "chunk-0-0",
+      "min_m": [0.0, 0.0, -100.0],
+      "max_m": [1000.0, 1000.0, 500.0],
+      "content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "streaming_priority": 1
+    }
+  ]
+}
