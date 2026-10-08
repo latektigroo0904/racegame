@@ -203,3 +203,43 @@ Initial implementation boundary:
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
+
+## Windows environment audit — 2026-10-09
+
+One bounded work package: record repository provenance, attempted Windows preflight, evidence limits and NEXT_TASK. Documentation only; no physics/source changes.
+
+### Repository evidence
+- GitHub connector read canonical main successfully.
+- Observed main HEAD: `05c911fe86d57d2f46a945aec0e63e807eafd34f` (EV motoring/regen/battery-limit Automation source tests).
+- Read README.md, this checkpoint and docs/45-UE58-UHT-MODULE-AUDIT-V01.md.
+- Pre-edit checkpoint blob: `5fea0d5d019e6301ae3ebd39ef3ec60d5c4ec348`.
+- Root AGENTS.md request returned HTTP 404.
+- Main has later EV test source than the checkpoint narrative describes. This audit does not infer executable success or complete subsystem status from those additions.
+
+### Windows preflight evidence
+The local command bridge failed before process creation on two attempts, including a minimal `git --version` invocation:
+`Failed to create unified exec process: helper_unknown_error: setup refresh had errors`.
+
+An alternative Node runtime attempt returned:
+`trusted Node process exited unexpectedly; kernel reset, rerun your request`.
+No component-inspection output was produced.
+
+| Required component | Observed status |
+| --- | --- |
+| Git | Unknown: version command did not start |
+| Python | Unknown: no version/path evidence |
+| Visual Studio C++ build tools | Unknown: vswhere/compiler inventory did not execute |
+| Windows SDK | Unknown: registry/include inventory did not execute |
+| Unreal Engine 5.8 | Unknown: engine directory/build inventory did not execute |
+
+Unknown does not mean missing. This is a local execution-infrastructure failure, not proof of a missing toolchain or an installer-permission denial. No installation, download, local clone, source-sanity execution, UHT/UBT build, Editor launch or Automation test was completed. No Windows SDK/compiler compatibility claim is made. UE 5.8 build-unverified status is preserved.
+
+### NEXT_TASK
+Restore the local command/runtime bridge, then complete a read-only Windows toolchain inventory before deciding on any download:
+1. Record Git and Python executable paths and actual version output.
+2. Enumerate Visual Studio installations with vswhere; verify the C++ toolset/compiler binaries and SDK include/lib versions.
+3. Inspect Epic/custom engine registrations and installed engine Build.version; verify an actual UE 5.8 installation, available disk space and project requirements.
+4. Install only components proven missing and necessary, using verified official requirements and the permitted environment; avoid a large engine download until absence, capacity and installation access are established.
+5. With a verified toolchain, use the existing Scripts/Verify-Unreal.ps1 harness after reviewing its parameters. Record commit, engine/compiler versions, commands, exit codes and Saved/Verification artifacts. Preserve the checkpoint's ordered UHT/UBT and Automation gates; repair only the first reproducible failure.
+
+Completion evidence for this documentation package: successful GitHub update plus read-back of this section. The Windows inventory itself remains blocked and must not be reported as completed.
