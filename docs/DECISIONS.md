@@ -353,3 +353,44 @@
 **Status:** reaffirmed and extended 2026-10-08  
 **Decision:** compact telemetry records drag, front lift, rear lift, total force and total torque from the exact vehicle-step aero output. Regression/report code only projects/summarizes those values.  
 **Reason:** prevents reporting drift from the force actually integrated by the chassis.
+
+
+## ADR-072 — Post-Proof physics promotion is dependency-gated
+**Status:** accepted 2026-10-08  
+**Decision:** hydraulic brakes precede ABS; differential physics precedes traction control; tire transients precede full controller tuning; dynamic unsprung promotion follows transient/contact validation; physical fluid/electrical networks replace scalar compatibility states only after equivalent executable evidence exists.  
+**Reason:** controllers must operate on real actuators and each new stateful solver must enter through one force/energy ownership path.
+
+## ADR-073 — Brake assist acts through hydraulic pressure, never direct wheel-speed correction
+**Status:** accepted 2026-10-08  
+**Decision:** ABS and later ESC brake interventions modulate physical corner/circuit pressure requests.  
+**Reason:** preserves traceable brake torque, thermal work and line-damage consequences.
+
+## ADR-074 — Differential backends share one torque/energy accounting interface
+**Status:** accepted 2026-10-08  
+**Decision:** open, spool, clutch LSD, helical, viscous and active differentials must expose left/right torque, lock/bias torque, untransmitted torque and dissipation through a common interface.  
+**Reason:** prevents controller-specific drivetrain shortcuts and makes torque conservation testable.
+
+## ADR-075 — Tire transient dynamics wrap the steady-state force law
+**Status:** accepted 2026-10-08  
+**Decision:** relaxation/transient state drives the existing steady-state target-force backend rather than replacing surface or grip coefficients.  
+**Reason:** preserves finite combined-slip physics while adding realistic force build-up and phase lag.
+
+## ADR-076 — Fluid and electrical damage migrate toward physical networks without duplicate scalar consequences
+**Status:** accepted 2026-10-08  
+**Decision:** current normalized fuel/electrical damage remains a compatibility layer until mass/pressure/voltage networks reproduce equivalent behavior; once promoted, the physical network becomes source of truth.  
+**Reason:** avoids applying the same failure twice.
+
+## ADR-077 — Calibration provenance is part of engineering acceptance
+**Status:** accepted 2026-10-08  
+**Decision:** handling-critical calibration must carry units, provenance class, confidence and validation context; production promotion requires executable evidence.  
+**Reason:** prevents unexplained magic constants from becoming permanent content.
+
+## ADR-078 — World systems query vehicle-facing interfaces but never calculate tire physics
+**Status:** accepted 2026-10-08  
+**Decision:** GeoForge/world/weather provide road geometry, surface state, wind and environment; the vehicle/tire/aero solvers remain authoritative for forces.  
+**Reason:** preserves subsystem ownership and enables world scale/LOD without changing vehicle laws.
+
+## ADR-079 — Multiplayer server trusts input intent and critical events, not client physics outcome
+**Status:** accepted 2026-10-08  
+**Decision:** server authority owns persistent state, functional damage, race/economy truth and important collision decisions; clients predict locally and may reconstruct dense visual deformation.  
+**Reason:** keeps bandwidth bounded while preserving authoritative gameplay state.
