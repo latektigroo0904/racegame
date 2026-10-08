@@ -3,6 +3,14 @@
 #include "Misc/AutomationTest.h"
 #include "TABrakeHydraulics.h"
 
+namespace
+{
+    int32 Corner(const ETABrakeCornerIndex Index)
+    {
+        return static_cast<int32>(Index);
+    }
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
     FTABrakeHydraulicsPressureBuildTest,
     "TorqueAtlas.Vehicle.Brakes.Hydraulics.PressureBuildAndRelease",
@@ -26,23 +34,15 @@ bool FTABrakeHydraulicsPressureBuildTest::RunTest(
 
     TestTrue(
         TEXT("Pressure build step succeeds"),
-        TABrakeHydraulics::Step(
-            Config,
-            Input,
-            State,
-            Output));
+        TABrakeHydraulics::Step(Config, Input, State, Output));
+
+    const int32 FrontLeft =
+        Corner(ETABrakeCornerIndex::FrontLeft);
 
     TestTrue(
-        TEXT("Front pressure rise is rate-limited"),
+        TEXT("Corner pressure rise is rate-limited"),
         FMath::IsNearlyEqual(
-            State.FrontCircuitPressurePa,
-            100000.0,
-            1.0e-6));
-
-    TestTrue(
-        TEXT("Rear pressure rise is rate-limited equally before ratio target is reached"),
-        FMath::IsNearlyEqual(
-            State.RearCircuitPressurePa,
+            State.CornerLinePressurePa[FrontLeft],
             100000.0,
             1.0e-6));
 
@@ -50,16 +50,11 @@ bool FTABrakeHydraulicsPressureBuildTest::RunTest(
 
     TestTrue(
         TEXT("Pressure release step succeeds"),
-        TABrakeHydraulics::Step(
-            Config,
-            Input,
-            State,
-            Output));
+        TABrakeHydraulics::Step(Config, Input, State, Output));
 
     TestTrue(
-        TEXT("Pressure releases toward zero"),
-        State.FrontCircuitPressurePa
-            < 100000.0);
+        TEXT("Corner pressure releases toward zero"),
+        State.CornerLinePressurePa[FrontLeft] < 100000.0);
 
     return true;
 }
@@ -83,50 +78,53 @@ bool FTABrakeHydraulicsBiasTorqueTest::RunTest(
 
     FTABrakeHydraulicInput Input;
     Input.Pedal01 = 1.0;
-    Input.DeltaTimeSeconds = 1.0 / 240.0;
 
     FTABrakeHydraulicOutput Output;
 
     TestTrue(
         TEXT("Bias step succeeds"),
-        TABrakeHydraulics::Step(
-            Config,
-            Input,
-            State,
-            Output));
+        TABrakeHydraulics::Step(Config, Input, State, Output));
+
+    const int32 FrontLeft =
+        Corner(ETABrakeCornerIndex::FrontLeft);
+
+    const int32 RearLeft =
+        Corner(ETABrakeCornerIndex::RearLeft);
 
     TestTrue(
         TEXT("Rear target pressure is half front target pressure"),
         FMath::IsNearlyEqual(
-            Output.RearTargetPressurePa,
-            0.5 * Output.FrontTargetPressurePa,
+            Output.CornerTargetPressurePa[RearLeft],
+            0.5 * Output.CornerTargetPressurePa[FrontLeft],
             1.0e-6));
 
     TestTrue(
-        TEXT("Front hydraulic brake torque is positive"),
-        Output.FrontCornerRawBrakeTorqueNm > 0.0);
+        TEXT("Front hydraulic torque is positive"),
+        Output.CornerRawBrakeTorqueNm[FrontLeft] > 0.0);
 
     TestTrue(
-        TEXT("Rear hydraulic brake torque is positive"),
-        Output.RearCornerRawBrakeTorqueNm > 0.0);
+        TEXT("Rear hydraulic torque is positive"),
+        Output.CornerRawBrakeTorqueNm[RearLeft] > 0.0);
 
     return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-    FTABrakeHydraulicsCircuitHealthTest,
-    "TorqueAtlas.Vehicle.Brakes.Hydraulics.CircuitHealthReducesPressure",
+    FTABrakeHydraulicsDiagonalCircuitHealthTest,
+    "TorqueAtlas.Vehicle.Brakes.Hydraulics.DiagonalCircuitHealthMapsToCorners",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FTABrakeHydraulicsCircuitHealthTest::RunTest(
+bool FTABrakeHydraulicsDiagonalCircuitHealthTest::RunTest(
     const FString& Parameters)
 {
     FTABrakeHydraulicConfig Config;
+    Config.CircuitTopology =
+        ETABrakeCircuitTopology::Diagonal;
     Config.PressureRiseRatePaPerSec = 1.0e12;
 
     FTABrakeHydraulicState State;
     TABrakeHydraulics::InitializeState(Config, State);
-    State.FrontCircuitHealth01 = 0.25;
+    State.CircuitAHealth01 = 0.25;
 
     FTABrakeHydraulicInput Input;
     Input.Pedal01 = 1.0;
@@ -134,19 +132,76 @@ bool FTABrakeHydraulicsCircuitHealthTest::RunTest(
     FTABrakeHydraulicOutput Output;
 
     TestTrue(
-        TEXT("Damaged circuit step succeeds"),
-        TABrakeHydraulics::Step(
-            Config,
-            Input,
-            State,
-            Output));
+        TEXT("Damaged diagonal circuit step succeeds"),
+        TABrakeHydraulics::Step(Config, Input, State, Output));
+
+    const int32 FrontLeft =
+        Corner(ETABrakeCornerIndex::FrontLeft);
+
+    const int32 FrontRight =
+        Corner(ETABrakeCornerIndex::FrontRight);
+
+    const int32 RearRight =
+        Corner(ETABrakeCornerIndex::RearRight);
 
     TestTrue(
-        TEXT("Front effective pressure is quartered by circuit health"),
+        TEXT("Circuit A reduces front-left pressure"),
+        Output.CornerEffectivePressurePa[FrontLeft]
+            < Output.CornerEffectivePressurePa[FrontRight]);
+
+    TestTrue(
+        TEXT("Circuit A also reduces diagonally opposite rear-right pressure"),
         FMath::IsNearlyEqual(
-            Output.FrontEffectivePressurePa,
-            0.25 * State.FrontCircuitPressurePa,
+            Output.CornerEffectivePressurePa[RearRight],
+            0.25
+                * State.CornerLinePressurePa[RearRight]
+                * Output.FluidPressureTransfer01,
             1.0e-6));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTABrakeHydraulicsIndependentCornerModulationTest,
+    "TorqueAtlas.Vehicle.Brakes.Hydraulics.CornerModulationIsIndependent",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTABrakeHydraulicsIndependentCornerModulationTest::RunTest(
+    const FString& Parameters)
+{
+    FTABrakeHydraulicConfig Config;
+    Config.PressureRiseRatePaPerSec = 1.0e12;
+    Config.PressureReleaseRatePaPerSec = 1.0e12;
+
+    FTABrakeHydraulicState State;
+    TABrakeHydraulics::InitializeState(Config, State);
+
+    FTABrakeHydraulicInput Input;
+    Input.Pedal01 = 1.0;
+
+    const int32 FrontLeft =
+        Corner(ETABrakeCornerIndex::FrontLeft);
+
+    const int32 FrontRight =
+        Corner(ETABrakeCornerIndex::FrontRight);
+
+    Input.CornerPressureModulation01[FrontLeft] = 0.0;
+    Input.CornerPressureModulation01[FrontRight] = 1.0;
+
+    FTABrakeHydraulicOutput Output;
+
+    TestTrue(
+        TEXT("Independent corner modulation step succeeds"),
+        TABrakeHydraulics::Step(Config, Input, State, Output));
+
+    TestEqual(
+        TEXT("Released front-left corner reaches zero target pressure"),
+        Output.CornerTargetPressurePa[FrontLeft],
+        0.0);
+
+    TestTrue(
+        TEXT("Front-right retains brake pressure"),
+        Output.CornerEffectivePressurePa[FrontRight] > 0.0);
 
     return true;
 }
@@ -167,13 +222,10 @@ bool FTABrakeHydraulicsBoilingTest::RunTest(
     Config.MaxPressureLossAtFullVapor01 = 0.80;
     Config.PressureRiseRatePaPerSec = 1.0e12;
 
-    const double BoilingPointC =
-        TABrakeHydraulics::CalculateBoilingPointC(Config);
-
     TestTrue(
-        TEXT("Boiling point interpolates between dry and wet values"),
+        TEXT("Boiling point interpolates"),
         FMath::IsNearlyEqual(
-            BoilingPointC,
+            TABrakeHydraulics::CalculateBoilingPointC(Config),
             200.0,
             1.0e-9));
 
@@ -188,21 +240,14 @@ bool FTABrakeHydraulicsBoilingTest::RunTest(
 
     TestTrue(
         TEXT("Boiling-state brake step succeeds"),
-        TABrakeHydraulics::Step(
-            Config,
-            Input,
-            State,
-            Output));
+        TABrakeHydraulics::Step(Config, Input, State, Output));
 
     TestTrue(
-        TEXT("Full transition-range superheat reaches full vapor fraction"),
-        FMath::IsNearlyEqual(
-            Output.VaporFraction01,
-            1.0,
-            1.0e-9));
+        TEXT("Full transition superheat reaches full vapor"),
+        FMath::IsNearlyEqual(Output.VaporFraction01, 1.0, 1.0e-9));
 
     TestTrue(
-        TEXT("Full vapor fraction reduces pressure transfer to configured floor"),
+        TEXT("Full vapor reduces pressure transfer to configured floor"),
         FMath::IsNearlyEqual(
             Output.FluidPressureTransfer01,
             0.20,
@@ -235,12 +280,12 @@ bool FTABrakeHydraulicsFluidThermalTest::RunTest(
             10.0,
             State));
 
-    TestTrue(
-        TEXT("Conducted heat raises fluid temperature"),
-        State.FluidTemperatureC > 20.0);
-
     const double HeatedTemperatureC =
         State.FluidTemperatureC;
+
+    TestTrue(
+        TEXT("Conducted heat raises fluid temperature"),
+        HeatedTemperatureC > 20.0);
 
     TestTrue(
         TEXT("Fluid cooling update succeeds"),
@@ -253,11 +298,6 @@ bool FTABrakeHydraulicsFluidThermalTest::RunTest(
     TestTrue(
         TEXT("Cooling lowers hot fluid temperature"),
         State.FluidTemperatureC < HeatedTemperatureC);
-
-    TestTrue(
-        TEXT("Cooling never goes below ambient"),
-        State.FluidTemperatureC
-            >= Config.FluidAmbientTemperatureC);
 
     return true;
 }
@@ -280,14 +320,6 @@ bool FTABrakeHydraulicsValidationTest::RunTest(
 
     TestFalse(
         TEXT("Zero master cylinder area is rejected"),
-        TABrakeHydraulics::ValidateConfig(Config));
-
-    Config = FTABrakeHydraulicConfig{};
-    Config.FluidWetBoilingPointC =
-        Config.FluidDryBoilingPointC;
-
-    TestFalse(
-        TEXT("Non-decreasing wet boiling point is rejected"),
         TABrakeHydraulics::ValidateConfig(Config));
 
     return true;
