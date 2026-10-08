@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "package_id": "torque-atlas-base-minimal",
+  "namespace": "ta.base",
+  "components": [
+    {
+      "id": "ta.base:engine-i4t-20",
+      "version": 1,
+      "component_type": "engine",
+      "physics_affecting": true,
+      "calibration": {
+        "provenance_class": "P0",
+        "confidence": "low",
+        "notes": "TA-P01 prototype engineering seed"
+      }
+    },
+    {
+      "id": "ta.base:livery-p01-default",
+      "version": 1,
+      "component_type": "cosmetic",
+      "physics_affecting": false
+    }
+  ],
+  "events": [
+    {
+      "id": "ta.base:event-proving-ground-time-trial",
+      "version": 1,
+      "discipline": "time_trial",
+      "route_id": "proving-ground-loop-a",
+      "laps": 3,
+      "reward_credits": 2500,
+      "entry_cost_credits": 0
+    }
+  ],
+  "driver_profiles": [
+    {
+      "id": "ta.base:traffic-balanced",
+      "patience": 0.6,
+      "awareness": 0.7,
+      "aggression": 0.3,
+      "skill": 0.6,
+      "risk_tolerance": 0.3,
+      "lawfulness": 0.8
+    }
+  ]
+}
