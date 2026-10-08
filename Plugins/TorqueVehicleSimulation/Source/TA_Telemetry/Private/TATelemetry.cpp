@@ -86,10 +86,16 @@ FTATelemetrySample TATelemetry::MakeSample(
         Output.Aerodynamics.RelativeAirVelocityWorldMps.Length();
     Sample.AeroDynamicPressurePa =
         Output.Aerodynamics.DynamicPressurePa;
+    Sample.AeroDragForceN =
+        Output.Aerodynamics.DragForceN;
+    Sample.AeroFrontLiftForceN =
+        Output.Aerodynamics.FrontLiftForceN;
+    Sample.AeroRearLiftForceN =
+        Output.Aerodynamics.RearLiftForceN;
     Sample.AeroForceWorldN =
-        Output.Aerodynamics.ForceWorldN;
+        Output.Aerodynamics.TotalForceWorldN;
     Sample.AeroTorqueWorldNm =
-        Output.Aerodynamics.TorqueWorldNm;
+        Output.Aerodynamics.TotalTorqueWorldNm;
 
     return Sample;
 }
