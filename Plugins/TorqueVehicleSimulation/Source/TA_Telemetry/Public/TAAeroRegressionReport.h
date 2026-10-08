@@ -13,6 +13,9 @@ struct TA_TELEMETRY_API FTAAeroRegressionReport
     FTARegressionMetricSummary ForceMagnitudeN;
     FTARegressionMetricSummary DragAxisForceN;
     FTARegressionMetricSummary VerticalForceN;
+    FTARegressionMetricSummary FrontLiftForceN;
+    FTARegressionMetricSummary RearLiftForceN;
+    FTARegressionMetricSummary FrontDownforceBalance01;
     FTARegressionMetricSummary PitchTorqueNm;
 };
 
