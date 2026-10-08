@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "replay_id": "replay-prototype-001",
+  "build_id": "source-preflight-main",
+  "physics_hash": "1a2b3c4d",
+  "fixed_step_hz": 240.0,
+  "initial_state_ref": "state-0001",
+  "inputs": [
+    {"tick": 0, "throttle01": 0.0, "brake01": 0.0, "steering01": 0.0, "clutch01": 1.0, "gear": 1},
+    {"tick": 1, "throttle01": 0.1, "brake01": 0.0, "steering01": 0.0, "clutch01": 0.9, "gear": 1}
+  ],
+  "events": [
+    {"tick": 120, "event_id": "evt-001", "type": "impact"}
+  ]
+}
