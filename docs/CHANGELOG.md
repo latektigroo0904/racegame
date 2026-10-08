@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-10-08 — Post-Proof architecture expansion
+
+Designed and documented implementation-ready next phases without prematurely promoting unverified runtime physics:
+
+- `47-POST-POP-PHYSICS-ROADMAP-V01.md`
+  - dependency-driven post-Proof vehicle-physics sequence;
+- `48-HYDRAULIC-BRAKE-ABS-V01.md`
+  - hydraulic actuation, brake circuits, fluid boil and ABS pressure modulation;
+- `49-DIFFERENTIAL-TRACTION-ARCHITECTURE-V01.md`
+  - open/spool/LSD/helical/viscous/active differential interface;
+- `50-TIRE-TRANSIENT-DYNAMICS-V01.md`
+  - relaxation-length based stateful tire response;
+- `51-VEHICLE-FLUID-NETWORKS-V01.md`
+  - coolant/fuel/oil/brake-fluid lumped physical networks;
+- `52-VEHICLE-ELECTRICAL-NETWORK-V01.md`
+  - 12 V battery/starter/alternator/bus/consumer architecture;
+- `53-DRIVER-ASSISTS-FFB-V01.md`
+  - ABS/TCS/ESC/launch/steering-FFB controller boundaries;
+- `54-VEHICLE-PHYSICS-PROMOTION-TEST-MATRIX-V01.md`
+  - explicit source→UE→Automation→trace→calibration→canonical gates;
+- `55-PHYSICS-CALIBRATION-PROVENANCE-V01.md`
+  - calibration provenance/confidence/versioning contract;
+- `56-POP-TO-WORLD-TRANSITION-V01.md`
+  - first 20–25 km² world/GeoForge/traffic/surface coupling plan;
+- `57-MULTIPLAYER-VEHICLE-REPLICATION-V01.md`
+  - server-authoritative vehicle/damage replication strategy.
+
+Architecture decisions ADR-072 through ADR-079 added.
+
+Important:
+- these new documents are design/implementation contracts;
+- they do not claim new UE-runtime validation;
+- canonical promotion remains behind the current UE 5.8 executable Proof-of-Physics gate.
+
 ## 2026-10-08 — Split aerodynamic balance closure
 
 Added/updated:
