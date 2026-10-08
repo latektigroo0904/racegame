@@ -60,6 +60,9 @@ jobs:
       - name: Validate base content manifest example
         run: python Tools/ContentSchemas/validate_content_manifest.py Tools/ContentSchemas/examples/base_minimal_manifest.json
 
+      - name: Test traffic lane graph builder
+        run: python -m unittest discover -s Tools/Traffic/tests -p "test_*.py" -v
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
