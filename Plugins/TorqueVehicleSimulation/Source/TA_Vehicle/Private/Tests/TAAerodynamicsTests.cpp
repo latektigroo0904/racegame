@@ -101,4 +101,77 @@ bool FTAAeroApplicationMomentTest::RunTest(const FString& Parameters)
     return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FTAAeroBalancePitchMomentTest,
+    "TorqueAtlas.Vehicle.Aero.FrontRearBalanceCreatesPitchMoment",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FTAAeroBalancePitchMomentTest::RunTest(
+    const FString& Parameters)
+{
+    FTAAerodynamicsConfig Config;
+    Config.ReferenceAreaM2 = 2.0;
+    Config.DragCoefficient = 0.0;
+    Config.FrontLiftCoefficient = -0.30;
+    Config.RearLiftCoefficient = -0.10;
+    Config.FrontLiftApplicationPointBodyM =
+        FVector3d(1.0, 0.0, 0.0);
+    Config.RearLiftApplicationPointBodyM =
+        FVector3d(-1.0, 0.0, 0.0);
+
+    FTAAerodynamicsEnvironment Environment;
+    Environment.AirDensityKgPerM3 = 1.225;
+
+    FTAChassisState Chassis;
+    Chassis.LinearVelocityWorldMps =
+        FVector3d(30.0, 0.0, 0.0);
+
+    FTAAerodynamicsOutput Output;
+
+    TestTrue(
+        TEXT("Split-balance aero solve succeeds"),
+        TAAerodynamics::Calculate(
+            Config,
+            Environment,
+            Chassis,
+            Output));
+
+    TestTrue(
+        TEXT("Front surface generates more downforce than rear"),
+        FMath::Abs(Output.FrontLiftForceN)
+            > FMath::Abs(Output.RearLiftForceN));
+
+    TestTrue(
+        TEXT("Front-heavy downforce produces nose-down pitch torque"),
+        Output.TotalTorqueWorldNm.Y < 0.0);
+
+    FTAAerodynamicsConfig Balanced =
+        Config;
+
+    Balanced.FrontLiftCoefficient =
+        -0.20;
+
+    Balanced.RearLiftCoefficient =
+        -0.20;
+
+    FTAAerodynamicsOutput BalancedOutput;
+
+    TestTrue(
+        TEXT("Balanced aero solve succeeds"),
+        TAAerodynamics::Calculate(
+            Balanced,
+            Environment,
+            Chassis,
+            BalancedOutput));
+
+    TestTrue(
+        TEXT("Symmetric lift balance cancels lift-induced pitch moment"),
+        FMath::IsNearlyZero(
+            BalancedOutput.TotalTorqueWorldNm.Y,
+            1.0e-9));
+
+    return true;
+}
+
 #endif
