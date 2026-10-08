@@ -11,8 +11,11 @@ namespace
         Definition->Mass.CenterOfMassMeters = FVector(0.14, -0.01, 0.19);
         Definition->Aerodynamics.ReferenceAreaM2 = 2.37;
         Definition->Aerodynamics.DragCoefficient = 0.287;
-        Definition->Aerodynamics.LiftCoefficient = -0.219;
-        Definition->Aerodynamics.ApplicationPointVehicleLocalM = FVector(0.46, -0.04, 0.52);
+        Definition->Aerodynamics.FrontLiftCoefficient = -0.089;
+        Definition->Aerodynamics.RearLiftCoefficient = -0.130;
+        Definition->Aerodynamics.DragApplicationPointVehicleLocalM = FVector(0.46, -0.04, 0.52);
+        Definition->Aerodynamics.FrontLiftApplicationPointVehicleLocalM = FVector(1.24, -0.01, 0.24);
+        Definition->Aerodynamics.RearLiftApplicationPointVehicleLocalM = FVector(-1.02, -0.01, 0.24);
         return Definition;
     }
 }
@@ -36,10 +39,11 @@ bool FTAVehicleDefinitionAerodynamicsPropagationTest::RunTest(const FString& Par
     const FTAAerodynamicsConfig& Runtime = Config.VehicleRuntime.Aerodynamics;
     TestEqual(TEXT("Reference area propagates"), Runtime.ReferenceAreaM2, 2.37);
     TestEqual(TEXT("Drag coefficient propagates"), Runtime.DragCoefficient, 0.287);
-    TestEqual(TEXT("Lift coefficient propagates"), Runtime.LiftCoefficient, -0.219);
+    TestEqual(TEXT("Front lift coefficient propagates"), Runtime.FrontLiftCoefficient, -0.089);
+    TestEqual(TEXT("Rear lift coefficient propagates"), Runtime.RearLiftCoefficient, -0.130);
     TestTrue(
         TEXT("Application point is converted exactly once to COM-local coordinates"),
-        Runtime.ApplicationPointBodyM.Equals(FVector3d(0.32, -0.03, 0.33), 1.0e-12));
+        Runtime.DragApplicationPointBodyM.Equals(FVector3d(0.32, -0.03, 0.33), 1.0e-12));
 
     return true;
 }
@@ -123,8 +127,8 @@ bool FTAVehicleDefinitionAerodynamicsDeterminismTest::RunTest(const FString& Par
         Second.PhysicsConfigHash);
     TestTrue(
         TEXT("Repeated compilation produces the same COM-local aero point"),
-        First.VehicleRuntime.Aerodynamics.ApplicationPointBodyM.Equals(
-            Second.VehicleRuntime.Aerodynamics.ApplicationPointBodyM,
+        First.VehicleRuntime.Aerodynamics.DragApplicationPointBodyM.Equals(
+            Second.VehicleRuntime.Aerodynamics.DragApplicationPointBodyM,
             1.0e-12));
 
     return true;
