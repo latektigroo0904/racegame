@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "issue_id": "qa-0001",
+  "build_id": "source-preflight-main",
+  "physics_hash": "1a2b3c4d",
+  "summary": "Example vehicle-physics issue bundle",
+  "scenario_id": "ta.scenario:static-mass-balance",
+  "vehicle_definition_id": "ta.base:vehicle-ta-p01",
+  "artifacts": [
+    {
+      "id": "telemetry",
+      "type": "telemetry_csv",
+      "path": "artifacts/telemetry.csv",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ]
+}
