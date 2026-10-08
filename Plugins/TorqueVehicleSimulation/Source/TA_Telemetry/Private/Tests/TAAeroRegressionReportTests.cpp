@@ -19,6 +19,8 @@ bool FTAAeroRegressionReportBuildTest::RunTest(const FString& Parameters)
         Sample.AeroRelativeAirSpeedMps = 10.0 + Index;
         Sample.AeroDynamicPressurePa = 60.0 + 10.0 * Index;
         Sample.AeroForceWorldN = FVector3d(-100.0 - 10.0 * Index, 0.0, -200.0 - 20.0 * Index);
+        Sample.AeroFrontLiftForceN = -120.0 - 12.0 * Index;
+        Sample.AeroRearLiftForceN = -80.0 - 8.0 * Index;
         Sample.AeroTorqueWorldNm = FVector3d(0.0, 5.0 + Index, 0.0);
         Buffer.Push(Sample);
     }
@@ -39,14 +41,20 @@ bool FTAAeroRegressionReportBuildTest::RunTest(const FString& Parameters)
     TestEqual(TEXT("Air-speed trailing mean"), Report.RelativeAirSpeedMps.SteadyStateMean, 12.5);
     TestEqual(TEXT("Drag is positive against forward axis"), Report.DragAxisForceN.MeanValue, 115.0);
     TestEqual(TEXT("Downforce remains negative on +up"), Report.VerticalForceN.MeanValue, -230.0);
+    TestEqual(TEXT("Front lift/downforce is summarized"), Report.FrontLiftForceN.MeanValue, -138.0);
+    TestEqual(TEXT("Rear lift/downforce is summarized"), Report.RearLiftForceN.MeanValue, -92.0);
+    TestTrue(TEXT("Front aero balance remains sixty percent"),
+        FMath::IsNearlyEqual(Report.FrontDownforceBalance01.MeanValue, 0.60, 1.0e-12));
     TestEqual(TEXT("Pitch torque follows right axis"), Report.PitchTorqueNm.MeanValue, 6.5);
 
     const FString Json = TAAeroRegressionReport::ExportJsonLine(Report);
     TestTrue(TEXT("JSON contains sample count"), Json.Contains(TEXT("\"sample_count\":4")));
     TestTrue(TEXT("JSON contains drag channel"), Json.Contains(TEXT("\"drag_axis_force_n\"")));
+    TestTrue(TEXT("JSON contains front balance channel"), Json.Contains(TEXT("\"front_downforce_balance_01\"")));
 
     const FString Csv = TAAeroRegressionReport::ExportCsv(Report);
     TestTrue(TEXT("CSV contains airspeed header"), Csv.Contains(TEXT("airspeed_mean")));
+    TestTrue(TEXT("CSV contains front balance header"), Csv.Contains(TEXT("front_balance_mean")));
     TestTrue(TEXT("CSV contains pitch header"), Csv.Contains(TEXT("pitch_steady")));
 
     return true;
