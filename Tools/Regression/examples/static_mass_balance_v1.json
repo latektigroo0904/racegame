@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "scenario_id": "ta.scenario:static-mass-balance",
+  "scenario_version": 1,
+  "category": "static_load",
+  "vehicle_definition_id": "ta.base:vehicle-ta-p01",
+  "fixed_step_hz": 120.0,
+  "duration_seconds": 3.0,
+  "environment": {
+    "surface_material": "fresh_asphalt",
+    "surface_wetness01": 0.0,
+    "water_depth_mm": 0.0,
+    "ambient_temperature_c": 20.0,
+    "air_density_kg_m3": 1.225,
+    "wind_world_mps": [0.0, 0.0, 0.0]
+  },
+  "control_program": [
+    {
+      "time_seconds": 0.0,
+      "throttle01": 0.0,
+      "brake01": 0.0,
+      "steering01": 0.0,
+      "clutch01": 0.0,
+      "gear": 0
+    }
+  ],
+  "acceptance": [
+    {
+      "metric": "StaticLoadTotalErrorFraction",
+      "statistic": "steady_mean",
+      "minimum_allowed": -0.02,
+      "maximum_allowed": 0.02
+    },
+    {
+      "metric": "StaticLoadMaxCornerErrorFraction",
+      "statistic": "maximum",
+      "minimum_allowed": 0.0,
+      "maximum_allowed": 0.02
+    }
+  ]
+}
