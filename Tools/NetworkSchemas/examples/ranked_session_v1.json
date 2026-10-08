@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "session_id": "ranked-prototype-001",
+  "mode": "ranked",
+  "game_build_id": "prototype-main",
+  "physics_version": 2,
+  "damage_model_version": 2,
+  "server_authoritative": true,
+  "max_players": 16,
+  "mod_policy": "whitelist",
+  "allowed_content_manifest_sha256": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "allowed_vehicle_physics_hashes": [
+    "1a2b3c4d"
+  ]
+}
