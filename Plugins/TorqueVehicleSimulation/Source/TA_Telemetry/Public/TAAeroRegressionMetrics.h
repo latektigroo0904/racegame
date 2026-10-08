@@ -10,6 +10,9 @@ struct TA_TELEMETRY_API FTAAeroRegressionMetrics
     double ForceMagnitudeN = 0.0;
     double DragAxisForceN = 0.0;
     double VerticalForceN = 0.0;
+    double FrontLiftForceN = 0.0;
+    double RearLiftForceN = 0.0;
+    double FrontDownforceBalance01 = 0.5;
     double PitchTorqueNm = 0.0;
 };
 
