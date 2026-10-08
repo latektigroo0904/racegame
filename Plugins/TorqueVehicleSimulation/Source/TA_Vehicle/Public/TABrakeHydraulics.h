@@ -2,8 +2,29 @@
 
 #include "CoreMinimal.h"
 
+enum class ETABrakeCircuitTopology : uint8
+{
+    FrontRear,
+    Diagonal
+};
+
+enum class ETABrakeCornerIndex : uint8
+{
+    FrontLeft = 0,
+    FrontRight = 1,
+    RearLeft = 2,
+    RearRight = 3,
+    Count = 4
+};
+
+constexpr int32 TABrakeCornerCount =
+    static_cast<int32>(ETABrakeCornerIndex::Count);
+
 struct TA_VEHICLE_API FTABrakeHydraulicConfig
 {
+    ETABrakeCircuitTopology CircuitTopology =
+        ETABrakeCircuitTopology::Diagonal;
+
     double PedalForceMaxN = 450.0;
     double BoosterGain = 4.5;
     double MasterCylinderAreaM2 = 5.0e-4;
@@ -40,11 +61,13 @@ struct TA_VEHICLE_API FTABrakeHydraulicConfig
 
 struct TA_VEHICLE_API FTABrakeHydraulicState
 {
-    double FrontCircuitPressurePa = 0.0;
-    double RearCircuitPressurePa = 0.0;
+    double CornerLinePressurePa[TABrakeCornerCount] =
+        { 0.0, 0.0, 0.0, 0.0 };
 
-    double FrontCircuitHealth01 = 1.0;
-    double RearCircuitHealth01 = 1.0;
+    // Topology maps each corner onto A/B. Health is a compatibility-stage
+    // pressure-authority representation until physical leak flow is integrated.
+    double CircuitAHealth01 = 1.0;
+    double CircuitBHealth01 = 1.0;
 
     double FluidTemperatureC = 20.0;
     double VaporFraction01 = 0.0;
@@ -54,10 +77,9 @@ struct TA_VEHICLE_API FTABrakeHydraulicInput
 {
     double Pedal01 = 0.0;
 
-    // Future ABS/EBD/ESC controllers modulate pressure demand through these
-    // actuator authorities rather than editing wheel speed or tire grip.
-    double FrontPressureModulation01 = 1.0;
-    double RearPressureModulation01 = 1.0;
+    // Future ABS/EBD/ESC controllers modulate each corner independently.
+    double CornerPressureModulation01[TABrakeCornerCount] =
+        { 1.0, 1.0, 1.0, 1.0 };
 
     double DeltaTimeSeconds = 1.0 / 240.0;
 };
@@ -66,14 +88,14 @@ struct TA_VEHICLE_API FTABrakeHydraulicOutput
 {
     double MasterPressureRequestPa = 0.0;
 
-    double FrontTargetPressurePa = 0.0;
-    double RearTargetPressurePa = 0.0;
+    double CornerTargetPressurePa[TABrakeCornerCount] =
+        { 0.0, 0.0, 0.0, 0.0 };
 
-    double FrontEffectivePressurePa = 0.0;
-    double RearEffectivePressurePa = 0.0;
+    double CornerEffectivePressurePa[TABrakeCornerCount] =
+        { 0.0, 0.0, 0.0, 0.0 };
 
-    double FrontCornerRawBrakeTorqueNm = 0.0;
-    double RearCornerRawBrakeTorqueNm = 0.0;
+    double CornerRawBrakeTorqueNm[TABrakeCornerCount] =
+        { 0.0, 0.0, 0.0, 0.0 };
 
     double BoilingPointC = 0.0;
     double VaporFraction01 = 0.0;
