@@ -54,6 +54,12 @@ jobs:
       - name: Validate GeoForge example package
         run: python Tools/GeoForge/validate_geoforge.py Tools/GeoForge/examples/minimal_network.json
 
+      - name: Test content manifest validator
+        run: python -m unittest discover -s Tools/ContentSchemas/tests -p "test_*.py" -v
+
+      - name: Validate base content manifest example
+        run: python Tools/ContentSchemas/validate_content_manifest.py Tools/ContentSchemas/examples/base_minimal_manifest.json
+
       - name: Run Torque Atlas source sanity
         run: python Scripts/source_sanity.py
 
