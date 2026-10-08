@@ -4,9 +4,33 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
+
+
+def _polyline_length_m(points: Any) -> float:
+    if not isinstance(points, list) or len(points) < 2:
+        return 1.0
+
+    total = 0.0
+
+    for a, b in zip(points, points[1:]):
+        if not (
+            isinstance(a, list)
+            and isinstance(b, list)
+            and len(a) == 3
+            and len(b) == 3
+        ):
+            return 1.0
+
+        dx = float(b[0]) - float(a[0])
+        dy = float(b[1]) - float(a[1])
+        dz = float(b[2]) - float(a[2])
+        total += math.sqrt(dx * dx + dy * dy + dz * dz)
+
+    return max(total, 1.0e-6)
 
 
 def _lane_endpoints(
@@ -49,6 +73,13 @@ def build_lane_graph(package: dict[str, Any]) -> dict[str, Any]:
                 "segment_id": lane["segment_id"],
                 "start_node_id": start_node_id,
                 "end_node_id": end_node_id,
+                "length_m": _polyline_length_m(lane.get("centerline")),
+                "speed_limit_mps": float(
+                    segments_by_id[lane["segment_id"]].get(
+                        "speed_limit_mps",
+                        13.8888888889,
+                    )
+                ),
                 "successor_lane_ids": [],
                 "predecessor_lane_ids": [],
             }
