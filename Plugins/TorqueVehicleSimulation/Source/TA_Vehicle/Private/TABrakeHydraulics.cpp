@@ -25,6 +25,47 @@ namespace
                 -Difference,
                 ReleaseRatePerSec * DeltaTimeSeconds);
     }
+
+    bool IsFrontCorner(const int32 CornerIndex)
+    {
+        return
+            CornerIndex
+                == static_cast<int32>(
+                    ETABrakeCornerIndex::FrontLeft)
+            || CornerIndex
+                == static_cast<int32>(
+                    ETABrakeCornerIndex::FrontRight);
+    }
+
+    bool UsesCircuitA(
+        const ETABrakeCircuitTopology Topology,
+        const int32 CornerIndex)
+    {
+        const int32 FrontLeft =
+            static_cast<int32>(
+                ETABrakeCornerIndex::FrontLeft);
+
+        const int32 FrontRight =
+            static_cast<int32>(
+                ETABrakeCornerIndex::FrontRight);
+
+        const int32 RearLeft =
+            static_cast<int32>(
+                ETABrakeCornerIndex::RearLeft);
+
+        const int32 RearRight =
+            static_cast<int32>(
+                ETABrakeCornerIndex::RearRight);
+
+        if (Topology == ETABrakeCircuitTopology::FrontRear)
+        {
+            return CornerIndex == FrontLeft
+                || CornerIndex == FrontRight;
+        }
+
+        return CornerIndex == FrontLeft
+            || CornerIndex == RearRight;
+    }
 }
 
 bool TABrakeHydraulics::ValidateConfig(
@@ -192,17 +233,26 @@ bool TABrakeHydraulics::Step(
 
     if (!ValidateConfig(Config)
         || !FMath::IsFinite(Input.Pedal01)
-        || !FMath::IsFinite(Input.FrontPressureModulation01)
-        || !FMath::IsFinite(Input.RearPressureModulation01)
         || !FMath::IsFinite(Input.DeltaTimeSeconds)
         || Input.DeltaTimeSeconds <= 0.0
-        || !FMath::IsFinite(InOutState.FrontCircuitPressurePa)
-        || !FMath::IsFinite(InOutState.RearCircuitPressurePa)
-        || !FMath::IsFinite(InOutState.FrontCircuitHealth01)
-        || !FMath::IsFinite(InOutState.RearCircuitHealth01)
+        || !FMath::IsFinite(InOutState.CircuitAHealth01)
+        || !FMath::IsFinite(InOutState.CircuitBHealth01)
         || !FMath::IsFinite(InOutState.FluidTemperatureC))
     {
         return false;
+    }
+
+    for (int32 CornerIndex = 0;
+         CornerIndex < TABrakeCornerCount;
+         ++CornerIndex)
+    {
+        if (!FMath::IsFinite(
+                Input.CornerPressureModulation01[CornerIndex])
+            || !FMath::IsFinite(
+                InOutState.CornerLinePressurePa[CornerIndex]))
+        {
+            return false;
+        }
     }
 
     const double Pedal01 =
@@ -226,54 +276,6 @@ bool TABrakeHydraulics::Step(
             0.0,
             Config.MaxSystemPressurePa);
 
-    const double FrontModulation01 =
-        FMath::Clamp(
-            Input.FrontPressureModulation01,
-            0.0,
-            1.0);
-
-    const double RearModulation01 =
-        FMath::Clamp(
-            Input.RearPressureModulation01,
-            0.0,
-            1.0);
-
-    OutOutput.FrontTargetPressurePa =
-        OutOutput.MasterPressureRequestPa
-        * Config.FrontPressureRatio01
-        * FrontModulation01;
-
-    OutOutput.RearTargetPressurePa =
-        OutOutput.MasterPressureRequestPa
-        * Config.RearPressureRatio01
-        * RearModulation01;
-
-    InOutState.FrontCircuitPressurePa =
-        FMath::Clamp(
-            MoveToward(
-                FMath::Max(
-                    0.0,
-                    InOutState.FrontCircuitPressurePa),
-                OutOutput.FrontTargetPressurePa,
-                Config.PressureRiseRatePaPerSec,
-                Config.PressureReleaseRatePaPerSec,
-                Input.DeltaTimeSeconds),
-            0.0,
-            Config.MaxSystemPressurePa);
-
-    InOutState.RearCircuitPressurePa =
-        FMath::Clamp(
-            MoveToward(
-                FMath::Max(
-                    0.0,
-                    InOutState.RearCircuitPressurePa),
-                OutOutput.RearTargetPressurePa,
-                Config.PressureRiseRatePaPerSec,
-                Config.PressureReleaseRatePaPerSec,
-                Input.DeltaTimeSeconds),
-            0.0,
-            Config.MaxSystemPressurePa);
-
     InOutState.VaporFraction01 =
         CalculateVaporFraction01(
             Config,
@@ -291,37 +293,88 @@ bool TABrakeHydraulics::Step(
             Config,
             InOutState.VaporFraction01);
 
-    OutOutput.FrontEffectivePressurePa =
-        InOutState.FrontCircuitPressurePa
-        * FMath::Clamp(
-            InOutState.FrontCircuitHealth01,
-            0.0,
-            1.0)
-        * OutOutput.FluidPressureTransfer01;
+    for (int32 CornerIndex = 0;
+         CornerIndex < TABrakeCornerCount;
+         ++CornerIndex)
+    {
+        const bool bFront =
+            IsFrontCorner(CornerIndex);
 
-    OutOutput.RearEffectivePressurePa =
-        InOutState.RearCircuitPressurePa
-        * FMath::Clamp(
-            InOutState.RearCircuitHealth01,
-            0.0,
-            1.0)
-        * OutOutput.FluidPressureTransfer01;
+        const double AxlePressureRatio01 =
+            bFront
+            ? Config.FrontPressureRatio01
+            : Config.RearPressureRatio01;
 
-    OutOutput.FrontCornerRawBrakeTorqueNm =
-        CalculateCornerBrakeTorqueNm(
-            OutOutput.FrontEffectivePressurePa,
-            Config.FrontCaliperPistonAreaM2,
-            Config.FrontClampGeometryFactor,
-            Config.FrontPadFrictionCoefficient,
-            Config.FrontEffectiveDiscRadiusM);
+        const double Modulation01 =
+            FMath::Clamp(
+                Input.CornerPressureModulation01[CornerIndex],
+                0.0,
+                1.0);
 
-    OutOutput.RearCornerRawBrakeTorqueNm =
-        CalculateCornerBrakeTorqueNm(
-            OutOutput.RearEffectivePressurePa,
-            Config.RearCaliperPistonAreaM2,
-            Config.RearClampGeometryFactor,
-            Config.RearPadFrictionCoefficient,
-            Config.RearEffectiveDiscRadiusM);
+        OutOutput.CornerTargetPressurePa[CornerIndex] =
+            OutOutput.MasterPressureRequestPa
+            * AxlePressureRatio01
+            * Modulation01;
+
+        InOutState.CornerLinePressurePa[CornerIndex] =
+            FMath::Clamp(
+                MoveToward(
+                    FMath::Max(
+                        0.0,
+                        InOutState.CornerLinePressurePa[CornerIndex]),
+                    OutOutput.CornerTargetPressurePa[CornerIndex],
+                    Config.PressureRiseRatePaPerSec,
+                    Config.PressureReleaseRatePaPerSec,
+                    Input.DeltaTimeSeconds),
+                0.0,
+                Config.MaxSystemPressurePa);
+
+        const double CircuitHealth01 =
+            UsesCircuitA(
+                Config.CircuitTopology,
+                CornerIndex)
+            ? FMath::Clamp(
+                InOutState.CircuitAHealth01,
+                0.0,
+                1.0)
+            : FMath::Clamp(
+                InOutState.CircuitBHealth01,
+                0.0,
+                1.0);
+
+        OutOutput.CornerEffectivePressurePa[CornerIndex] =
+            InOutState.CornerLinePressurePa[CornerIndex]
+            * CircuitHealth01
+            * OutOutput.FluidPressureTransfer01;
+
+        const double PistonAreaM2 =
+            bFront
+            ? Config.FrontCaliperPistonAreaM2
+            : Config.RearCaliperPistonAreaM2;
+
+        const double ClampGeometryFactor =
+            bFront
+            ? Config.FrontClampGeometryFactor
+            : Config.RearClampGeometryFactor;
+
+        const double PadFrictionCoefficient =
+            bFront
+            ? Config.FrontPadFrictionCoefficient
+            : Config.RearPadFrictionCoefficient;
+
+        const double EffectiveDiscRadiusM =
+            bFront
+            ? Config.FrontEffectiveDiscRadiusM
+            : Config.RearEffectiveDiscRadiusM;
+
+        OutOutput.CornerRawBrakeTorqueNm[CornerIndex] =
+            CalculateCornerBrakeTorqueNm(
+                OutOutput.CornerEffectivePressurePa[CornerIndex],
+                PistonAreaM2,
+                ClampGeometryFactor,
+                PadFrictionCoefficient,
+                EffectiveDiscRadiusM);
+    }
 
     return true;
 }
