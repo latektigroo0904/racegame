@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://torqueatlas.local/schema/content_manifest_v1.schema.json",
+  "title": "Torque Atlas Content Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_id",
+    "namespace",
+    "components",
+    "events",
+    "driver_profiles"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "package_id": { "type": "string", "minLength": 1 },
+    "namespace": {
+      "type": "string",
+      "pattern": "^[a-z0-9._-]+$"
+    },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/component" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "driver_profiles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/driver_profile" }
+    }
+  },
+  "$defs": {
+    "calibration_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance_class", "confidence"],
+      "properties": {
+        "provenance_class": {
+          "enum": ["P0", "P1", "P2", "P3", "P4"]
+        },
+        "confidence": {
+          "enum": ["low", "medium", "high"]
+        },
+        "source_reference": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "version",
+        "component_type",
+        "physics_affecting"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "version": { "type": "integer", "minimum": 1 },
+        "component_type": {
+          "enum": [
+            "engine",
+            "motor",
+            "battery",
+            "transmission",
+            "differential",
+            "brake",
+            "tire",
+            "suspension",
+            "steering",
+            "aero",
+            "cooling",
+            "electrical",
+            "structure",
+            "cosmetic"
+          ]
+        },
+        "physics_affecting": { "type": "boolean" },
+        "calibration": { "$ref": "#/$defs/calibration_metadata" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "discipline",
+        "route_id",
+        "reward_credits"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "version": { "type": "integer", "minimum": 1 },
+        "discipline": {
+          "enum": [
+            "circuit",
+            "point_to_point",
+            "rally",
+            "drift",
+            "drag",
+            "offroad",
+            "time_trial",
+            "challenge"
+          ]
+        },
+        "route_id": { "type": "string", "minLength": 1 },
+        "laps": { "type": "integer", "minimum": 0 },
+        "reward_credits": { "type": "integer", "minimum": 0 },
+        "entry_cost_credits": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "driver_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patience",
+        "awareness",
+        "aggression",
+        "skill",
+        "risk_tolerance",
+        "lawfulness"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "patience": { "type": "number", "minimum": 0, "maximum": 1 },
+        "awareness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "aggression": { "type": "number", "minimum": 0, "maximum": 1 },
+        "skill": { "type": "number", "minimum": 0, "maximum": 1 },
+        "risk_tolerance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "lawfulness": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}
