@@ -1,6 +1,6 @@
 # Active Development Checkpoint
 
-Updated: 2026-09-24
+Updated: 2026-10-08
 
 ## Current phase
 **Proof-of-Physics v2 / P1.1 static mass balance — canonical source closure and UE 5.8 source preflight complete.** Analytical oracle, settled sampling, comparison, acceptance, live four-wheel evidence adapter and end-to-end evidence pipeline are source-complete. Vertical-load provenance and compliant additional-reaction behavior have Automation source coverage. Patch 44 and aero patch 41 are both landed on canonical `main`. A source-level UHT/include/module audit found no deterministic dependency defect requiring speculative edits. UE 5.8 executable verification is now the acceptance gate.
@@ -9,12 +9,44 @@ Canonical repository: `latektigroo0904/racegame`. Content/runtime versions remai
 
 The project remains **UE-build-unverified** until UnrealHeaderTool, UnrealBuildTool/C++ compilation, Editor module loading and `Automation RunTest TorqueAtlas.` complete successfully under Unreal Engine 5.8.
 
-## Aerodynamics status — CANONICAL OWNERSHIP CLOSED
-Aero patch 41 landed as commit `8f76d4cfe2767c2cb5a281afc06584d7d65abc27`. `UTAVehicleDefinition` owns authored `FTAAerodynamicsDefinition Aerodynamics`; validation rejects invalid authored aero; canonical compilation converts the authored vehicle-origin-local application point to COM-local exactly once; and the compiled aero runtime contributes transactionally to the vehicle physics hash.
+## Aerodynamics status — SPLIT BALANCE SOURCE-CLOSED
 
-The landing used `scripts/apply_aero_asset_closure.py` plus `scripts/verify_aero_asset_closure.py` under an exact two-file diff gate. The temporary `contents: write` workflow was removed immediately after landing. Source sanity treats the applicator as a fixed-state no-op and requires the verifier to pass with a clean git diff.
+The earlier one-lift-coefficient/resultant simplification has been superseded by a split front/rear source model.
 
-Invariant: no arcade speed-dependent tire-grip multiplier. Aero grip gain must emerge from physical force application, chassis attitude/load transfer and changed tire normal loads.
+Canonical runtime now owns:
+- one reference area;
+- one drag coefficient and drag application point;
+- one front lift/downforce coefficient and application point;
+- one rear lift/downforce coefficient and application point.
+
+Aerodynamic forces are applied through `TAVehicleAerodynamicsBridge` into the same chassis force accumulator as tire/suspension loads before the single chassis integration.
+
+There is no speed-dependent tire-grip multiplier. Any grip increase must emerge through physical aerodynamic loading, chassis attitude, suspension/contact response and resulting tire normal loads.
+
+Compact telemetry/regression now records:
+- relative air speed;
+- dynamic pressure;
+- drag;
+- front lift/downforce;
+- rear lift/downforce;
+- total aero force/torque;
+- diagnostic front-downforce balance.
+
+Direct source regression proves:
+- V² drag scaling;
+- headwind effect;
+- negative-Cl downforce;
+- application-point moment generation;
+- front-heavy aero creates nose-down pitch;
+- symmetric front/rear downforce cancels lift-induced pitch for symmetric points.
+
+Latest split-aero source-sanity evidence:
+`ac1f0bd1f8b57923d695b0e4abe89ca6a36d60d5` — GitHub Actions run 220 — success.
+
+Canonical design note:
+`docs/46-AERO-SPLIT-BALANCE-V01.md`.
+
+The aero model is still **UE-build-unverified** and not real-world calibrated.
 
 ## UE 5.8 source preflight
 Canonical audit: `docs/45-UE58-UHT-MODULE-AUDIT-V01.md`.
