@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import sys
 import unittest
 
 
@@ -11,6 +12,7 @@ PATH = ROOT / "traffic_policy.py"
 SPEC = importlib.util.spec_from_file_location("traffic_policy", PATH)
 assert SPEC is not None and SPEC.loader is not None
 M = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = M
 SPEC.loader.exec_module(M)
 
 
