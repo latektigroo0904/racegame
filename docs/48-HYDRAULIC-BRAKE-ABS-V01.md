@@ -165,16 +165,23 @@ Future upgrades:
 
 Pressure cannot teleport.
 
-Per circuit:
+Per circuit, use a bounded discrete pressure update:
 
 ```
-dP/dt =
-clamp(
+DeltaP = clamp(
     P_target - P,
-    -ReleaseRate,
-    +RiseRate
+    -PressureReleaseRatePaPerSec * DeltaTimeSec,
+    +PressureRiseRatePaPerSec * DeltaTimeSec
 )
+P_next = clamp(P + DeltaP, 0, MaxSystemPressurePa)
 ```
+
+The pressure difference and `DeltaP` are in Pa. Each pressure rate is in Pa/s
+and must be multiplied by `DeltaTimeSec` (s) before it can bound a pressure
+change. For a zero timestep, pressure is unchanged. Inputs must be finite;
+pressure targets and rates must be non-negative, and pressure targets are
+bounded by the authored system pressure limit. This is a per-step update,
+not a pressure derivative.
 
 A compliance/volume model may replace the rate limit later without changing the public interface.
 
