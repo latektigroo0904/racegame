@@ -1,6 +1,6 @@
 # Active Development Checkpoint
 
-Updated: 2026-10-08
+Updated: 2026-10-09
 
 ## Current phase
 **Proof-of-Physics v2 / P1.1 static mass balance — canonical source closure and UE 5.8 source preflight complete.** Analytical oracle, settled sampling, comparison, acceptance, live four-wheel evidence adapter and end-to-end evidence pipeline are source-complete. Vertical-load provenance and compliant additional-reaction behavior have Automation source coverage. Patch 44 and aero patch 41 are both landed on canonical `main`. A source-level UHT/include/module audit found no deterministic dependency defect requiring speculative edits. UE 5.8 executable verification is now the acceptance gate.
@@ -188,18 +188,8 @@ Continue only with work that does not falsely promote unverified physics:
 6. content archetype generation;
 7. test fixtures and expected analytical oracles.
 
-### First isolated source module allowed next
-**Hydraulic brake actuation primitive**, following `docs/48-HYDRAULIC-BRAKE-ABS-V01.md`.
-
-Initial implementation boundary:
-- pedal/master-cylinder pressure request;
-- front/rear circuit state;
-- bounded pressure rise/release;
-- per-corner hydraulic torque conversion;
-- circuit-health/leak authority;
-- no replacement of canonical vehicle brake path yet;
-- unit tests only;
-- no ABS until the pressure actuator primitive is stable.
+### Isolated implementation reconciliation
+The hydraulic, ABS, differential, tire-transient, fluid, 12 V battery, TCS/ESC and steering FFB primitives already have public headers, implementations and Automation test sources on main. The earlier hydraulic-first continuation was stale. Their presence does not prove Unreal execution or current CI success.
 
 ## Checkpoint rule
 Update this file before ending every substantial work session and before switching to a new major subsystem.
@@ -234,7 +224,7 @@ No component-inspection output was produced.
 
 Unknown does not mean missing. This is a local execution-infrastructure failure, not proof of a missing toolchain or an installer-permission denial. No installation, download, local clone, source-sanity execution, UHT/UBT build, Editor launch or Automation test was completed. No Windows SDK/compiler compatibility claim is made. UE 5.8 build-unverified status is preserved.
 
-### NEXT_TASK
+### Historical NEXT_TASK — superseded by the bounded package below
 Restore the local command/runtime bridge, then complete a read-only Windows toolchain inventory before deciding on any download:
 1. Record Git and Python executable paths and actual version output.
 2. Enumerate Visual Studio installations with vswhere; verify the C++ toolset/compiler binaries and SDK include/lib versions.
@@ -243,3 +233,33 @@ Restore the local command/runtime bridge, then complete a read-only Windows tool
 5. With a verified toolchain, use the existing Scripts/Verify-Unreal.ps1 harness after reviewing its parameters. Record commit, engine/compiler versions, commands, exit codes and Saved/Verification artifacts. Preserve the checkpoint's ordered UHT/UBT and Automation gates; repair only the first reproducible failure.
 
 Completion evidence for this documentation package: successful GitHub update plus read-back of this section. The Windows inventory itself remains blocked and must not be reported as completed.
+
+## TA_World module foundation — 2026-10-09
+
+One bounded work package: add the minimal Unreal runtime module foundation and reconcile the current repository evidence.
+
+### Inspected provenance and current CI
+- Inspected main HEAD: `1775bded19345d0116ccdf0a930aaeffa5f0cd67`.
+- The recursive repository tree had no TA_World directory/module; the plugin registered eight runtime modules.
+- All eight handover primitives have matching public headers, implementation files and Automation test source files. Later isolated EV battery/motor/drive-stack sources are also present; this package does not promote or validate them.
+- Source sanity run [37854999110](https://github.com/latektigroo0904/racegame/actions/runs/37854999110) failed in the traffic test step. Ten lane graph/routing tests passed; test_traffic_policy failed to import.
+- The log identifies dynamic module loading followed by dataclass processing: sys.modules.get(cls.__module__) returned None. Investigate loader registration before changing traffic behavior.
+- Shell/PowerShell harness syntax, Automation report validator, aero/midpoint applicator tests, GeoForge tests/example and content manifest tests/example passed in that run.
+- The later source-sanity step was skipped. No current green primitive/FFB conclusion can be inferred from this run. The five most recent main runs were failed.
+- Local execution remains unavailable in this chat: command process setup and the Node kernel both failed before producing file/toolchain evidence. Installed UE/compiler status remains unknown.
+
+### Completed source changes
+- Added TA_World.Build.cs with only the private Core dependency needed by its module entry point.
+- Added TA_WorldModule.cpp using the existing FDefaultModuleImpl convention.
+- Registered TA_World as Runtime / Default in TorqueVehicleSimulation.uplugin.
+- Updated the source-sanity expected module set to include TA_World.
+- No reflected types, road data, physical forces, vehicle integration or reverse vehicle-module dependency added.
+- No public header is needed until a subsequent package introduces an exported API.
+
+### Verification limits
+Descriptor JSON and staged module names/dependencies were checked in the available JavaScript orchestration runtime. This is structural inspection only. Python source sanity, UHT/UBT, module loading, Automation and physics traces were not run locally. New commit CI is pending at publication. UE-build-unverified status remains unchanged.
+
+### NEXT_TASK — exactly one bounded package
+Repair the traffic-policy test import failure: inspect Tools/Traffic/tests/test_traffic_policy.py and its importlib loader, register the dynamic module in sys.modules before exec_module if confirmed necessary, run the traffic test suite and source-sanity CI, and record actual results. Keep this separate from TA_World road data development.
+
+The external UE executable gate remains required. After CI recovery, later TA_World packages should add road nodes, segments, lanes and surface zones incrementally against the existing offline GeoForge contract.

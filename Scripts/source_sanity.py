@@ -240,6 +240,7 @@ def check_unreal_descriptors() -> None:
         "TA_Damage",
         "TA_Vehicle",
         "TA_Telemetry",
+        "TA_World",
     }
 
     if set(modules) != expected:

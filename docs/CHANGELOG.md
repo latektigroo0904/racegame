@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-09 — Minimal TA_World module foundation
+
+- Added Core-only runtime module rules and a default module entry point.
+- Registered TA_World in the plugin and source-sanity module inventory.
+- Reconciled checkpoint primitive presence and actual failed main CI evidence.
+- No vehicle physics promotion or GeoForge runtime data added.
+- Structural inspection only; local execution bridge failed, UE build/Automation unverified, publication CI pending.
+- Next bounded package: repair traffic-policy test dynamic import failure.
+
 ## 2026-10-08 — Post-Proof architecture expansion
 
 Designed and documented implementation-ready next phases without prematurely promoting unverified runtime physics:

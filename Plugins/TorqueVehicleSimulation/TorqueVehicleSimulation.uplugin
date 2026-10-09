@@ -48,6 +48,11 @@
       "Name": "TA_Telemetry",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "TA_World",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
     }
   ]
 }
