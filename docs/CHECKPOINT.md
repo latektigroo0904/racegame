@@ -263,3 +263,23 @@ Descriptor JSON and staged module names/dependencies were checked in the availab
 Repair the traffic-policy test import failure: inspect Tools/Traffic/tests/test_traffic_policy.py and its importlib loader, register the dynamic module in sys.modules before exec_module if confirmed necessary, run the traffic test suite and source-sanity CI, and record actual results. Keep this separate from TA_World road data development.
 
 The external UE executable gate remains required. After CI recovery, later TA_World packages should add road nodes, segments, lanes and surface zones incrementally against the existing offline GeoForge contract.
+
+## Continuation — 2026-10-09: CI import recovery complete
+
+User authorized sequential continuation until blocked. Re-read current main and followed its latest traffic-policy import-repair NEXT_TASK.
+
+### Completed and proven
+- CI run 37866230292 failed importing test_traffic_policy: Python 3.13 dataclasses looked up a dynamically loaded module missing from sys.modules.
+- Commit `34c0042d053299be93216f3a921df1c0c5b8654b` imports sys and registers the traffic module before exec_module. Run 37872616078 proves traffic tests pass, then exposes the equivalent economy loader error.
+- Commit `cafc014939c8e152bc4855aa7dbce7714cb3b6f5` applies the same loader correction to test_economy_reference.py.
+- [Source sanity run 37872688314](https://github.com/latektigroo0904/racegame/actions/runs/37872688314) completed successfully for that exact commit. Job 113634116152 confirms traffic tests, economy tests, remaining validators, source sanity and canonical patch checks pass.
+- Changes are limited to Python test-module registration. No solver behavior or acceptance thresholds changed.
+- This evidence is hosted Linux/Python CI, not Windows or Unreal execution.
+
+### Local environment blocker rechecked
+A fresh local shell attempt failed before process creation with `helper_unknown_error: setup refresh had errors`. A separate filesystem-only Node attempt also exited with `windows sandbox failed: helper_unknown_error: setup refresh had errors`. No local inventory results were obtained. No downloads/installations or UE runs occurred. The defect is in the execution bridge/sandbox; missing Git/Python/compiler/SDK/UE installations cannot be inferred.
+
+### NEXT_TASK — executable verification gate
+Restore the local Windows execution bridge, then record actual Git/Python versions, vswhere/C++ toolset inventory, Windows SDK inventory and engine Build.version. Install only proven-missing necessary components after checking compatibility, capacity and access. Run the existing Unreal verification harness on the tested source baseline (or a newer explicitly recorded commit), retaining UHT/UBT/Editor/Automation logs and exit codes. Fix the first reproducible engine failure only.
+
+The earlier traffic import NEXT_TASK is completed. UE-build-unverified remains unchanged. Further UE/runtime acceptance cannot proceed in this session because both local execution routes fail before inspection; offline CI recovery is complete.
